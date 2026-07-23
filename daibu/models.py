@@ -19,3 +19,10 @@ class Source:
     layer: str
     fetch_type: str
     enabled: bool
+
+
+@dataclass(frozen=True)
+class Material:
+    title: str
+    url: str
+    snippet: str

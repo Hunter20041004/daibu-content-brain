@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>呆一布測試 Feed</title>
+    <link>https://example.com/</link>
+    <description>只供自動測試使用</description>
+    <item>
+      <title>AI 幫文組生整理訪談</title>
+      <link>https://example.com/posts/ai-interview</link>
+      <description><![CDATA[<p>從逐字稿到可驗證的重點。</p>]]></description>
+    </item>
+    <item>
+      <title>先問問題，再選工具</title>
+      <link>https://example.com/posts/ask-first</link>
+      <description><![CDATA[<strong>避免</strong>被熱門工具牽著走。]]></description>
+    </item>
+  </channel>
+</rss>

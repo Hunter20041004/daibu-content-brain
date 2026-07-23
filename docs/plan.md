@@ -117,8 +117,8 @@ def test_add_and_get_source_filter_by_layer(tmp_path):
 
 **Interfaces — Produces:** `rss.fetch(url:str, limit:int=10) -> list[Material]`；`Material(title:str, url:str, snippet:str)`（加到 `models.py`）
 
-- [ ] **Step 1: 放假 feed fixture** `tests/fixtures/sample_feed.xml`（含 2 篇 item：title/link/description）
-- [ ] **Step 2: 寫失敗測試** `tests/test_rss.py`
+- [x] **Step 1: 放假 feed fixture** `tests/fixtures/sample_feed.xml`（含 2 篇 item：title/link/description）
+- [x] **Step 2: 寫失敗測試** `tests/test_rss.py`
 ```python
 from daibu.fetch import rss
 
@@ -132,10 +132,10 @@ def test_fetch_parses_items(monkeypatch):
     assert isinstance(items[0].snippet, str)
 ```
 
-- [ ] **Step 3: 跑測試確認紅**
-- [ ] **Step 4: 最小實作** `rss.py`：`_download(url)` 用 urllib 取字串；`fetch` 用 `feedparser.parse(raw)`，map 成 `Material`（snippet 取 summary 前 N 字、去 HTML）。
-- [ ] **Step 5: 綠**
-- [ ] **Step 6: 契約煙霧測試（標記 contract）**
+- [x] **Step 3: 跑測試確認紅**
+- [x] **Step 4: 最小實作** `rss.py`：`_download(url)` 用 urllib 取字串；`fetch` 用 `feedparser.parse(raw)`，map 成 `Material`（snippet 取 summary 前 N 字、去 HTML）。
+- [x] **Step 5: 綠**
+- [x] **Step 6: 契約煙霧測試（標記 contract）**
 ```python
 import pytest
 @pytest.mark.contract
@@ -145,7 +145,7 @@ def test_real_rss_smoke():
     assert len(items) >= 1 and items[0].title
 ```
 跑 `pytest -m contract -v`（需要網路；CI 可略）。
-- [ ] **Step 7: Commit** — `feat: RSS 抓取`
+- [x] **Step 7: Commit** — `feat: RSS 抓取`
 
 ---
 
