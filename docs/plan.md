@@ -322,8 +322,8 @@ def test_summary_and_suggest(tmp_path):
 
 **Interfaces — Produces:** `seeds.load(conn)`（把 spec §6 的白名單與三個範例主題寫入空 DB；已存在則不重複）
 
-- [ ] **Step 1: 失敗測試** — 空 DB 執行 `seeds.load` 後，sources 含 L1–L5、themes 含三個範例（大事/Skill/新創），且再跑一次不重複。
-- [ ] **Step 2: 紅** → **Step 3: 實作**（依 spec §6 表格；用 name 去重）→ **Step 4: 綠** → **Step 5: Commit** `feat: 種子白名單與範例主題`
+- [x] **Step 1: 失敗測試** — 空 DB 執行 `seeds.load` 後，sources 含 L1–L5、themes 含三個範例（大事/Skill/新創），且再跑一次不重複。
+- [x] **Step 2: 紅** → **Step 3: 實作**（依 spec §6 表格；用 name 去重）→ **Step 4: 綠** → **Step 5: Commit** `feat: 種子白名單與範例主題`
 
 ---
 
