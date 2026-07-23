@@ -26,3 +26,17 @@ class Material:
     title: str
     url: str
     snippet: str
+
+
+@dataclass(frozen=True)
+class StoredIdea:
+    id: int
+    theme_id: int | None
+    title: str
+    angle: str
+    gate_score: int
+    gate_reason: str
+    source_url: str
+    status: str
+    body: str
+    created_at: str

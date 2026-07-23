@@ -1,4 +1,5 @@
 from daibu import db
+from daibu.llm.base import Idea
 from daibu.models import Source, Theme
 
 
@@ -61,3 +62,26 @@ def test_init_schema_creates_all_product_tables(tmp_path):
     table_names = {row["name"] for row in rows}
 
     assert {"themes", "sources", "config", "ideas", "performance"} <= table_names
+
+
+def test_add_and_get_candidate_idea(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 大事", 0, "timely", ["L1"], 2),
+    )
+
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("標題", "角度", 80, "理由", "https://example.com/a"),
+        status="候選",
+    )
+
+    ideas = db.get_ideas(conn, status="候選")
+    assert len(ideas) == 1
+    assert ideas[0].id == idea_id
+    assert ideas[0].theme_id == theme_id
+    assert ideas[0].gate_score == 80
+    assert ideas[0].status == "候選"

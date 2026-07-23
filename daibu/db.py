@@ -1,6 +1,7 @@
 import sqlite3
 
-from daibu.models import Source, Theme
+from daibu.llm.base import Idea
+from daibu.models import Source, StoredIdea, Theme
 
 
 def connect(path: str) -> sqlite3.Connection:
@@ -136,6 +137,63 @@ def get_sources(
             layer=row["layer"],
             fetch_type=row["fetch_type"],
             enabled=bool(row["enabled"]),
+        )
+        for row in rows
+    ]
+
+
+def add_idea(
+    conn: sqlite3.Connection,
+    theme_id: int | None,
+    idea: Idea,
+    status: str = "候選",
+) -> int:
+    cursor = conn.execute(
+        """
+        INSERT INTO ideas (
+            theme_id, title, angle, gate_score, gate_reason,
+            source_url, status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            theme_id,
+            idea.title,
+            idea.angle,
+            idea.gate_score,
+            idea.gate_reason,
+            idea.source_url,
+            status,
+        ),
+    )
+    conn.commit()
+    return cursor.lastrowid
+
+
+def get_ideas(
+    conn: sqlite3.Connection,
+    status: str | None = None,
+) -> list[StoredIdea]:
+    query = "SELECT * FROM ideas"
+    parameters: tuple[str, ...] = ()
+    if status is not None:
+        query += " WHERE status = ?"
+        parameters = (status,)
+    query += " ORDER BY id"
+
+    rows = conn.execute(query, parameters).fetchall()
+    return [
+        StoredIdea(
+            id=row["id"],
+            theme_id=row["theme_id"],
+            title=row["title"],
+            angle=row["angle"],
+            gate_score=row["gate_score"],
+            gate_reason=row["gate_reason"],
+            source_url=row["source_url"],
+            status=row["status"],
+            body=row["body"],
+            created_at=row["created_at"],
         )
         for row in rows
     ]

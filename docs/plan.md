@@ -263,7 +263,7 @@ def test_real_llm_returns_parsable_ideas():
 
 **Interfaces — Produces:** `selection.generate_for_theme(conn, theme:Theme, provider, sources, gate_line:str) -> list[int]`（回傳新建 idea ids，狀態=候選）
 
-- [ ] **Step 1: 失敗測試**（mock collector + mock provider，驗證有存進 DB、狀態=候選）
+- [x] **Step 1: 失敗測試**（mock collector + mock provider，驗證有存進 DB、狀態=候選）
 ```python
 from daibu import selection, db
 from daibu.models import Theme, Idea  # 若 Idea 在 llm.base，改 import 來源
@@ -282,7 +282,7 @@ def test_generate_persists_candidates(tmp_path, monkeypatch):
 ```
 （本 Task 順帶在 `db.py` 補 `add_idea`／`get_ideas(status=...)`，先寫其測試再實作。）
 
-- [ ] **Step 2: 紅** → **Step 3: 實作** `generate_for_theme`（時效型先 `collector.collect`，呼叫 `provider.generate_ideas`，逐一 `db.add_idea(status="候選")`）→ **Step 4: 綠** → **Step 5: 重構** → **Step 6: Commit** `feat: 產生本週選題（存為候選）`
+- [x] **Step 2: 紅** → **Step 3: 實作** `generate_for_theme`（時效型先 `collector.collect`，呼叫 `provider.generate_ideas`，逐一 `db.add_idea(status="候選")`）→ **Step 4: 綠** → **Step 5: 重構** → **Step 6: Commit** `feat: 產生本週選題（存為候選）`
 
 ---
 
