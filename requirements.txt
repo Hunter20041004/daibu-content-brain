@@ -1,0 +1,7 @@
+streamlit
+feedparser
+tavily-python
+google-genai
+groq
+python-dotenv
+pytest
