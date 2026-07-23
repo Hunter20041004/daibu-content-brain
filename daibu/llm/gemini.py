@@ -1,0 +1,40 @@
+from google import genai
+
+from daibu.llm import prompt
+from daibu.llm.base import Idea, generate_and_parse
+from daibu.models import Material
+
+
+class GeminiProvider:
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "gemini-2.5-flash",
+    ) -> None:
+        self.api_key = api_key
+        self.model = model
+
+    def _generate_text(self, text: str) -> str:
+        client = genai.Client(api_key=self.api_key)
+        response = client.models.generate_content(
+            model=self.model,
+            contents=text,
+        )
+        return response.text or ""
+
+    def generate_ideas(
+        self,
+        theme_name: str,
+        kind: str,
+        materials: list[Material],
+        gate_line: str,
+        n: int,
+    ) -> list[Idea]:
+        text = prompt.build(
+            theme_name,
+            kind,
+            materials,
+            gate_line,
+            n,
+        )
+        return generate_and_parse(self._generate_text, text)

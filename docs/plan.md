@@ -215,7 +215,7 @@ def test_evergreen_returns_empty():
 - `base.get_provider(config) -> LLMProvider`（工廠，依 `LLM_PROVIDER`）
 - `prompt.build(...) -> str`；`prompt.parse_ideas(raw:str) -> list[Idea]`（防禦性 JSON 解析）
 
-- [ ] **Step 1: 失敗測試（解析，最關鍵）** `tests/test_llm.py`
+- [x] **Step 1: 失敗測試（解析，最關鍵）** `tests/test_llm.py`
 ```python
 from daibu.llm import prompt
 
@@ -230,10 +230,10 @@ def test_parse_ideas_tolerates_codefence():
     assert ideas[0].title.startswith("NotebookLM")
 ```
 
-- [ ] **Step 2: 紅** → **Step 3: 實作** `base.py`（dataclass/Protocol/工廠）、`prompt.build`（含主題、素材清單、**守門線原文**、產幾則、以及「切入角度用文組視角＋拆解邏輯、避免紅海 hype 腔、輸出純 JSON 陣列」指示）、`prompt.parse_ideas`（剝除 code fence／多餘文字後 `json.loads`，欄位缺失給預設、gate_score 轉 int）。
-- [ ] **Step 4: 綠**
-- [ ] **Step 5: 實作 Gemini/Groq provider** — `GeminiProvider.generate_ideas` 用 `google-genai` 呼叫 → 取回文字 → `prompt.parse_ideas`；`GroqProvider` 用 groq（OpenAI 相容）。加一個測試：mock provider 的底層呼叫回傳固定 JSON，驗證 `generate_ideas` 產出 `list[Idea]`。
-- [ ] **Step 6: 契約測試（真實邊界，符合 TDD 規範）** `tests/test_llm_contract.py`
+- [x] **Step 2: 紅** → **Step 3: 實作** `base.py`（dataclass/Protocol/工廠）、`prompt.build`（含主題、素材清單、**守門線原文**、產幾則、以及「切入角度用文組視角＋拆解邏輯、避免紅海 hype 腔、輸出純 JSON 陣列」指示）、`prompt.parse_ideas`（剝除 code fence／多餘文字後 `json.loads`，欄位缺失給預設、gate_score 轉 int）。
+- [x] **Step 4: 綠**
+- [x] **Step 5: 實作 Gemini/Groq provider** — `GeminiProvider.generate_ideas` 用 `google-genai` 呼叫 → 取回文字 → `prompt.parse_ideas`；`GroqProvider` 用 groq（OpenAI 相容）。加一個測試：mock provider 的底層呼叫回傳固定 JSON，驗證 `generate_ideas` 產出 `list[Idea]`。
+- [x] **Step 6: 契約測試（真實邊界，符合 TDD 規範）** `tests/test_llm_contract.py`
 ```python
 import os, pytest
 from daibu.llm import base
@@ -253,7 +253,7 @@ def test_real_llm_returns_parsable_ideas():
     assert all(i.title and i.angle for i in ideas)
 ```
 跑 `pytest -m contract`。**若真實輸出無法解析 → 修 `prompt`（強化格式指示/解析容錯），不要放寬 assert。**
-- [ ] **Step 7: Commit** — `feat: LLM 可切換 adapter（Gemini/Groq）+ 契約測試`
+- [x] **Step 7: Commit** — `feat: LLM 可切換 adapter（Gemini/Groq）+ 契約測試`
 
 ---
 
