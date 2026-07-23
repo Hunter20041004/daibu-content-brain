@@ -303,7 +303,7 @@ def test_generate_persists_candidates(tmp_path, monkeypatch):
 
 **Interfaces — Produces:** `performance.record(conn, idea_id, platform, likes, reach, engagement)`；`performance.summary_by_theme(conn) -> list[dict]`（每主題平均互動）；`performance.suggest(summary) -> str`
 
-- [ ] **Step 1: 失敗測試** — 存兩筆不同主題成效 → summary 依主題彙整 → suggest 指出表現最好/最差主題。
+- [x] **Step 1: 失敗測試** — 存兩筆不同主題成效 → summary 依主題彙整 → suggest 指出表現最好/最差主題。
 ```python
 def test_summary_and_suggest(tmp_path):
     ...  # 建 theme A/B、各發一則、record 成效
@@ -312,7 +312,7 @@ def test_summary_and_suggest(tmp_path):
     txt = performance.suggest(s)
     assert "A" in txt or "B" in txt
 ```
-- [ ] **Step 2: 紅** → **Step 3: 實作**（SQL join ideas×performance group by theme；suggest 用簡單規則排序）→ **Step 4: 綠** → **Step 5: Commit** `feat: 成效回填 + 彙總建議`
+- [x] **Step 2: 紅** → **Step 3: 實作**（SQL join ideas×performance group by theme；suggest 用簡單規則排序）→ **Step 4: 綠** → **Step 5: Commit** `feat: 成效回填 + 彙總建議`
 
 ---
 
