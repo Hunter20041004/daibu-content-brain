@@ -292,8 +292,8 @@ def test_generate_persists_candidates(tmp_path, monkeypatch):
 
 **Interfaces — Produces:** `pipeline.STATUSES = ["候選","採用","草稿","已排程","已發"]`；`pipeline.set_status(conn, idea_id, new_status)`（驗證合法值）；`pipeline.update_body(conn, idea_id, body)`
 
-- [ ] **Step 1: 失敗測試** — 合法轉換成功、非法狀態值 raise、可寫入 body。
-- [ ] **Step 2: 紅** → **Step 3: 實作**（更新 `ideas.status`／`ideas.body`；非法值 `ValueError`）→ **Step 4: 綠** → **Step 5: Commit** `feat: 流水線狀態流轉`
+- [x] **Step 1: 失敗測試** — 合法轉換成功、非法狀態值 raise、可寫入 body。
+- [x] **Step 2: 紅** → **Step 3: 實作**（更新 `ideas.status`／`ideas.body`；非法值 `ValueError`）→ **Step 4: 綠** → **Step 5: Commit** `feat: 流水線狀態流轉`
 
 ---
 
