@@ -155,7 +155,7 @@ def test_real_rss_smoke():
 
 **Interfaces — Produces:** `search.search(query:str, allowed_domains:list[str], limit:int=5) -> list[Material]`
 
-- [ ] **Step 1: 失敗測試（mock Tavily client）**
+- [x] **Step 1: 失敗測試（mock Tavily client）**
 ```python
 from daibu.fetch import search
 
@@ -168,10 +168,10 @@ def test_search_maps_and_scopes(monkeypatch):
     assert [m.url for m in out] == ["https://techcrunch.com/x"]   # 網域外被濾掉
 ```
 
-- [ ] **Step 2: 紅**
-- [ ] **Step 3: 實作** `_raw_search` 呼叫 Tavily（`include_domains=allowed_domains`）；`search` 再做一次網域白名單過濾（雙保險），map 成 `Material`。缺 key → raise 明確錯誤。
-- [ ] **Step 4: 綠** →（可選 contract 測試打真實 Tavily，標 `@pytest.mark.contract`，無 key skip）
-- [ ] **Step 5: Commit** — `feat: 白名單內搜尋抓取`
+- [x] **Step 2: 紅**
+- [x] **Step 3: 實作** `_raw_search` 呼叫 Tavily（`include_domains=allowed_domains`）；`search` 再做一次網域白名單過濾（雙保險），map 成 `Material`。缺 key → raise 明確錯誤。
+- [x] **Step 4: 綠** →（可選 contract 測試打真實 Tavily，標 `@pytest.mark.contract`，無 key skip）
+- [x] **Step 5: Commit** — `feat: 白名單內搜尋抓取`
 
 ---
 
