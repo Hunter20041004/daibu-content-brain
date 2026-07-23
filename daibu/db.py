@@ -100,6 +100,32 @@ def get_themes(conn: sqlite3.Connection) -> list[Theme]:
     ]
 
 
+def update_theme(conn: sqlite3.Connection, theme: Theme) -> None:
+    if theme.id is None:
+        raise ValueError("更新主題需要 id")
+    conn.execute(
+        """
+        UPDATE themes
+        SET name = ?, weekday = ?, kind = ?, source_layers = ?, n_ideas = ?
+        WHERE id = ?
+        """,
+        (
+            theme.name,
+            theme.weekday,
+            theme.kind,
+            ",".join(theme.source_layers),
+            theme.n_ideas,
+            theme.id,
+        ),
+    )
+    conn.commit()
+
+
+def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
+    conn.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
+    conn.commit()
+
+
 def add_source(conn: sqlite3.Connection, source: Source) -> int:
     cursor = conn.execute(
         """
@@ -140,6 +166,60 @@ def get_sources(
         )
         for row in rows
     ]
+
+
+def update_source(conn: sqlite3.Connection, source: Source) -> None:
+    if source.id is None:
+        raise ValueError("更新來源需要 id")
+    conn.execute(
+        """
+        UPDATE sources
+        SET name = ?, url = ?, layer = ?, fetch_type = ?, enabled = ?
+        WHERE id = ?
+        """,
+        (
+            source.name,
+            source.url,
+            source.layer,
+            source.fetch_type,
+            source.enabled,
+            source.id,
+        ),
+    )
+    conn.commit()
+
+
+def delete_source(conn: sqlite3.Connection, source_id: int) -> None:
+    conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
+    conn.commit()
+
+
+def set_config(
+    conn: sqlite3.Connection,
+    key: str,
+    value: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO config (key, value)
+        VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        """,
+        (key, value),
+    )
+    conn.commit()
+
+
+def get_config(
+    conn: sqlite3.Connection,
+    key: str,
+    default: str = "",
+) -> str:
+    row = conn.execute(
+        "SELECT value FROM config WHERE key = ?",
+        (key,),
+    ).fetchone()
+    return str(row["value"]) if row else default
 
 
 def add_idea(
@@ -197,3 +277,22 @@ def get_ideas(
         )
         for row in rows
     ]
+
+
+def update_idea_content(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    title: str,
+    angle: str,
+) -> None:
+    conn.execute(
+        "UPDATE ideas SET title = ?, angle = ? WHERE id = ?",
+        (title, angle, idea_id),
+    )
+    conn.commit()
+
+
+def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
+    # TODO(需澄清): spec 沒有「淘汰」狀態；v1 先把淘汰候選移除。
+    conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
+    conn.commit()

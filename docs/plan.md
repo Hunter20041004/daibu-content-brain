@@ -333,7 +333,7 @@ def test_summary_and_suggest(tmp_path):
 
 **約定：** UI 只呼叫 `daibu/` 的函式，**不放商業邏輯**。首次啟動若 DB 空 → 呼叫 `seeds.load`。
 
-- [ ] **Step 1: 煙霧測試** 用 `streamlit.testing.v1.AppTest` 驗證各頁能載入不報錯（DB 用臨時檔、LLM/搜尋 mock 掉）。
+- [x] **Step 1: 煙霧測試** 用 `streamlit.testing.v1.AppTest` 驗證各頁能載入不報錯（DB 用臨時檔、LLM/搜尋 mock 掉）。
 ```python
 from streamlit.testing.v1 import AppTest
 def test_selection_page_loads(monkeypatch, tmp_path):
@@ -341,21 +341,21 @@ def test_selection_page_loads(monkeypatch, tmp_path):
     at = AppTest.from_file("pages/1_選題.py"); at.run()
     assert not at.exception
 ```
-- [ ] **Step 2: 紅** → **Step 3: 實作四頁**：
+- [x] **Step 2: 紅** → **Step 3: 實作四頁**：
   - `0_設定`：主題/來源 CRUD 表單、守門線文字、provider 與 key。
   - `1_選題`：「產生本週選題」按鈕 → 對每個「今天該發」的主題呼叫 `selection.generate_for_theme` → 候選卡（採用/淘汰/微調 → `pipeline.set_status`）。
   - `2_流水線`：依 `pipeline.STATUSES` 分欄顯示 `db.get_ideas`，可改狀態/編 body。
   - `3_成效`：回填表單 → `performance.record`；顯示 `summary_by_theme` 圖表 + `suggest` 文字。
-- [ ] **Step 4: 綠**（`pytest`）＋ 人工 `streamlit run app.py` 走一遍
-- [ ] **Step 5: Commit** — `feat: Streamlit 四頁 UI 串接`
+- [x] **Step 4: 綠**（`pytest`）＋ 人工 `streamlit run app.py` 走一遍
+- [x] **Step 5: Commit** — `feat: Streamlit 四頁 UI 串接`
 
 ---
 
 ## 收尾檢查（Codex 做完全部 Task 後）
 
-- [ ] `pytest` 全綠；`pytest -m contract`（有 key 時）通過，確認 LLM/RSS 真實邊界如預期。
-- [ ] `streamlit run app.py` 能走完：設定主題→產生選題→採用→流水線→回填成效→看到建議。
-- [ ] `docs/open-questions.md` 若有累積疑點，整理給人類裁決。
+- [x] `pytest` 全綠；`pytest -m contract`（有 key 時）通過，確認 LLM/RSS 真實邊界如預期。
+- [x] `streamlit run app.py` 能走完：設定主題→產生選題→採用→流水線→回填成效→看到建議。
+- [x] `docs/open-questions.md` 若有累積疑點，整理給人類裁決。
 
 ---
 
