@@ -181,7 +181,7 @@ def test_search_maps_and_scopes(monkeypatch):
 
 **Interfaces — Produces:** `collector.collect(theme:Theme, sources:list[Source]) -> list[Material]`
 
-- [ ] **Step 1: 失敗測試** — 一個 rss source 正常、一個丟例外 → 回傳正常那個的素材、不整批失敗；常青型（kind="evergreen"）回傳 `[]`。
+- [x] **Step 1: 失敗測試** — 一個 rss source 正常、一個丟例外 → 回傳正常那個的素材、不整批失敗；常青型（kind="evergreen"）回傳 `[]`。
 ```python
 from daibu.fetch import collector
 from daibu.models import Theme, Source, Material
@@ -201,7 +201,7 @@ def test_evergreen_returns_empty():
     assert collector.collect(theme, []) == []
 ```
 
-- [ ] **Step 2: 紅** → **Step 3: 實作**（依 `theme.source_layers` 篩 sources；`fetch_type` 分派 rss/search；try/except 逐來源跳過並記 log）→ **Step 4: 綠** → **Step 5: Commit** `feat: collector 容錯彙整`
+- [x] **Step 2: 紅** → **Step 3: 實作**（依 `theme.source_layers` 篩 sources；`fetch_type` 分派 rss/search；try/except 逐來源跳過並記 log）→ **Step 4: 綠** → **Step 5: Commit** `feat: collector 容錯彙整`
 
 ---
 
