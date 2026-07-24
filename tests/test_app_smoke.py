@@ -20,6 +20,20 @@ def test_app_entry_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_home_shows_single_primary_action(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    assert not app.exception
+    primary_actions = [
+        button for button in app.button
+        if button.proto.type == "primary"
+    ]
+    assert len(primary_actions) == 1
+
+
 def test_selection_page_loads_without_errors(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 

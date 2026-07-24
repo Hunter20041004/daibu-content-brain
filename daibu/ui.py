@@ -29,6 +29,10 @@ def apply_styles() -> None:
         f"<style>{theme.css()}</style>",
         unsafe_allow_html=True,
     )
+    st.sidebar.markdown(
+        brand_lockup(),
+        unsafe_allow_html=True,
+    )
 
 
 def mascot_svg(size: int = 44) -> str:

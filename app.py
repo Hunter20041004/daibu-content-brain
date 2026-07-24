@@ -1,7 +1,9 @@
+from datetime import date
+
 import streamlit as st
 
 from daibu import db, pipeline
-from daibu.ui import apply_styles, connect_app_db, page_header
+from daibu.ui import apply_styles, connect_app_db, mascot_svg
 
 st.set_page_config(
     page_title="呆一布 選題大腦",
@@ -9,46 +11,88 @@ st.set_page_config(
     layout="wide",
 )
 apply_styles()
-page_header(
-    "DiveAI Content Desk",
-    "呆一布 選題大腦",
-    "AI 當軍師，你當決策者。從可信來源找題目，沿著內容流水線一路走到成效回顧。",
-)
 
 conn = connect_app_db()
 themes = db.get_themes(conn)
 ideas = db.get_ideas(conn)
+today_themes = [
+    theme for theme in themes
+    if theme.weekday == date.today().weekday()
+]
+status_counts = {
+    status: len([idea for idea in ideas if idea.status == status])
+    for status in pipeline.STATUSES
+}
 
-metric_columns = st.columns(3)
-metric_columns[0].metric("主題", len(themes))
-metric_columns[1].metric(
-    "待決策候選",
-    len([idea for idea in ideas if idea.status == "候選"]),
+hero_visual, hero_content = st.columns(
+    [1, 4],
+    vertical_alignment="center",
 )
-metric_columns[2].metric(
-    "已發",
-    len([idea for idea in ideas if idea.status == "已發"]),
-)
-
-st.subheader("接下來做什麼")
-action_columns = st.columns(2)
-with action_columns[0]:
-    with st.container(border=True):
-        st.markdown("### 先決定本週題目")
-        st.write("讓 AI 整理候選，再由你採用值得做的內容。")
-        st.page_link("pages/1_選題.py", label="前往本週選題")
-with action_columns[1]:
-    with st.container(border=True):
-        st.markdown("### 繼續推進內容")
-        st.write("編輯草稿、調整狀態，把採用題目送到已發。")
-        st.page_link("pages/2_流水線.py", label="前往內容流水線")
-
-st.subheader("目前流水線")
-status_columns = st.columns(len(pipeline.STATUSES))
-for status, column in zip(pipeline.STATUSES, status_columns, strict=True):
-    column.metric(
-        status,
-        len([idea for idea in ideas if idea.status == status]),
+with hero_visual:
+    st.markdown(
+        f'<div class="hero-lockup__visual">{mascot_svg(160)}</div>',
+        unsafe_allow_html=True,
     )
+with hero_content:
+    st.markdown(
+        '<p class="page-kicker">DiveAI Content Desk</p>',
+        unsafe_allow_html=True,
+    )
+    st.title("今天，先決定值得做的題目")
+    st.markdown(
+        '<p class="page-deck">'
+        "AI 先整理可信來源與候選，你保留最後的採用權，"
+        "再沿著流水線把想法推進到發布。"
+        "</p>",
+        unsafe_allow_html=True,
+    )
+    if st.button(
+        "前往本週選題",
+        type="primary",
+        width="stretch",
+    ):
+        st.switch_page("pages/1_選題.py")
+
+st.subheader("今日焦點")
+focus_columns = st.columns(3)
+focus_items = (
+    ("今天排定主題", len(today_themes), False),
+    ("待你決策候選", status_counts["候選"], status_counts["候選"] > 0),
+    ("已發內容", status_counts["已發"], False),
+)
+for column, (label, value, needs_attention) in zip(
+    focus_columns,
+    focus_items,
+    strict=True,
+):
+    value_class = "attention-chip" if needs_attention else "today-stat__value"
+    with column:
+        st.markdown(
+            '<div class="daibu-card today-stat">'
+            f'<div class="today-stat__label">{label}</div>'
+            f'<div class="{value_class}">{value}</div>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+st.subheader("流水線縮影")
+total_ideas = sum(status_counts.values())
+segments = "".join(
+    (
+        '<span class="pipeline-bar__segment" '
+        f'style="width: {(count / total_ideas * 100) if total_ideas else 0:.2f}%">'
+        "</span>"
+    )
+    for count in status_counts.values()
+)
+legend = "".join(
+    f"<span>{status} {status_counts[status]}</span>"
+    for status in pipeline.STATUSES
+)
+st.markdown(
+    f'<div class="pipeline-bar" aria-label="內容流水線分布">{segments}</div>'
+    f'<div class="pipeline-legend">{legend}</div>',
+    unsafe_allow_html=True,
+)
 
 st.caption("資料只保存在這台電腦；API key 不寫入資料庫。")

@@ -60,3 +60,17 @@ def test_brand_lockup_inlines_svg_not_img():
     assert "<svg" in html
     assert "<img" not in html
     assert "呆一布" in html
+
+
+def test_apply_styles_places_brand_in_sidebar(monkeypatch):
+    rendered = []
+    monkeypatch.setattr(ui.st, "markdown", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        ui.st.sidebar,
+        "markdown",
+        lambda body, **kwargs: rendered.append(body),
+    )
+
+    ui.apply_styles()
+
+    assert "呆一布" in rendered[0]
