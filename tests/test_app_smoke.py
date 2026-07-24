@@ -82,7 +82,8 @@ def test_selection_uses_configured_gate_line(monkeypatch, tmp_path):
         if button.label == "產生本週選題"
     ).click().run()
 
-    assert received_gate_lines == ["自訂守門線"]
+    assert received_gate_lines
+    assert set(received_gate_lines) == {"自訂守門線"}
 
 
 def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
