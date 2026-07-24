@@ -87,3 +87,24 @@ def test_css_protects_primary_action_and_motion_preferences():
     assert "focus-visible" in styles
     assert "prefers-reduced-motion" in styles
     assert "transition: all" not in styles
+
+
+def test_css_preserves_streamlit_material_icon_font():
+    styles = theme.css()
+
+    assert '[data-testid="stIconMaterial"]' in styles
+    assert '"Material Symbols Rounded"' in styles
+
+
+def test_css_tokens_follow_streamlit_color_scheme():
+    styles = theme.css()
+
+    assert (
+        f"--ink: light-dark({theme.LIGHT['INK']}, {theme.DARK['INK']})"
+        in styles
+    )
+    assert (
+        f"--surface: light-dark("
+        f"{theme.LIGHT['SURFACE']}, {theme.DARK['SURFACE']})"
+        in styles
+    )

@@ -62,6 +62,12 @@ def test_brand_lockup_inlines_svg_not_img():
     assert "呆一布" in html
 
 
+def test_mascot_svg_is_compact_for_streamlit_markdown():
+    svg = ui.mascot_svg()
+
+    assert "\n" not in svg
+
+
 def test_apply_styles_places_brand_in_sidebar(monkeypatch):
     rendered = []
     monkeypatch.setattr(ui.st, "markdown", lambda *args, **kwargs: None)

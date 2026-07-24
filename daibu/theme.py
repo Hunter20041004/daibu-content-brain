@@ -53,24 +53,19 @@ def contrast_ratio(first: str, second: str) -> float:
     return (lighter + 0.05) / (darker + 0.05)
 
 
-def _css_variables(palette: dict[str, str]) -> str:
+def _adaptive_css_variables() -> str:
     return "\n".join(
-        (
-            f"--brand-primary: {palette['BRAND_PRIMARY']};",
-            f"--brand-secondary: {palette['BRAND_SECONDARY']};",
-            f"--ink: {palette['INK']};",
-            f"--surface: {palette['SURFACE']};",
-            f"--canvas: {palette['CANVAS']};",
-            f"--highlight: {palette['HIGHLIGHT']};",
-            f"--border: {palette['BORDER']};",
-        ),
+        f"--{key.lower().replace('_', '-')}: "
+        f"light-dark({LIGHT[key]}, {DARK[key]});"
+        if LIGHT[key] != DARK[key]
+        else f"--{key.lower().replace('_', '-')}: {LIGHT[key]};"
+        for key in PALETTE_KEYS
     )
 
 
 def css(mode: str = "light") -> str:
-    palette = {"light": LIGHT, "dark": DARK}[mode]
-    initial_variables = _css_variables(palette)
-    dark_variables = _css_variables(DARK)
+    {"light": LIGHT, "dark": DARK}[mode]
+    adaptive_variables = _adaptive_css_variables()
     heading_rules = "\n".join(
         (
             f"h{level} {{ font-size: {size}; font-weight: {weight}; }}"
@@ -82,23 +77,10 @@ def css(mode: str = "light") -> str:
     )
     return f"""
     :root {{
-        {initial_variables}
+        {adaptive_variables}
         --primary-button-ink: {LIGHT["INK"]};
         --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
         font-family: {FONT_STACK};
-    }}
-
-    @media (prefers-color-scheme: dark) {{
-        :root {{
-            {dark_variables}
-        }}
-    }}
-
-    html[data-theme="dark"],
-    body[data-theme="dark"],
-    .stApp[data-theme="dark"],
-    [data-testid="stAppViewContainer"][data-theme="dark"] {{
-        {dark_variables}
     }}
 
     .stApp {{
@@ -113,6 +95,10 @@ def css(mode: str = "light") -> str:
     .stApp textarea,
     .stApp select {{
         font-family: {FONT_STACK};
+    }}
+
+    [data-testid="stIconMaterial"] {{
+        font-family: "Material Symbols Rounded" !important;
     }}
 
     {heading_rules}

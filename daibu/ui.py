@@ -38,6 +38,7 @@ def apply_styles() -> None:
 def mascot_svg(size: int = 44) -> str:
     svg = MASCOT_PATH.read_text(encoding="utf-8")
     svg = re.sub(r"<!--.*?-->", "", svg, flags=re.DOTALL)
+    svg = re.sub(r">\s+<", "><", svg.strip())
     return svg.replace(
         "<svg ",
         f'<svg style="width: {size}px" ',

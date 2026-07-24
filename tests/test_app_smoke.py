@@ -34,6 +34,16 @@ def test_home_shows_single_primary_action(monkeypatch, tmp_path):
     assert len(primary_actions) == 1
 
 
+def test_home_renders_mascot_without_code_block(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    assert not app.exception
+    assert len(app.code) == 0
+
+
 def test_selection_page_loads_without_errors(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 
