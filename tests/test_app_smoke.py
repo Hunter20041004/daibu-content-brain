@@ -3,7 +3,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from daibu import db, selection
+from daibu import db, pipeline, selection
 from daibu.llm import base
 from daibu.llm.base import Idea
 from daibu.models import Theme
@@ -180,6 +180,47 @@ def test_pipeline_page_loads_without_errors(monkeypatch, tmp_path):
     app.run()
 
     assert not app.exception
+
+
+def test_pipeline_shows_five_statuses_without_inline_editor(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_idea(
+        conn,
+        None,
+        Idea("看板卡片", "切入角度", 80, "守門理由", ""),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/2_流水線.py")
+    app.run()
+
+    subheaders = {subheader.value for subheader in app.subheader}
+    assert set(pipeline.STATUSES).issubset(subheaders)
+    assert len(app.text_area) == 0
+
+
+def test_pipeline_opens_editor_only_after_card_click(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_idea(
+        conn,
+        None,
+        Idea("點我編輯", "切入角度", 80, "守門理由", ""),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/2_流水線.py")
+    app.run()
+    next(button for button in app.button if button.label == "點我編輯").click().run()
+
+    assert not app.exception
+    assert len(app.text_area) == 1
 
 
 def test_performance_page_loads_without_errors(monkeypatch, tmp_path):
