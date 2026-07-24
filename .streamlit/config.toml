@@ -1,6 +1,27 @@
 [theme]
-base = "light"
-primaryColor = "#b94235"
-backgroundColor = "#f7f3ec"
-secondaryBackgroundColor = "#fffdf9"
-textColor = "#171513"
+font = "Figtree:https://fonts.googleapis.com/css2?family=Figtree:wght@400..900&display=swap"
+headingFont = "Figtree"
+headingFontSizes = ["2.5rem", "1.75rem", "1.375rem", "1.125rem", "1rem", "0.875rem"]
+headingFontWeights = [800, 800, 700, 700, 600, 600]
+baseFontSize = 16
+baseRadius = "16px"
+buttonRadius = "12px"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#6FC1CC"
+backgroundColor = "#E9F6FF"
+secondaryBackgroundColor = "#FAFCFE"
+textColor = "#0E0E2C"
+borderColor = "#C7E2EA"
+linkColor = "#32738F"
+chartCategoricalColors = ["#6FC1CC", "#32738F", "#F8C0A0"]
+
+[theme.dark]
+primaryColor = "#6FC1CC"
+backgroundColor = "#0E0E2C"
+secondaryBackgroundColor = "#171733"
+textColor = "#FAFCFE"
+borderColor = "#2A2A4A"
+linkColor = "#6FC1CC"
+chartCategoricalColors = ["#6FC1CC", "#F8C0A0", "#FAFCFE"]

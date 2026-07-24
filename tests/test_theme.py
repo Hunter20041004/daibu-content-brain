@@ -1,4 +1,6 @@
+import pathlib
 import pytest
+import tomllib
 
 from daibu import theme
 
@@ -54,3 +56,17 @@ def test_type_scale_covers_h1_to_h6():
     assert len(theme.TYPE_WEIGHTS) == 6
     assert theme.TYPE_SCALE[0] == "2.5rem"
     assert theme.TYPE_WEIGHTS[0] == 800
+
+
+def test_config_toml_matches_tokens():
+    config = tomllib.loads(
+        pathlib.Path(".streamlit/config.toml").read_text(),
+    )
+    light = config["theme"]["light"]
+    dark = config["theme"]["dark"]
+
+    assert light["backgroundColor"].upper() == theme.LIGHT["CANVAS"]
+    assert light["textColor"].upper() == theme.LIGHT["INK"]
+    assert light["primaryColor"].upper() == theme.LIGHT["BRAND_PRIMARY"]
+    assert dark["backgroundColor"].upper() == theme.DARK["CANVAS"]
+    assert dark["textColor"].upper() == theme.DARK["INK"]
