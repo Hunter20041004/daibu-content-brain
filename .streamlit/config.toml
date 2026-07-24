@@ -7,6 +7,7 @@ baseFontSize = 16
 baseRadius = "16px"
 buttonRadius = "12px"
 showWidgetBorder = true
+chartCategoricalColors = ["#6FC1CC", "#32738F", "#F8C0A0"]
 
 [theme.light]
 primaryColor = "#6FC1CC"
@@ -15,7 +16,6 @@ secondaryBackgroundColor = "#FAFCFE"
 textColor = "#0E0E2C"
 borderColor = "#C7E2EA"
 linkColor = "#32738F"
-chartCategoricalColors = ["#6FC1CC", "#32738F", "#F8C0A0"]
 
 [theme.dark]
 primaryColor = "#6FC1CC"
@@ -24,4 +24,3 @@ secondaryBackgroundColor = "#171733"
 textColor = "#FAFCFE"
 borderColor = "#2A2A4A"
 linkColor = "#6FC1CC"
-chartCategoricalColors = ["#6FC1CC", "#F8C0A0", "#FAFCFE"]

@@ -9,3 +9,7 @@
 ## 候選「淘汰」的資料語意
 
 - spec 要求候選卡有「淘汰」，但流水線合法狀態只有候選／採用／草稿／已排程／已發。v1 暫定淘汰即刪除候選，不新增第六種狀態；若未來需要復盤淘汰原因，應改成可封存的 rejected 狀態或獨立淘汰紀錄。
+
+## Streamlit 雙模式圖表色盤
+
+- 2026-07-24 實測 Streamlit 1.60：`chartCategoricalColors` 只能放在共用 `[theme]`，放在 `[theme.light]`／`[theme.dark]` 會出現「not a valid config option」警告。因此 v1 先共用品牌藍綠、次級藍、Highlight 三色；若未來需要各自最佳化深色圖表，再改由圖表層依模式指定。
