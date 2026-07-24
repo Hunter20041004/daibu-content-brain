@@ -42,3 +42,15 @@ def test_dark_secondary_is_readable():
 
 def test_light_and_dark_palettes_share_token_names():
     assert set(theme.LIGHT) == set(theme.DARK) == set(theme.PALETTE_KEYS)
+
+
+def test_font_stack_covers_latin_and_chinese():
+    assert "Figtree" in theme.FONT_STACK
+    assert "Noto Sans TC" in theme.FONT_STACK
+
+
+def test_type_scale_covers_h1_to_h6():
+    assert len(theme.TYPE_SCALE) == 6
+    assert len(theme.TYPE_WEIGHTS) == 6
+    assert theme.TYPE_SCALE[0] == "2.5rem"
+    assert theme.TYPE_WEIGHTS[0] == 800

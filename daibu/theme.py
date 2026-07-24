@@ -8,6 +8,10 @@ PALETTE_KEYS = (
     "BORDER",
 )
 
+FONT_STACK = '"Figtree", "Noto Sans TC", sans-serif'
+TYPE_SCALE = ["2.5rem", "1.75rem", "1.375rem", "1.125rem", "1rem", "0.875rem"]
+TYPE_WEIGHTS = [800, 800, 700, 700, 600, 600]
+
 LIGHT = {
     "BRAND_PRIMARY": "#6FC1CC",
     "BRAND_SECONDARY": "#32738F",
