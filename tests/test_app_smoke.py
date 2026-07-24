@@ -3,7 +3,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from daibu import db, pipeline, selection
+from daibu import db, performance, pipeline, selection
 from daibu.llm import base
 from daibu.llm.base import Idea
 from daibu.models import Theme
@@ -230,3 +230,46 @@ def test_performance_page_loads_without_errors(monkeypatch, tmp_path):
     app.run()
 
     assert not app.exception
+
+
+def test_performance_shows_recommendation_before_chart(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "成效主題", 0, "evergreen", [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("已發貼文", "切入角度", 80, "守門理由", ""),
+        status="已發",
+    )
+    performance.record(conn, idea_id, "Instagram", 10, 100, 5.0)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_成效.py")
+    app.run()
+
+    def walk(block):
+        for child in block.children.values():
+            yield child
+            if hasattr(child, "children"):
+                yield from walk(child)
+
+    elements = list(walk(app._tree[0]))
+    recommendation_index = next(
+        index
+        for index, element in enumerate(elements)
+        if element.type == "markdown"
+        and '<div class="suggestion-card">' in element.value
+    )
+    chart_index = next(
+        index
+        for index, element in enumerate(elements)
+        if element.type == "vega_lite_chart"
+    )
+
+    assert not app.exception
+    assert recommendation_index < chart_index
