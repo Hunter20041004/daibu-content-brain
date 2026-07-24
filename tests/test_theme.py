@@ -70,3 +70,20 @@ def test_config_toml_matches_tokens():
     assert light["primaryColor"].upper() == theme.LIGHT["BRAND_PRIMARY"]
     assert dark["backgroundColor"].upper() == theme.DARK["CANVAS"]
     assert dark["textColor"].upper() == theme.DARK["INK"]
+
+
+def test_css_declares_tokens_as_variables():
+    styles = theme.css()
+
+    assert "--brand-primary: #6FC1CC" in styles
+    assert theme.FONT_STACK in styles
+
+
+def test_css_protects_primary_action_and_motion_preferences():
+    styles = theme.css()
+
+    assert "--primary-button-ink: #0E0E2C" in styles
+    assert "scale(0.97)" in styles
+    assert "focus-visible" in styles
+    assert "prefers-reduced-motion" in styles
+    assert "transition: all" not in styles

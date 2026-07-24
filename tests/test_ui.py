@@ -38,7 +38,7 @@ def test_connect_app_db_loads_dotenv(monkeypatch, tmp_path):
     assert loaded == [True]
 
 
-def test_metric_text_uses_readable_colors(monkeypatch):
+def test_apply_styles_injects_brand_theme(monkeypatch):
     rendered = []
     monkeypatch.setattr(
         ui.st,
@@ -49,7 +49,6 @@ def test_metric_text_uses_readable_colors(monkeypatch):
     ui.apply_styles()
 
     styles = rendered[0]
-    assert '[data-testid="stMetricLabel"] *' in styles
-    assert '[data-testid="stMetricValue"] *' in styles
-    assert "color: var(--muted)" in styles
+    assert "--brand-primary" in styles
+    assert "prefers-reduced-motion" in styles
     assert "color: var(--ink)" in styles

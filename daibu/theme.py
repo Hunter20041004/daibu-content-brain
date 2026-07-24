@@ -51,3 +51,395 @@ def contrast_ratio(first: str, second: str) -> float:
         reverse=True,
     )
     return (lighter + 0.05) / (darker + 0.05)
+
+
+def _css_variables(palette: dict[str, str]) -> str:
+    return "\n".join(
+        (
+            f"--brand-primary: {palette['BRAND_PRIMARY']};",
+            f"--brand-secondary: {palette['BRAND_SECONDARY']};",
+            f"--ink: {palette['INK']};",
+            f"--surface: {palette['SURFACE']};",
+            f"--canvas: {palette['CANVAS']};",
+            f"--highlight: {palette['HIGHLIGHT']};",
+            f"--border: {palette['BORDER']};",
+        ),
+    )
+
+
+def css(mode: str = "light") -> str:
+    palette = {"light": LIGHT, "dark": DARK}[mode]
+    initial_variables = _css_variables(palette)
+    dark_variables = _css_variables(DARK)
+    heading_rules = "\n".join(
+        (
+            f"h{level} {{ font-size: {size}; font-weight: {weight}; }}"
+            for level, (size, weight) in enumerate(
+                zip(TYPE_SCALE, TYPE_WEIGHTS, strict=True),
+                start=1,
+            )
+        ),
+    )
+    return f"""
+    :root {{
+        {initial_variables}
+        --primary-button-ink: {LIGHT["INK"]};
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        font-family: {FONT_STACK};
+    }}
+
+    @media (prefers-color-scheme: dark) {{
+        :root {{
+            {dark_variables}
+        }}
+    }}
+
+    html[data-theme="dark"],
+    body[data-theme="dark"],
+    .stApp[data-theme="dark"],
+    [data-testid="stAppViewContainer"][data-theme="dark"] {{
+        {dark_variables}
+    }}
+
+    .stApp {{
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: {FONT_STACK};
+    }}
+
+    .stApp *,
+    .stApp button,
+    .stApp input,
+    .stApp textarea,
+    .stApp select {{
+        font-family: {FONT_STACK};
+    }}
+
+    {heading_rules}
+
+    h1 {{
+        letter-spacing: 0.04em;
+        line-height: 1.12;
+    }}
+
+    h1, h2, h3, h4, h5, h6,
+    p, label, span {{
+        color: var(--ink);
+    }}
+
+    a {{
+        color: var(--brand-secondary);
+    }}
+
+    [data-testid="stHeader"] {{
+        background: transparent;
+    }}
+
+    [data-testid="stSidebar"] {{
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+    }}
+
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        background: var(--surface);
+        border-color: var(--border);
+        border-radius: 16px;
+        box-shadow: none;
+    }}
+
+    [data-testid="stMetric"] {{
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem;
+    }}
+
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricLabel"] *,
+    [data-testid="stMetricValue"],
+    [data-testid="stMetricValue"] * {{
+        color: var(--ink);
+    }}
+
+    .stButton > button,
+    [data-testid^="stBaseButton"] {{
+        min-height: 44px;
+        border-color: var(--border);
+        border-radius: 12px;
+        color: var(--ink);
+        transition:
+            transform 160ms var(--ease-out),
+            border-color 160ms ease,
+            background-color 160ms ease;
+    }}
+
+    .stButton > button:active,
+    [data-testid^="stBaseButton"]:active {{
+        transform: scale(0.97);
+    }}
+
+    .stButton > button[kind="primary"],
+    [data-testid="stBaseButton-primary"] {{
+        background: var(--brand-primary);
+        border-color: var(--brand-primary);
+        color: var(--primary-button-ink) !important;
+        font-weight: 700;
+    }}
+
+    .stButton > button[kind="primary"] *,
+    [data-testid="stBaseButton-primary"] * {{
+        color: var(--primary-button-ink) !important;
+    }}
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible,
+    [tabindex]:focus-visible {{
+        outline: 2px solid var(--brand-primary) !important;
+        outline-offset: 2px;
+    }}
+
+    .page-kicker {{
+        color: var(--brand-secondary) !important;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.35rem;
+        text-transform: uppercase;
+    }}
+
+    .page-deck {{
+        color: var(--ink);
+        font-size: 1rem;
+        line-height: 1.6;
+        max-width: 68ch;
+        opacity: 0.78;
+    }}
+
+    .brand-lockup {{
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+    }}
+
+    .brand-lockup svg {{
+        display: block;
+        flex: 0 0 auto;
+        height: auto;
+    }}
+
+    .brand-lockup__name {{
+        color: var(--ink);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }}
+
+    .brand-lockup__meta {{
+        color: var(--brand-secondary);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin-top: 0.15rem;
+        text-transform: uppercase;
+    }}
+
+    .daibu-card,
+    .empty-state,
+    .suggestion-card {{
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        color: var(--ink);
+        padding: 1.25rem;
+    }}
+
+    .suggestion-card {{
+        background: var(--highlight);
+        color: var(--primary-button-ink);
+    }}
+
+    .suggestion-card * {{
+        color: var(--primary-button-ink);
+    }}
+
+    .empty-state {{
+        border-style: dashed;
+        text-align: center;
+    }}
+
+    .status-chip,
+    .attention-chip {{
+        align-items: center;
+        background: var(--border);
+        border-radius: 999px;
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1;
+        min-height: 1.75rem;
+        padding: 0.35rem 0.65rem;
+    }}
+
+    .attention-chip {{
+        background: var(--highlight);
+        color: var(--primary-button-ink);
+    }}
+
+    .score-badge {{
+        align-items: center;
+        aspect-ratio: 1;
+        background: var(--brand-primary);
+        border-radius: 999px;
+        color: var(--primary-button-ink);
+        display: inline-flex;
+        flex-direction: column;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        justify-content: center;
+        min-width: 4.75rem;
+    }}
+
+    .score-badge--review {{
+        background: var(--highlight);
+    }}
+
+    .score-badge small {{
+        color: var(--primary-button-ink);
+        font-size: 0.65rem;
+        font-weight: 700;
+    }}
+
+    .pipeline-bar {{
+        background: var(--border);
+        border-radius: 999px;
+        display: flex;
+        height: 0.75rem;
+        overflow: hidden;
+        width: 100%;
+    }}
+
+    .pipeline-bar__segment {{
+        background: var(--brand-primary);
+        min-width: 0;
+    }}
+
+    .pipeline-bar__segment:nth-child(even) {{
+        background: var(--brand-secondary);
+    }}
+
+    .pipeline-legend {{
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.8rem;
+        gap: 0.5rem 1rem;
+        margin-top: 0.75rem;
+    }}
+
+    .hero-lockup {{
+        align-items: center;
+        display: flex;
+        gap: clamp(1.5rem, 4vw, 4rem);
+        padding: 1.5rem 0 2.5rem;
+    }}
+
+    .hero-lockup__visual {{
+        flex: 0 0 160px;
+    }}
+
+    .hero-lockup__content {{
+        max-width: 48rem;
+    }}
+
+    .hero-lockup__content h1 {{
+        margin-bottom: 0.75rem;
+    }}
+
+    .today-stat {{
+        min-height: 8rem;
+    }}
+
+    .today-stat__label {{
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        opacity: 0.72;
+    }}
+
+    .today-stat__value {{
+        color: var(--ink);
+        font-size: 2rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-top: 0.5rem;
+    }}
+
+    .candidate-card__title {{
+        font-size: {TYPE_SCALE[2]};
+        font-weight: {TYPE_WEIGHTS[2]};
+        line-height: 1.3;
+        margin: 0 0 0.5rem;
+    }}
+
+    .kanban-card-title {{
+        display: -webkit-box;
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1.35;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }}
+
+    @media (hover: hover) and (pointer: fine) {{
+        .stButton > button:hover,
+        [data-testid^="stBaseButton"]:hover {{
+            border-color: var(--brand-secondary);
+        }}
+
+        .stButton > button[kind="primary"]:hover,
+        [data-testid="stBaseButton-primary"]:hover {{
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            transform: translateY(-1px);
+        }}
+    }}
+
+    @media (max-width: 700px) {{
+        .hero-lockup {{
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 1rem;
+            padding-top: 0.5rem;
+        }}
+
+        .hero-lockup__visual {{
+            flex-basis: auto;
+            width: 104px;
+        }}
+
+        .pipeline-legend {{
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }}
+
+        [data-testid="stHorizontalBlock"] {{
+            gap: 1rem;
+        }}
+    }}
+
+    @media (prefers-reduced-motion: reduce) {{
+        .stButton > button,
+        [data-testid^="stBaseButton"] {{
+            transform: none !important;
+            transition:
+                border-color 160ms ease,
+                background-color 160ms ease;
+        }}
+    }}
+    """
