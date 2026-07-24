@@ -1,5 +1,7 @@
 import os
+import re
 import sqlite3
+from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -7,6 +9,7 @@ from dotenv import load_dotenv
 from daibu import db, seeds, theme
 
 DEFAULT_DB_PATH = "daibu.db"
+MASCOT_PATH = Path(__file__).resolve().parents[1] / "assets" / "mascot.svg"
 DEFAULT_GATE_LINE = (
     "一個怕 AI 的文組同學看完這則，會不會覺得"
     "「原來我也可以，而且我更會想事情了」？"
@@ -25,6 +28,28 @@ def apply_styles() -> None:
     st.markdown(
         f"<style>{theme.css()}</style>",
         unsafe_allow_html=True,
+    )
+
+
+def mascot_svg(size: int = 44) -> str:
+    svg = MASCOT_PATH.read_text(encoding="utf-8")
+    svg = re.sub(r"<!--.*?-->", "", svg, flags=re.DOTALL)
+    return svg.replace(
+        "<svg ",
+        f'<svg style="width: {size}px" ',
+        1,
+    )
+
+
+def brand_lockup(size: int = 44) -> str:
+    return (
+        '<div class="brand-lockup">'
+        f"{mascot_svg(size)}"
+        '<span class="brand-lockup__name">'
+        "呆一布"
+        '<span class="brand-lockup__meta">選題大腦</span>'
+        "</span>"
+        "</div>"
     )
 
 

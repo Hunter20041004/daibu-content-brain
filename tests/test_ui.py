@@ -52,3 +52,11 @@ def test_apply_styles_injects_brand_theme(monkeypatch):
     assert "--brand-primary" in styles
     assert "prefers-reduced-motion" in styles
     assert "color: var(--ink)" in styles
+
+
+def test_brand_lockup_inlines_svg_not_img():
+    html = ui.brand_lockup()
+
+    assert "<svg" in html
+    assert "<img" not in html
+    assert "呆一布" in html
