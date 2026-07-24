@@ -57,8 +57,13 @@ def test_selection_score_stays_readable_in_narrow_card(monkeypatch, tmp_path):
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
     app.run()
 
-    assert app.metric[0].label == "守門線（滿分 100）"
-    assert app.metric[0].value == "88"
+    score_badges = [
+        markdown.value
+        for markdown in app.markdown
+        if "score-badge" in markdown.value
+    ]
+    assert any("88" in badge for badge in score_badges)
+    assert len(app.metric) == 0
 
 
 def test_selection_uses_configured_gate_line(monkeypatch, tmp_path):
@@ -98,6 +103,22 @@ def test_selection_uses_configured_gate_line(monkeypatch, tmp_path):
 
     assert received_gate_lines
     assert set(received_gate_lines) == {"自訂守門線"}
+
+
+def test_selection_shows_configured_gate_line(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.set_config(conn, "gate_line", "畫面上的自訂守門線")
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    assert any(
+        "畫面上的自訂守門線" in markdown.value
+        for markdown in app.markdown
+    )
 
 
 def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
