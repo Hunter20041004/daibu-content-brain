@@ -10,7 +10,182 @@ def connect(path: str) -> sqlite3.Connection:
     return connection
 
 
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+        """,
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {
+        row["name"] for row in conn.execute(f"PRAGMA table_info({table})")
+    }
+
+
+def _needs_legacy_migration(conn: sqlite3.Connection) -> bool:
+    return (
+        "source_layers" in _table_columns(conn, "themes")
+        or "layer" in _table_columns(conn, "sources")
+        or "gate_score" in _table_columns(conn, "ideas")
+    )
+
+
+def _migrate_legacy_schema(conn: sqlite3.Connection) -> None:
+    if "gate_score" in _table_columns(conn, "ideas"):
+        conn.execute(
+            """
+            CREATE TABLE ideas_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                theme_id INTEGER,
+                title TEXT NOT NULL,
+                angle TEXT NOT NULL,
+                source_url TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL,
+                body TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                published_at TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO ideas_new (
+                id, theme_id, title, angle, source_url, status, body,
+                created_at
+            )
+            SELECT
+                id,
+                theme_id,
+                title,
+                angle,
+                source_url,
+                CASE
+                    WHEN status IN ('草稿', '已排程') THEN '採用'
+                    ELSE status
+                END,
+                body,
+                created_at
+            FROM ideas
+            """
+        )
+        conn.execute("DROP TABLE ideas")
+        conn.execute("ALTER TABLE ideas_new RENAME TO ideas")
+
+    if "layer" in _table_columns(conn, "sources"):
+        conn.execute(
+            """
+            CREATE TABLE sources_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                url TEXT NOT NULL,
+                layer TEXT NOT NULL,
+                fetch_type TEXT NOT NULL,
+                enabled INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO sources_new (
+                id, name, url, layer, fetch_type, enabled
+            )
+            SELECT id, name, url, layer, fetch_type, enabled
+            FROM sources
+            WHERE fetch_type != 'manual'
+            """
+        )
+        conn.execute("DROP TABLE sources")
+        conn.execute("ALTER TABLE sources_new RENAME TO sources")
+
+    if (
+        "source_layers" in _table_columns(conn, "themes")
+        and "layer" in _table_columns(conn, "sources")
+    ):
+        conn.execute("DROP TABLE IF EXISTS theme_sources")
+        conn.execute(
+            """
+            CREATE TABLE theme_sources (
+                theme_id INTEGER NOT NULL,
+                source_id INTEGER NOT NULL,
+                PRIMARY KEY (theme_id, source_id),
+                FOREIGN KEY (theme_id) REFERENCES themes(id),
+                FOREIGN KEY (source_id) REFERENCES sources(id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO theme_sources (theme_id, source_id)
+            SELECT themes.id, sources.id
+            FROM themes
+            JOIN sources
+              ON instr(
+                    ',' || replace(themes.source_layers, ' ', '') || ',',
+                    ',' || sources.layer || ','
+                 ) > 0
+            """
+        )
+
+    if "source_layers" in _table_columns(conn, "themes"):
+        conn.execute(
+            """
+            CREATE TABLE themes_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                weekday INTEGER NOT NULL,
+                n_ideas INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO themes_new (id, name, weekday, n_ideas)
+            SELECT id, name, weekday, n_ideas
+            FROM themes
+            """
+        )
+        conn.execute("DROP TABLE themes")
+        conn.execute("ALTER TABLE themes_new RENAME TO themes")
+
+    if "layer" in _table_columns(conn, "sources"):
+        conn.execute(
+            """
+            CREATE TABLE sources_final (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                url TEXT NOT NULL,
+                fetch_type TEXT NOT NULL,
+                enabled INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO sources_final (
+                id, name, url, fetch_type, enabled
+            )
+            SELECT id, name, url, fetch_type, enabled
+            FROM sources
+            """
+        )
+        conn.execute("DROP TABLE sources")
+        conn.execute("ALTER TABLE sources_final RENAME TO sources")
+
 def init_schema(conn: sqlite3.Connection) -> None:
+    if _table_exists(conn, "themes") and _needs_legacy_migration(conn):
+        try:
+            _migrate_legacy_schema(conn)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS themes (
