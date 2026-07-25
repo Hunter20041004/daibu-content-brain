@@ -45,6 +45,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
             status TEXT NOT NULL,
             body TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            published_at TEXT,
             FOREIGN KEY (theme_id) REFERENCES themes(id)
         );
 
@@ -267,6 +268,7 @@ def get_ideas(
             status=row["status"],
             body=row["body"],
             created_at=row["created_at"],
+            published_at=row["published_at"],
         )
         for row in rows
     ]

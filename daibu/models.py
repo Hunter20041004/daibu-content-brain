@@ -38,3 +38,4 @@ class StoredIdea:
     status: str
     body: str
     created_at: str
+    published_at: str | None

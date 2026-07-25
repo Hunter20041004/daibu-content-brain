@@ -11,10 +11,24 @@ def set_status(
     if new_status not in STATUSES:
         raise ValueError(f"不合法的流水線狀態：{new_status}")
 
-    conn.execute(
-        "UPDATE ideas SET status = ? WHERE id = ?",
-        (new_status, idea_id),
-    )
+    if new_status == "已發":
+        conn.execute(
+            """
+            UPDATE ideas
+            SET status = ?, published_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (new_status, idea_id),
+        )
+    else:
+        conn.execute(
+            """
+            UPDATE ideas
+            SET status = ?, published_at = NULL
+            WHERE id = ?
+            """,
+            (new_status, idea_id),
+        )
     conn.commit()
 
 
