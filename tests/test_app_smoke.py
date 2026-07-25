@@ -88,6 +88,32 @@ def test_home_lists_each_theme_status(monkeypatch, tmp_path):
     assert row["已發"] == 1
 
 
+def test_home_does_not_count_unknown_publish_time_as_this_week(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "舊資料主題", 0, [], 1))
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea("沒有發布時間的舊貼文", "角度", ""),
+        status="已發",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    weekly_published = next(
+        metric for metric in app.metric
+        if metric.label == "本週已發"
+    )
+    assert weekly_published.value == "0"
+
+
 def test_home_flags_themes_without_sources(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

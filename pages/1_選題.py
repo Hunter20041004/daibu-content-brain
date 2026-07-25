@@ -219,7 +219,7 @@ with candidate_column:
                 st.session_state.pop("selected_theme_id", None)
                 st.rerun()
 
-        with st.expander("這個主題抓哪些來源", expanded=True):
+        with st.expander("這個主題抓哪些來源"):
             with st.form(f"theme-sources-{selected_theme.id}"):
                 selected_source_ids = []
                 for source in sources:

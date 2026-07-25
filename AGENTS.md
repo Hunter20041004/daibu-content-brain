@@ -1,13 +1,14 @@
 # AGENTS.md — 呆一布 選題大腦（給接手的 AI 開發者）
 
-你（Codex）負責「動手實作」。設計已定案，**先讀 `docs/spec.md`（要做什麼）與 `docs/plan.md`（照什麼順序做、每步的測試）**，再開工。
+你（Codex）負責「動手實作」。先讀 `STATUS.md` 與 `HANDOFF.md`，再依當輪
+`docs/specs/` 設計與對應的 `docs/plan*.md` 開工。
 
 ## 最高原則：TDD（不可違反）
 
 嚴格 **Red → Green → Refactor**，**垂直切片、一次一個失敗測試**：
 - 先寫**一個**失敗測試 → 寫最少程式讓它綠 → 在測試保護下重構 → 全綠 → 才進下一個。
 - **禁止水平切片**（不可一次寫完多個測試、再一次寫完多段實作）。
-- 順序照 `plan.md` 的切片，每片做完都要能 demo。
+- 順序照當輪計畫的切片，每片做完都要能 demo。
 
 ## 契約 / 邊界測試（重要）
 
@@ -20,7 +21,7 @@
 - LLM：**免費 provider，做成可切換的 adapter**。預設 **Google AI Studio（Gemini Flash）**，備援 **Groq（Llama）**。**⛔ 不要用 Claude 或任何付費模型。**
 - 取材：`feedparser`（RSS）＋ 搜尋 API 限白名單網域（Tavily 預設）。
 - **秘鑰走環境變數（`.env` + `python-dotenv`），絕不 hardcode、不 commit。** 附 `.env.example`。
-- **不要實作 pillar / 四支柱**（已移除）。品管只有「守門線分數」。
+- **不要實作 pillar / 四支柱或額外的 AI 品管評分**。候選由使用者採用、微調或淘汰。
 
 ## v1 Non-goals（不要提前做）
 
@@ -36,8 +37,8 @@
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # 填入免費 API key
-pytest                 # 測試
-streamlit run app.py   # 跑起來
+.venv/bin/pytest                 # 測試
+.venv/bin/streamlit run app.py   # 跑起來
 ```
 
 ## 有疑慮時
