@@ -8,14 +8,11 @@ logger = logging.getLogger(__name__)
 
 
 def collect(theme: Theme, sources: list[Source]) -> list[Material]:
-    if theme.kind == "evergreen":
-        return []
-
     materials: list[Material] = []
     for source in sources:
         if (
             not source.enabled
-            or source.layer not in theme.source_layers
+            or source.id not in theme.source_ids
         ):
             continue
         try:

@@ -9,10 +9,10 @@ def test_collect_skips_failing_source(monkeypatch):
         return [Material("t", "https://ok.com/1", "s")]
 
     monkeypatch.setattr(collector.rss, "fetch", fake_fetch)
-    theme = Theme(1, "大事", 0, "timely", ["L1"], 3)
+    theme = Theme(1, "大事", 0, [1, 2], 3)
     sources = [
-        Source(1, "ok", "https://ok.com/feed", "L1", "rss", True),
-        Source(2, "bad", "https://bad.com/feed", "L1", "rss", True),
+        Source(1, "ok", "https://ok.com/feed", "rss", True),
+        Source(2, "bad", "https://bad.com/feed", "rss", True),
     ]
 
     materials = collector.collect(theme, sources)
@@ -20,15 +20,34 @@ def test_collect_skips_failing_source(monkeypatch):
     assert [material.url for material in materials] == ["https://ok.com/1"]
 
 
-def test_evergreen_returns_empty_without_fetching(monkeypatch):
+def test_collect_only_uses_sources_bound_to_the_theme(monkeypatch):
+    monkeypatch.setattr(
+        collector.rss,
+        "fetch",
+        lambda url, limit=10: [Material(url, url, "")],
+    )
+    theme = Theme(1, "大事", 0, [1], 3)
+    sources = [
+        Source(1, "已綁定", "https://bound.example/feed", "rss", True),
+        Source(2, "未綁定", "https://other.example/feed", "rss", True),
+    ]
+
+    materials = collector.collect(theme, sources)
+
+    assert [material.url for material in materials] == [
+        "https://bound.example/feed"
+    ]
+
+
+def test_theme_without_sources_collects_nothing(monkeypatch):
     monkeypatch.setattr(
         collector.rss,
         "fetch",
         lambda url, limit=10: [Material("不該抓", url, "")],
     )
-    theme = Theme(1, "新創", 0, "evergreen", ["L1"], 3)
+    theme = Theme(1, "新創", 0, [], 3)
     sources = [
-        Source(1, "來源", "https://example.com/feed", "L1", "rss", True)
+        Source(1, "來源", "https://example.com/feed", "rss", True)
     ]
 
     assert collector.collect(theme, sources) == []
@@ -42,13 +61,12 @@ def test_collect_dispatches_search_with_source_domain(monkeypatch):
         return [Material("搜尋結果", "https://techcrunch.com/x", "摘要")]
 
     monkeypatch.setattr(collector.search, "search", fake_search)
-    theme = Theme(1, "AI 大事", 0, "timely", ["L1"], 3)
+    theme = Theme(1, "AI 大事", 0, [1], 3)
     sources = [
         Source(
             1,
             "TechCrunch 搜尋",
             "https://techcrunch.com/",
-            "L1",
             "search",
             True,
         )
