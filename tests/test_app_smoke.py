@@ -2,7 +2,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from daibu import db, performance, selection
+from daibu import db, performance, seeds, selection
 from daibu.llm import base
 from daibu.llm.base import Idea
 from daibu.models import Source, Theme
@@ -19,6 +19,90 @@ def test_app_entry_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_home_leads_with_the_next_action(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "待決策主題", 0, [], 1))
+    db.add_idea(conn, theme_id, Idea("待決策候選", "角度", ""))
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    visible_text = " ".join(markdown.value for markdown in app.markdown)
+    assert "1 則候選等你決定" in visible_text
+
+
+def test_home_next_action_falls_back_when_nothing_pending(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+    monkeypatch.setattr(seeds, "load", lambda conn: None)
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    visible_text = " ".join(markdown.value for markdown in app.markdown)
+    assert "目前沒有待辦" in visible_text
+
+
+def test_home_shows_the_week_schedule(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    visible_markdown = " ".join(markdown.value for markdown in app.markdown)
+    for weekday in ("週一", "週二", "週三", "週四", "週五", "週六", "週日"):
+        assert weekday in visible_markdown
+
+
+def test_home_lists_each_theme_status(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(None, "近況來源", "https://example.com/feed", "rss", True),
+    )
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "近況主題", 2, [source_id], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea("已發布", "角度", ""),
+        status="已發",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    status_rows = app.dataframe[0].value.to_dict("records")
+    row = next(item for item in status_rows if item["主題"] == "近況主題")
+    assert row["來源數"] == 1
+    assert row["已發"] == 1
+
+
+def test_home_flags_themes_without_sources(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "需要來源的主題", 1, [], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    warning_text = " ".join(warning.value for warning in app.warning)
+    assert "需要來源的主題" in warning_text
+    assert "未綁來源" in warning_text
+
+
 def test_home_shows_single_primary_action(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 
@@ -31,16 +115,6 @@ def test_home_shows_single_primary_action(monkeypatch, tmp_path):
         if button.proto.type == "primary"
     ]
     assert len(primary_actions) == 1
-
-
-def test_home_renders_mascot_without_code_block(monkeypatch, tmp_path):
-    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
-
-    app = AppTest.from_file(PROJECT_ROOT / "app.py")
-    app.run()
-
-    assert not app.exception
-    assert len(app.code) == 0
 
 
 def test_selection_page_loads_without_errors(monkeypatch, tmp_path):
