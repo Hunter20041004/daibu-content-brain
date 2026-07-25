@@ -1,6 +1,8 @@
 import sqlite3
 
-STATUSES = ["候選", "採用", "草稿", "已排程", "已發"]
+STATUSES = ["候選", "採用", "已發"]
+REJECTED = "已淘汰"
+ALL_STATUSES = STATUSES + [REJECTED]
 
 
 def set_status(
@@ -8,7 +10,7 @@ def set_status(
     idea_id: int,
     new_status: str,
 ) -> None:
-    if new_status not in STATUSES:
+    if new_status not in ALL_STATUSES:
         raise ValueError(f"不合法的流水線狀態：{new_status}")
 
     if new_status == "已發":

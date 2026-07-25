@@ -24,6 +24,21 @@ def test_set_status_updates_idea(tmp_path):
     assert [idea.id for idea in ideas] == [idea_id]
 
 
+def test_statuses_are_the_three_visible_stages():
+    assert pipeline.STATUSES == ["候選", "採用", "已發"]
+
+
+def test_rejected_is_accepted_but_not_a_visible_stage(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = _candidate(conn)
+
+    pipeline.set_status(conn, idea_id, pipeline.REJECTED)
+
+    assert pipeline.REJECTED not in pipeline.STATUSES
+    assert db.get_ideas(conn)[0].status == pipeline.REJECTED
+
+
 def test_marking_published_records_the_time(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)
@@ -53,7 +68,7 @@ def test_set_status_rejects_unknown_value(tmp_path):
     idea_id = _candidate(conn)
 
     with pytest.raises(ValueError, match="不合法"):
-        pipeline.set_status(conn, idea_id, "已淘汰")
+        pipeline.set_status(conn, idea_id, "不存在")
 
 
 def test_update_body_saves_draft_content(tmp_path):
