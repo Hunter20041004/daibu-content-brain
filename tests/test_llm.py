@@ -67,44 +67,82 @@ def test_build_prompt_no_longer_mentions_gate_line():
     assert "gate_score" not in text
 
 
+def test_build_prompt_asks_ai_to_avoid_rejected_titles():
+    text = prompt.build(
+        theme_name="AI 近期大事",
+        materials=[],
+        n=2,
+        avoid_titles=["舊題"],
+    )
+
+    assert "舊題" in text
+
+
+def test_build_prompt_omits_avoid_section_when_nothing_rejected():
+    text = prompt.build(
+        theme_name="AI 近期大事",
+        materials=[],
+        n=2,
+        avoid_titles=[],
+    )
+
+    assert "請避開" not in text
+
+
 def test_gemini_provider_maps_model_response(monkeypatch):
     provider = GeminiProvider(api_key="fake")
+    prompts = []
+
+    def fake_generate(text):
+        prompts.append(text)
+        return (
+            '[{"title":"題目","angle":"角度","gate_score":90,'
+            '"gate_reason":"理由","source_url":""}]'
+        )
+
     monkeypatch.setattr(
         provider,
         "_generate_text",
-        lambda text: (
-            '[{"title":"題目","angle":"角度","gate_score":90,'
-            '"gate_reason":"理由","source_url":""}]'
-        ),
+        fake_generate,
     )
 
     ideas = provider.generate_ideas(
         "新創介紹",
         [],
         1,
+        avoid_titles=["舊題"],
     )
 
     assert [idea.title for idea in ideas] == ["題目"]
+    assert "舊題" in prompts[0]
 
 
 def test_groq_provider_maps_model_response(monkeypatch):
     provider = GroqProvider(api_key="fake")
+    prompts = []
+
+    def fake_generate(text):
+        prompts.append(text)
+        return (
+            '[{"title":"Groq 題目","angle":"角度","gate_score":85,'
+            '"gate_reason":"理由","source_url":""}]'
+        )
+
     monkeypatch.setattr(
         provider,
         "_generate_text",
-        lambda text: (
-            '[{"title":"Groq 題目","angle":"角度","gate_score":85,'
-            '"gate_reason":"理由","source_url":""}]'
-        ),
+        fake_generate,
     )
 
     ideas = provider.generate_ideas(
         "新創介紹",
         [],
         1,
+        avoid_titles=["舊題"],
     )
 
     assert [idea.title for idea in ideas] == ["Groq 題目"]
+    assert "舊題" in prompts[0]
 
 
 def test_get_provider_selects_configured_adapter():

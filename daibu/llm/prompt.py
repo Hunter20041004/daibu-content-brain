@@ -8,6 +8,7 @@ def build(
     theme_name: str,
     materials: list[Material],
     n: int,
+    avoid_titles: list[str] | None = None,
 ) -> str:
     material_payload = [
         {
@@ -17,12 +18,21 @@ def build(
         }
         for material in materials
     ]
+    avoid_section = (
+        ""
+        if not avoid_titles
+        else (
+            "\n請避開以下已淘汰題目：\n"
+            f"{json.dumps(avoid_titles, ensure_ascii=False)}"
+        )
+    )
     return f"""
 你是「呆一布 AI 共學實驗室」社群組的選題軍師。
 請為主題「{theme_name}」產生 {n} 則具體貼文題目。
 
 素材：
 {json.dumps(material_payload, ensure_ascii=False)}
+{avoid_section}
 
 要求：
 - 切入角度使用文組視角，拆解邏輯，避免紅海 hype 腔。

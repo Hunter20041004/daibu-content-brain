@@ -11,15 +11,14 @@ def generate_for_theme(
     theme: Theme,
     provider: LLMProvider,
     sources: list[Source],
-    gate_line: str,
 ) -> list[int]:
     materials = collector.collect(theme, sources)
+    avoid_titles = db.get_rejected_titles(conn, theme.id)
     generated = provider.generate_ideas(
         theme.name,
-        theme.kind,
         materials,
-        gate_line,
         theme.n_ideas,
+        avoid_titles=avoid_titles,
     )
     return [
         db.add_idea(conn, theme.id, idea, status="候選")

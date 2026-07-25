@@ -474,6 +474,22 @@ def get_ideas(
     ]
 
 
+def get_rejected_titles(
+    conn: sqlite3.Connection,
+    theme_id: int | None,
+) -> list[str]:
+    rows = conn.execute(
+        """
+        SELECT title
+        FROM ideas
+        WHERE theme_id = ? AND status = '已淘汰'
+        ORDER BY id
+        """,
+        (theme_id,),
+    ).fetchall()
+    return [row["title"] for row in rows]
+
+
 def update_idea_content(
     conn: sqlite3.Connection,
     idea_id: int,

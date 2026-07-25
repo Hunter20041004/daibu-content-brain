@@ -27,10 +27,12 @@ class GeminiProvider:
         theme_name: str,
         materials: list[Material],
         n: int,
+        avoid_titles: list[str] | None = None,
     ) -> list[Idea]:
         text = prompt.build(
             theme_name,
             materials,
             n,
+            avoid_titles,
         )
         return generate_and_parse(self._generate_text, text)
