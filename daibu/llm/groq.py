@@ -25,9 +25,7 @@ class GroqProvider:
     def generate_ideas(
         self,
         theme_name: str,
-        kind: str,
         materials: list[Material],
-        gate_line: str,
         n: int,
     ) -> list[Idea]:
         text = prompt.build(

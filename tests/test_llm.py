@@ -80,9 +80,7 @@ def test_gemini_provider_maps_model_response(monkeypatch):
 
     ideas = provider.generate_ideas(
         "新創介紹",
-        "evergreen",
         [],
-        "守門線",
         1,
     )
 
@@ -102,9 +100,7 @@ def test_groq_provider_maps_model_response(monkeypatch):
 
     ideas = provider.generate_ideas(
         "新創介紹",
-        "evergreen",
         [],
-        "守門線",
         1,
     )
 
@@ -145,9 +141,7 @@ def test_provider_retries_once_after_unparseable_response(monkeypatch):
 
     ideas = provider.generate_ideas(
         "新創介紹",
-        "evergreen",
         [],
-        "守門線",
         1,
     )
 
@@ -167,9 +161,7 @@ def test_provider_exposes_last_raw_response_after_retry_fails(monkeypatch):
     with pytest.raises(base.LLMResponseError) as error:
         provider.generate_ideas(
             "新創介紹",
-            "evergreen",
             [],
-            "守門線",
             1,
         )
 
