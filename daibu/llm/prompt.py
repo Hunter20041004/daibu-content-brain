@@ -52,10 +52,6 @@ def parse_ideas(raw: str) -> list[Idea]:
         Idea(
             title=str(item.get("title", "")),
             angle=str(item.get("angle", "")),
-            gate_score=max(
-                0, min(100, int(item.get("gate_score", 0)))
-            ),
-            gate_reason=str(item.get("gate_reason", "")),
             source_url=str(item.get("source_url", "")),
         )
         for item in decoded

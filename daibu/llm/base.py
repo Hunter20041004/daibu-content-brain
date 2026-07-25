@@ -11,8 +11,6 @@ from daibu.models import Material
 class Idea:
     title: str
     angle: str
-    gate_score: int
-    gate_reason: str
     source_url: str
 
 

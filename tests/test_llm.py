@@ -9,16 +9,32 @@ from daibu.models import Material
 def test_parse_ideas_tolerates_codefence():
     raw = """```json
     [{"title":"NotebookLM 整理期中報告","angle":"文組視角拆解",
-      "gate_score":88,"gate_reason":"直接對應報告痛點",
       "source_url":"https://x.com/a"}]
     ```"""
 
     ideas = prompt.parse_ideas(raw)
 
     assert len(ideas) == 1
-    assert ideas[0].gate_score == 88
-    assert isinstance(ideas[0].gate_score, int)
-    assert ideas[0].title.startswith("NotebookLM")
+    assert ideas[0].title == "NotebookLM 整理期中報告"
+    assert ideas[0].angle == "文組視角拆解"
+    assert ideas[0].source_url == "https://x.com/a"
+
+
+def test_parse_ideas_ignores_leftover_gate_fields():
+    raw = """[
+    {
+      "title": "舊格式題目",
+      "angle": "仍可解析",
+      "gate_score": 88,
+      "gate_reason": "已廢除欄位",
+      "source_url": "https://example.com/legacy"
+    }
+    ]"""
+
+    ideas = prompt.parse_ideas(raw)
+
+    assert ideas[0].title == "舊格式題目"
+    assert not hasattr(ideas[0], "gate_score")
 
 
 def test_build_prompt_contains_product_context():
