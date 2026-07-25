@@ -41,8 +41,6 @@ def init_schema(conn: sqlite3.Connection) -> None:
             theme_id INTEGER,
             title TEXT NOT NULL,
             angle TEXT NOT NULL,
-            gate_score INTEGER NOT NULL CHECK (gate_score BETWEEN 0 AND 100),
-            gate_reason TEXT NOT NULL,
             source_url TEXT NOT NULL DEFAULT '',
             status TEXT NOT NULL,
             body TEXT NOT NULL DEFAULT '',
@@ -231,17 +229,14 @@ def add_idea(
     cursor = conn.execute(
         """
         INSERT INTO ideas (
-            theme_id, title, angle, gate_score, gate_reason,
-            source_url, status
+            theme_id, title, angle, source_url, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """,
         (
             theme_id,
             idea.title,
             idea.angle,
-            idea.gate_score,
-            idea.gate_reason,
             idea.source_url,
             status,
         ),
@@ -268,8 +263,6 @@ def get_ideas(
             theme_id=row["theme_id"],
             title=row["title"],
             angle=row["angle"],
-            gate_score=row["gate_score"],
-            gate_reason=row["gate_reason"],
             source_url=row["source_url"],
             status=row["status"],
             body=row["body"],

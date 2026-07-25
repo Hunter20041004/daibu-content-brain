@@ -75,7 +75,7 @@ def test_add_and_get_candidate_idea(tmp_path):
     idea_id = db.add_idea(
         conn,
         theme_id,
-        Idea("標題", "角度", 80, "理由", "https://example.com/a"),
+        Idea("標題", "角度", "https://example.com/a"),
         status="候選",
     )
 
@@ -83,8 +83,21 @@ def test_add_and_get_candidate_idea(tmp_path):
     assert len(ideas) == 1
     assert ideas[0].id == idea_id
     assert ideas[0].theme_id == theme_id
-    assert ideas[0].gate_score == 80
+    assert ideas[0].source_url == "https://example.com/a"
+    assert not hasattr(ideas[0], "gate_score")
     assert ideas[0].status == "候選"
+
+
+def test_ideas_table_has_no_gate_columns(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+
+    columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(ideas)")
+    }
+
+    assert "gate_score" not in columns
+    assert "gate_reason" not in columns
 
 
 def test_update_theme_replaces_editable_fields(tmp_path):
@@ -179,7 +192,7 @@ def test_update_idea_content_saves_tweaked_title_and_angle(tmp_path):
     idea_id = db.add_idea(
         conn,
         None,
-        Idea("舊標題", "舊角度", 80, "理由", ""),
+        Idea("舊標題", "舊角度", ""),
     )
 
     db.update_idea_content(conn, idea_id, "新標題", "新角度")
@@ -195,7 +208,7 @@ def test_delete_idea_removes_rejected_candidate(tmp_path):
     idea_id = db.add_idea(
         conn,
         None,
-        Idea("淘汰題目", "角度", 50, "理由", ""),
+        Idea("淘汰題目", "角度", ""),
     )
 
     db.delete_idea(conn, idea_id)

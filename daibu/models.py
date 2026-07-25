@@ -34,8 +34,6 @@ class StoredIdea:
     theme_id: int | None
     title: str
     angle: str
-    gate_score: int
-    gate_reason: str
     source_url: str
     status: str
     body: str
