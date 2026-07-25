@@ -32,9 +32,7 @@ class GeminiProvider:
     ) -> list[Idea]:
         text = prompt.build(
             theme_name,
-            kind,
             materials,
-            gate_line,
             n,
         )
         return generate_and_parse(self._generate_text, text)

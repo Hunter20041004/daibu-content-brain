@@ -38,7 +38,6 @@ def test_parse_ideas_ignores_leftover_gate_fields():
 
 
 def test_build_prompt_contains_product_context():
-    gate_line = "怕 AI 的文組同學看完，會不會覺得原來我也可以？"
     material = Material(
         "官方更新",
         "https://example.com/update",
@@ -47,17 +46,25 @@ def test_build_prompt_contains_product_context():
 
     text = prompt.build(
         theme_name="AI 近期大事",
-        kind="timely",
         materials=[material],
-        gate_line=gate_line,
         n=2,
     )
 
     assert "AI 近期大事" in text
-    assert gate_line in text
     assert "官方更新" in text and material.url in text
     assert "2" in text
     assert "文組視角" in text and "JSON" in text
+
+
+def test_build_prompt_no_longer_mentions_gate_line():
+    text = prompt.build(
+        theme_name="AI 近期大事",
+        materials=[],
+        n=2,
+    )
+
+    assert "守門線" not in text
+    assert "gate_score" not in text
 
 
 def test_gemini_provider_maps_model_response(monkeypatch):
