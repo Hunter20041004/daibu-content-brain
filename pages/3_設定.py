@@ -1,0 +1,69 @@
+import os
+
+import streamlit as st
+
+from daibu import db
+from daibu.ui import apply_styles, connect_app_db, page_header
+
+st.set_page_config(page_title="設定｜呆一布", page_icon="◉", layout="wide")
+apply_styles()
+page_header(
+    "System",
+    "設定",
+    "管理 AI 與搜尋服務；內容主題和來源請回到選題工作台調整。",
+)
+
+conn = connect_app_db()
+
+st.subheader("系統設定")
+with st.form("system-config"):
+    provider_options = ["gemini", "groq"]
+    current_provider = db.get_config(conn, "llm_provider", "gemini")
+    provider = st.selectbox(
+        "LLM provider",
+        provider_options,
+        index=provider_options.index(current_provider)
+        if current_provider in provider_options
+        else 0,
+    )
+    default_model = (
+        "gemini-2.5-flash"
+        if provider == "gemini"
+        else "llama-3.3-70b-versatile"
+    )
+    model = st.text_input(
+        "模型",
+        value=db.get_config(conn, "llm_model", default_model),
+    )
+    search_provider = st.selectbox(
+        "搜尋 provider",
+        ["tavily"],
+        help="目前固定使用 Tavily 免費層。",
+    )
+    st.caption("API key 只放在本次執行環境，不寫入 SQLite，也不會進 Git。")
+    gemini_key = st.text_input(
+        "Gemini API key",
+        type="password",
+        placeholder="已設環境變數時可留空",
+    )
+    groq_key = st.text_input(
+        "Groq API key",
+        type="password",
+        placeholder="已設環境變數時可留空",
+    )
+    tavily_key = st.text_input(
+        "Tavily API key",
+        type="password",
+        placeholder="已設環境變數時可留空",
+    )
+    if st.form_submit_button("儲存系統設定", type="primary"):
+        db.set_config(conn, "llm_provider", provider)
+        db.set_config(conn, "llm_model", model)
+        db.set_config(conn, "search_provider", search_provider)
+        if gemini_key:
+            os.environ["GEMINI_API_KEY"] = gemini_key
+        if groq_key:
+            os.environ["GROQ_API_KEY"] = groq_key
+        if tavily_key:
+            os.environ["TAVILY_API_KEY"] = tavily_key
+        st.success("設定已儲存；新輸入的 key 只在本次 App 執行期間有效。")

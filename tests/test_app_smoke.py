@@ -177,10 +177,31 @@ def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
 def test_settings_page_loads_without_errors(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 
-    app = AppTest.from_file(PROJECT_ROOT / "pages/0_設定.py")
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
     app.run()
 
     assert not app.exception
+
+
+def test_settings_page_only_keeps_system_settings(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
+    app.run()
+
+    visible_text = " ".join(
+        element.value
+        for elements in (
+            app.title,
+            app.subheader,
+            app.markdown,
+            app.caption,
+        )
+        for element in elements
+    )
+    assert "守門線" not in visible_text
+    assert "大主題" not in visible_text
+    assert "來源白名單" not in visible_text
 
 
 def test_pipeline_page_loads_without_errors(monkeypatch, tmp_path):
