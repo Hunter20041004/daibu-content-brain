@@ -7,7 +7,7 @@ def _idea(conn, theme_id):
     return db.add_idea(
         conn,
         theme_id,
-        Idea("標題", "角度", 80, "理由", ""),
+        Idea("標題", "角度", ""),
         status="已發",
     )
 
@@ -39,11 +39,11 @@ def test_summary_groups_average_engagement_by_theme(tmp_path):
     db.init_schema(conn)
     theme_a = db.add_theme(
         conn,
-        Theme(None, "A", 0, "evergreen", [], 1),
+        Theme(None, "A", 0, [], 1),
     )
     theme_b = db.add_theme(
         conn,
-        Theme(None, "B", 1, "evergreen", [], 1),
+        Theme(None, "B", 1, [], 1),
     )
     idea_a = _idea(conn, theme_a)
     idea_b = _idea(conn, theme_b)

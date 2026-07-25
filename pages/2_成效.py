@@ -59,7 +59,7 @@ with entry_column:
     if not published:
         st.markdown(
             '<div class="empty-state">'
-            "尚無「已發」內容；先到流水線把一張卡移到已發。"
+            "尚無「已發」內容；先到選題頁把一則已採用標記為已發。"
             "</div>",
             unsafe_allow_html=True,
         )
