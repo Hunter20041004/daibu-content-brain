@@ -17,8 +17,6 @@ def init_schema(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             weekday INTEGER NOT NULL,
-            kind TEXT NOT NULL,
-            source_layers TEXT NOT NULL,
             n_ideas INTEGER NOT NULL
         );
 
@@ -26,9 +24,16 @@ def init_schema(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             url TEXT NOT NULL,
-            layer TEXT NOT NULL,
             fetch_type TEXT NOT NULL,
             enabled INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS theme_sources (
+            theme_id INTEGER NOT NULL,
+            source_id INTEGER NOT NULL,
+            PRIMARY KEY (theme_id, source_id),
+            FOREIGN KEY (theme_id) REFERENCES themes(id),
+            FOREIGN KEY (source_id) REFERENCES sources(id)
         );
 
         CREATE TABLE IF NOT EXISTS config (
@@ -67,32 +72,47 @@ def init_schema(conn: sqlite3.Connection) -> None:
 def add_theme(conn: sqlite3.Connection, theme: Theme) -> int:
     cursor = conn.execute(
         """
-        INSERT INTO themes (name, weekday, kind, source_layers, n_ideas)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO themes (name, weekday, n_ideas)
+        VALUES (?, ?, ?)
         """,
         (
             theme.name,
             theme.weekday,
-            theme.kind,
-            ",".join(theme.source_layers),
             theme.n_ideas,
         ),
     )
+    theme_id = cursor.lastrowid
+    conn.executemany(
+        """
+        INSERT INTO theme_sources (theme_id, source_id)
+        VALUES (?, ?)
+        """,
+        [(theme_id, source_id) for source_id in theme.source_ids],
+    )
     conn.commit()
-    return cursor.lastrowid
+    return theme_id
 
 
 def get_themes(conn: sqlite3.Connection) -> list[Theme]:
     rows = conn.execute("SELECT * FROM themes ORDER BY id").fetchall()
+    source_rows = conn.execute(
+        """
+        SELECT theme_id, source_id
+        FROM theme_sources
+        ORDER BY theme_id, source_id
+        """
+    ).fetchall()
+    source_ids_by_theme: dict[int, list[int]] = {}
+    for row in source_rows:
+        source_ids_by_theme.setdefault(row["theme_id"], []).append(
+            row["source_id"]
+        )
     return [
         Theme(
             id=row["id"],
             name=row["name"],
             weekday=row["weekday"],
-            kind=row["kind"],
-            source_layers=row["source_layers"].split(",")
-            if row["source_layers"]
-            else [],
+            source_ids=source_ids_by_theme.get(row["id"], []),
             n_ideas=row["n_ideas"],
         )
         for row in rows
@@ -105,22 +125,35 @@ def update_theme(conn: sqlite3.Connection, theme: Theme) -> None:
     conn.execute(
         """
         UPDATE themes
-        SET name = ?, weekday = ?, kind = ?, source_layers = ?, n_ideas = ?
+        SET name = ?, weekday = ?, n_ideas = ?
         WHERE id = ?
         """,
         (
             theme.name,
             theme.weekday,
-            theme.kind,
-            ",".join(theme.source_layers),
             theme.n_ideas,
             theme.id,
         ),
+    )
+    conn.execute(
+        "DELETE FROM theme_sources WHERE theme_id = ?",
+        (theme.id,),
+    )
+    conn.executemany(
+        """
+        INSERT INTO theme_sources (theme_id, source_id)
+        VALUES (?, ?)
+        """,
+        [(theme.id, source_id) for source_id in theme.source_ids],
     )
     conn.commit()
 
 
 def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
+    conn.execute(
+        "DELETE FROM theme_sources WHERE theme_id = ?",
+        (theme_id,),
+    )
     conn.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
     conn.commit()
 
@@ -128,13 +161,12 @@ def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
 def add_source(conn: sqlite3.Connection, source: Source) -> int:
     cursor = conn.execute(
         """
-        INSERT INTO sources (name, url, layer, fetch_type, enabled)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO sources (name, url, fetch_type, enabled)
+        VALUES (?, ?, ?, ?)
         """,
         (
             source.name,
             source.url,
-            source.layer,
             source.fetch_type,
             source.enabled,
         ),
@@ -143,23 +175,13 @@ def add_source(conn: sqlite3.Connection, source: Source) -> int:
     return cursor.lastrowid
 
 
-def get_sources(
-    conn: sqlite3.Connection, layer: str | None = None
-) -> list[Source]:
-    query = "SELECT * FROM sources"
-    parameters: tuple[str, ...] = ()
-    if layer is not None:
-        query += " WHERE layer = ?"
-        parameters = (layer,)
-    query += " ORDER BY id"
-
-    rows = conn.execute(query, parameters).fetchall()
+def get_sources(conn: sqlite3.Connection) -> list[Source]:
+    rows = conn.execute("SELECT * FROM sources ORDER BY id").fetchall()
     return [
         Source(
             id=row["id"],
             name=row["name"],
             url=row["url"],
-            layer=row["layer"],
             fetch_type=row["fetch_type"],
             enabled=bool(row["enabled"]),
         )
@@ -173,13 +195,12 @@ def update_source(conn: sqlite3.Connection, source: Source) -> None:
     conn.execute(
         """
         UPDATE sources
-        SET name = ?, url = ?, layer = ?, fetch_type = ?, enabled = ?
+        SET name = ?, url = ?, fetch_type = ?, enabled = ?
         WHERE id = ?
         """,
         (
             source.name,
             source.url,
-            source.layer,
             source.fetch_type,
             source.enabled,
             source.id,
@@ -189,6 +210,10 @@ def update_source(conn: sqlite3.Connection, source: Source) -> None:
 
 
 def delete_source(conn: sqlite3.Connection, source_id: int) -> None:
+    conn.execute(
+        "DELETE FROM theme_sources WHERE source_id = ?",
+        (source_id,),
+    )
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
     conn.commit()
 

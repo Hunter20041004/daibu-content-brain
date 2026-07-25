@@ -13,8 +13,7 @@ def test_add_and_get_theme(tmp_path):
             None,
             "AI 近期大事",
             weekday=0,
-            kind="timely",
-            source_layers=["L1", "L3"],
+            source_ids=[],
             n_ideas=3,
         ),
     )
@@ -22,11 +21,56 @@ def test_add_and_get_theme(tmp_path):
     themes = db.get_themes(conn)
     assert len(themes) == 1
     assert themes[0].id == theme_id and themes[0].name == "AI 近期大事"
-    assert themes[0].kind == "timely"
-    assert themes[0].source_layers == ["L1", "L3"]
+    assert themes[0].source_ids == []
 
 
-def test_add_and_get_source_filter_by_layer(tmp_path):
+def test_add_and_get_theme_keeps_its_bound_sources(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    source_a = db.add_source(
+        conn,
+        Source(None, "來源 A", "https://a.example", "rss", True),
+    )
+    source_b = db.add_source(
+        conn,
+        Source(None, "來源 B", "https://b.example", "search", True),
+    )
+
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 近期大事", 0, [source_a, source_b], 3),
+    )
+
+    theme = db.get_themes(conn)[0]
+    assert theme.id == theme_id
+    assert theme.source_ids == [source_a, source_b]
+
+
+def test_update_theme_replaces_its_bound_sources(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    source_a = db.add_source(
+        conn,
+        Source(None, "來源 A", "https://a.example", "rss", True),
+    )
+    source_b = db.add_source(
+        conn,
+        Source(None, "來源 B", "https://b.example", "rss", True),
+    )
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "主題", 0, [source_a], 2),
+    )
+
+    db.update_theme(
+        conn,
+        Theme(theme_id, "主題", 0, [source_b], 2),
+    )
+
+    assert db.get_themes(conn)[0].source_ids == [source_b]
+
+
+def test_add_and_get_sources_without_layers(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)
 
@@ -36,20 +80,19 @@ def test_add_and_get_source_filter_by_layer(tmp_path):
             None,
             "TechCrunch",
             "https://techcrunch.com/feed/",
-            "L1",
             "rss",
             True,
         ),
     )
     db.add_source(
         conn,
-        Source(None, "a16z", "https://a16z.com/feed/", "L5", "rss", True),
+        Source(None, "a16z", "https://a16z.com/feed/", "rss", True),
     )
 
-    assert len(db.get_sources(conn)) == 2
-    assert [
-        source.name for source in db.get_sources(conn, layer="L1")
-    ] == ["TechCrunch"]
+    assert [source.name for source in db.get_sources(conn)] == [
+        "TechCrunch",
+        "a16z",
+    ]
 
 
 def test_init_schema_creates_all_product_tables(tmp_path):
@@ -61,7 +104,14 @@ def test_init_schema_creates_all_product_tables(tmp_path):
     ).fetchall()
     table_names = {row["name"] for row in rows}
 
-    assert {"themes", "sources", "config", "ideas", "performance"} <= table_names
+    assert {
+        "themes",
+        "sources",
+        "theme_sources",
+        "config",
+        "ideas",
+        "performance",
+    } <= table_names
 
 
 def test_add_and_get_candidate_idea(tmp_path):
@@ -69,7 +119,7 @@ def test_add_and_get_candidate_idea(tmp_path):
     db.init_schema(conn)
     theme_id = db.add_theme(
         conn,
-        Theme(None, "AI 大事", 0, "timely", ["L1"], 2),
+        Theme(None, "AI 大事", 0, [], 2),
     )
 
     idea_id = db.add_idea(
@@ -105,33 +155,43 @@ def test_update_theme_replaces_editable_fields(tmp_path):
     db.init_schema(conn)
     theme_id = db.add_theme(
         conn,
-        Theme(None, "舊名稱", 0, "timely", ["L1"], 2),
+        Theme(None, "舊名稱", 0, [], 2),
     )
 
     db.update_theme(
         conn,
-        Theme(theme_id, "新名稱", 3, "evergreen", ["L2", "L5"], 4),
+        Theme(theme_id, "新名稱", 3, [], 4),
     )
 
     theme = db.get_themes(conn)[0]
     assert theme.name == "新名稱"
     assert theme.weekday == 3
-    assert theme.kind == "evergreen"
-    assert theme.source_layers == ["L2", "L5"]
+    assert theme.source_ids == []
     assert theme.n_ideas == 4
 
 
 def test_delete_theme_removes_it(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(None, "來源", "https://example.com", "rss", True),
+    )
     theme_id = db.add_theme(
         conn,
-        Theme(None, "待刪除", 0, "timely", ["L1"], 2),
+        Theme(None, "待刪除", 0, [source_id], 2),
     )
 
     db.delete_theme(conn, theme_id)
 
     assert db.get_themes(conn) == []
+    assert (
+        conn.execute(
+            "SELECT COUNT(*) FROM theme_sources WHERE theme_id = ?",
+            (theme_id,),
+        ).fetchone()[0]
+        == 0
+    )
 
 
 def test_update_source_replaces_editable_fields(tmp_path):
@@ -139,7 +199,7 @@ def test_update_source_replaces_editable_fields(tmp_path):
     db.init_schema(conn)
     source_id = db.add_source(
         conn,
-        Source(None, "舊來源", "https://old.example", "L1", "rss", True),
+        Source(None, "舊來源", "https://old.example", "rss", True),
     )
 
     db.update_source(
@@ -148,7 +208,6 @@ def test_update_source_replaces_editable_fields(tmp_path):
             source_id,
             "新來源",
             "https://new.example",
-            "L5",
             "search",
             False,
         ),
@@ -157,7 +216,6 @@ def test_update_source_replaces_editable_fields(tmp_path):
     source = db.get_sources(conn)[0]
     assert source.name == "新來源"
     assert source.url == "https://new.example"
-    assert source.layer == "L5"
     assert source.fetch_type == "search"
     assert source.enabled is False
 
@@ -167,12 +225,32 @@ def test_delete_source_removes_it(tmp_path):
     db.init_schema(conn)
     source_id = db.add_source(
         conn,
-        Source(None, "待刪除", "https://example.com", "L1", "rss", True),
+        Source(None, "待刪除", "https://example.com", "rss", True),
     )
 
     db.delete_source(conn, source_id)
 
     assert db.get_sources(conn) == []
+
+
+def test_deleting_a_source_unbinds_it_from_themes(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(None, "待刪除", "https://example.com", "rss", True),
+    )
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "主題", 0, [source_id], 2),
+    )
+
+    db.delete_source(conn, source_id)
+
+    theme = next(
+        theme for theme in db.get_themes(conn) if theme.id == theme_id
+    )
+    assert theme.source_ids == []
 
 
 def test_set_config_upserts_value(tmp_path):

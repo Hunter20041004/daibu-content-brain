@@ -6,8 +6,7 @@ class Theme:
     id: int | None
     name: str
     weekday: int
-    kind: str
-    source_layers: list[str]
+    source_ids: list[int]
     n_ideas: int
 
 
@@ -16,7 +15,6 @@ class Source:
     id: int | None
     name: str
     url: str
-    layer: str
     fetch_type: str
     enabled: bool
 
