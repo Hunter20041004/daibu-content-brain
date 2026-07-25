@@ -1,4 +1,3 @@
-from datetime import date
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -6,7 +5,7 @@ from streamlit.testing.v1 import AppTest
 from daibu import db, performance, selection
 from daibu.llm import base
 from daibu.llm.base import Idea
-from daibu.models import Theme
+from daibu.models import Source, Theme
 
 PROJECT_ROOT = Path(__file__).parents[1]
 
@@ -53,81 +52,130 @@ def test_selection_page_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
-def test_selection_score_stays_readable_in_narrow_card(monkeypatch, tmp_path):
+def test_selection_lists_my_themes_in_the_left_column(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
     conn = db.connect(str(database_path))
     db.init_schema(conn)
-    db.add_idea(
-        conn,
-        None,
-        Idea("候選標題", "切入角度", 88, "守門理由", ""),
-    )
+    for weekday, name in enumerate(("主題甲", "主題乙", "主題丙")):
+        db.add_theme(conn, Theme(None, name, weekday, [], 1))
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
     app.run()
 
-    score_badges = [
-        markdown.value
-        for markdown in app.markdown
-        if "score-badge" in markdown.value
-    ]
-    assert any("88" in badge for badge in score_badges)
-    assert len(app.metric) == 0
+    button_labels = {button.label for button in app.button}
+    assert {"主題甲", "主題乙", "主題丙"}.issubset(button_labels)
 
 
-def test_selection_uses_configured_gate_line(monkeypatch, tmp_path):
+def test_selection_shows_the_selected_theme_workspace(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
     conn = db.connect(str(database_path))
     db.init_schema(conn)
-    db.add_theme(
+    source_id = db.add_source(
         conn,
-        Theme(
-            None,
-            "今天主題",
-            date.today().weekday(),
-            "evergreen",
-            [],
-            1,
-        ),
+        Source(None, "指定來源", "https://example.com/feed", "rss", True),
     )
-    db.set_config(conn, "gate_line", "自訂守門線")
-    received_gate_lines = []
-    monkeypatch.setattr(base, "get_provider", lambda config: object())
-    monkeypatch.setattr(
-        selection,
-        "generate_for_theme",
-        lambda conn, theme, provider, sources, gate_line: (
-            received_gate_lines.append(gate_line) or []
-        ),
-    )
-
-    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
-    app.run()
-    next(
-        button
-        for button in app.button
-        if button.label == "產生本週選題"
-    ).click().run()
-
-    assert received_gate_lines
-    assert set(received_gate_lines) == {"自訂守門線"}
-
-
-def test_selection_shows_configured_gate_line(monkeypatch, tmp_path):
-    database_path = tmp_path / "app.db"
-    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
-    conn = db.connect(str(database_path))
-    db.init_schema(conn)
-    db.set_config(conn, "gate_line", "畫面上的自訂守門線")
+    db.add_theme(conn, Theme(None, "第一個主題", 0, [source_id], 2))
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
     app.run()
 
     assert any(
-        "畫面上的自訂守門線" in markdown.value
-        for markdown in app.markdown
+        subheader.value == "第一個主題工作區"
+        for subheader in app.subheader
+    )
+    source_checkbox = next(
+        checkbox for checkbox in app.checkbox
+        if checkbox.label == "指定來源"
+    )
+    assert source_checkbox.value is True
+
+
+def test_selection_generates_for_the_selected_theme_only(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    first_id = db.add_theme(conn, Theme(None, "只產這個", 0, [], 1))
+    db.add_theme(conn, Theme(None, "不要產這個", 1, [], 1))
+    generated_theme_ids = []
+    monkeypatch.setattr(base, "get_provider", lambda config: object())
+    monkeypatch.setattr(
+        selection,
+        "generate_for_theme",
+        lambda conn, theme, provider, sources: generated_theme_ids.append(
+            theme.id
+        ) or [],
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "產生候選"
+    ).click().run()
+
+    assert generated_theme_ids == [first_id]
+
+
+def test_selection_only_shows_candidates_of_the_selected_theme(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    first_id = db.add_theme(conn, Theme(None, "主題一", 0, [], 1))
+    second_id = db.add_theme(conn, Theme(None, "主題二", 1, [], 1))
+    db.add_idea(conn, first_id, Idea("只看這則", "角度一", ""))
+    db.add_idea(conn, second_id, Idea("不該出現", "角度二", ""))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    visible_markdown = " ".join(markdown.value for markdown in app.markdown)
+    assert "只看這則" in visible_markdown
+    assert "不該出現" not in visible_markdown
+
+
+def test_selection_warns_when_theme_has_no_sources(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "無來源主題", 0, [], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    assert any(
+        "只靠主題名發想" in warning.value
+        for warning in app.warning
+    )
+
+
+def test_selection_lists_adopted_ideas_with_body_editor(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "寫作主題", 0, [], 1))
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea("準備寫正文", "採用角度", ""),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    assert any("準備寫正文" in expander.label for expander in app.expander)
+    assert any(
+        text_area.label == "正文｜準備寫正文"
+        for text_area in app.text_area
     )
 
 
@@ -141,8 +189,7 @@ def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
         Theme(
             None,
             "今天主題",
-            date.today().weekday(),
-            "evergreen",
+            0,
             [],
             1,
         ),
@@ -167,7 +214,7 @@ def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
     next(
         button
         for button in app.button
-        if button.label == "產生本週選題"
+        if button.label == "產生候選"
     ).click().run()
 
     assert received_configs[0]["LLM_PROVIDER"] == "groq"
