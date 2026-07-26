@@ -566,11 +566,33 @@ def css(mode: str | None = None) -> str:
         margin-top: 0.5rem;
     }}
 
-    .candidate-card__title {{
-        font-size: {TYPE_SCALE[2]};
-        font-weight: {TYPE_WEIGHTS[2]};
+    .stApp .candidate-card__title {{
+        font-size: {TYPE_SCALE[3]};
+        font-weight: {TYPE_WEIGHTS[3]};
         line-height: 1.3;
         margin: 0 0 0.5rem;
+    }}
+
+    .candidate-card__new {{
+        align-items: center;
+        background: var(--brand-primary);
+        border-radius: 999px;
+        color: var(--primary-button-ink) !important;
+        display: inline-flex;
+        font-size: 0.65rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-right: 0.4rem;
+        min-height: 1.25rem;
+        padding: 0.2rem 0.4rem;
+        vertical-align: 0.15em;
+    }}
+
+    .stApp .candidate-card__angle {{
+        color: var(--ink);
+        font-size: {TYPE_SCALE[5]};
+        font-weight: 600;
+        line-height: 1.45;
     }}
 
     .kanban-card-title {{

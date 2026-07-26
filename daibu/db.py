@@ -509,7 +509,7 @@ def get_ideas(
     if status is not None:
         query += " WHERE status = ?"
         parameters = (status,)
-    query += " ORDER BY id"
+    query += " ORDER BY created_at DESC, id DESC"
 
     rows = conn.execute(query, parameters).fetchall()
     return [

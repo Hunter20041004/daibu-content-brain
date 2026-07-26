@@ -253,3 +253,23 @@ def test_settings_form_has_a_readable_max_width():
 
     assert "max-width: 35rem" in settings_rule
     assert "width: 100%" in settings_rule
+
+
+def test_candidate_title_is_one_level_below_section_heading():
+    styles = theme.css()
+    candidate_rule = styles.split(
+        ".candidate-card__title {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert f"font-size: {theme.TYPE_SCALE[3]}" in candidate_rule
+
+
+def test_candidate_title_overrides_streamlit_heading_styles():
+    styles = theme.css()
+    candidate_rule = styles.split(
+        ".stApp .candidate-card__title {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert f"font-size: {theme.TYPE_SCALE[3]}" in candidate_rule

@@ -109,6 +109,38 @@ def test_count_themes_using_source(tmp_path):
     assert db.count_themes_using_source(conn, source_id) == 2
 
 
+def test_get_ideas_returns_newest_first(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "排序主題", 0, [], 1),
+    )
+    older_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("較早候選", "角度", ""),
+    )
+    newer_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("最新候選", "角度", ""),
+    )
+    conn.execute(
+        "UPDATE ideas SET created_at = ? WHERE id = ?",
+        ("2026-07-25 09:00:00", older_id),
+    )
+    conn.execute(
+        "UPDATE ideas SET created_at = ? WHERE id = ?",
+        ("2026-07-25 10:00:00", newer_id),
+    )
+    conn.commit()
+
+    assert [
+        idea.id for idea in db.get_ideas(conn, status="候選")
+    ] == [newer_id, older_id]
+
+
 def test_init_schema_creates_all_product_tables(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

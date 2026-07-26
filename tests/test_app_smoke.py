@@ -846,6 +846,46 @@ def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
     assert received_configs[0]["LLM_MODEL"] == "custom-model"
 
 
+def test_newly_generated_candidates_are_marked(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(
+        conn,
+        Theme(None, "新候選主題", 0, [], 1),
+    )
+    monkeypatch.setattr(base, "get_provider", lambda config: object())
+
+    def generate_candidate(conn, selected_theme, provider, sources):
+        return [
+            db.add_idea(
+                conn,
+                selected_theme.id,
+                Idea("剛生成的候選", "新角度", ""),
+            ),
+        ]
+
+    monkeypatch.setattr(
+        selection,
+        "generate_for_theme",
+        generate_candidate,
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "產生候選"
+    ).click().run()
+
+    assert any(
+        '<span class="candidate-card__new">新</span>'
+        in markdown.value
+        for markdown in app.markdown
+    )
+
+
 def test_settings_page_loads_without_errors(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 

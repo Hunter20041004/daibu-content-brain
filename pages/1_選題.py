@@ -330,12 +330,13 @@ with candidate_column:
             try:
                 provider = base.get_provider(provider_config)
                 with st.spinner("正在閱讀來源並整理候選…"):
-                    selection.generate_for_theme(
+                    generated_idea_ids = selection.generate_for_theme(
                         conn,
                         selected_theme,
                         provider,
                         sources,
                     )
+                st.session_state.new_candidate_ids = generated_idea_ids
                 queue_toast(st.session_state, "候選已產生。")
                 st.rerun()
             except Exception as error:
@@ -381,13 +382,24 @@ with candidate_column:
 
     for idea in selected_candidates:
         with st.container(border=True):
+            new_badge = (
+                '<span class="candidate-card__new">新</span>'
+                if idea.id in st.session_state.get("new_candidate_ids", [])
+                else ""
+            )
             st.markdown(
                 '<h3 class="candidate-card__title">'
+                f"{new_badge}"
                 f"{html.escape(idea.title)}"
                 "</h3>",
                 unsafe_allow_html=True,
             )
-            st.write(idea.angle)
+            st.markdown(
+                '<p class="candidate-card__angle">'
+                f"{html.escape(idea.angle)}"
+                "</p>",
+                unsafe_allow_html=True,
+            )
             if idea.source_url:
                 st.link_button("查看來源", idea.source_url)
 
