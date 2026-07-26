@@ -333,3 +333,56 @@ Claude 在 2026-07-25 用「真的在經營社群的人」的身分，把
 
 等待使用者複驗階段 D。取得確認後才從 `docs/plan-qa-fixes.md` 的 Task 24
 開始階段 E；Task 24 後的四頁完整截圖與真實資料庫副本流程總驗收仍未開始。
+
+---
+
+## 本輪狀態（Codex，2026-07-26，階段 E 與最後整體驗收）
+
+**狀態：階段 A–E（Task 1–24）與最後整體驗收全部完成。**
+
+### 已完成與提交
+
+- Task 24 `7ce7547`：刪除八組退役功能的未使用 CSS、移除
+  `DEFAULT_GATE_LINE`，並讓 `db.init_schema()` 自動清掉舊資料庫的
+  `config.gate_line`。
+- 三個 TDD 切片都逐一先看過紅燈，再以最小實作轉綠：
+  未使用 CSS、退役常數、舊設定資料遷移。
+- 未改動 `LIGHT`／`DARK` 色票數值與既有對比度斷言；禁止修改的
+  `daibu/fetch/rss.py`、`daibu/fetch/search.py` 沒有差異，
+  `pages/` 沒有新增寫死色碼。
+
+### 最後整體驗收證據
+
+- 全套測試：`.venv/bin/pytest -q` → `167 passed, 3 deselected`
+  （原始基線為 `99 passed, 3 deselected`）。
+- Task 24 真實資料副本搬遷：
+  3 主題、15 來源、8 點子、1 成效紀錄全部保留；
+  `gate_line` 已移除，原有初始化流程正常補上 `seeds_loaded`。
+- 真實 `daibu.db` 的 SHA-256 在驗收前後都是
+  `0af8410730fc2859e3cfb105c5681040073f799a78de2558b57928b162925382`。
+- 以 `/tmp/daibu-final-validation.db` 跑完整真實流程：
+  建立測試主題 → Gemini 產生 1 則候選 → 採用 → 寫入 62 字正文
+  → 標記已發 → 回填 Instagram（12 讚、345 觸及、3.5 互動）
+  → 刪除測試主題。刪除後精確回到 3／15／8／1 筆，
+  測試主題為 0 筆、孤兒成效為 0 筆。
+- 四頁 × 淺／深色 × 桌機／手機的第一輪與第二輪各 16 張；
+  第二輪與第一輪有效截圖逐檔位元一致。所有 8 個手機頁面的
+  `documentElement` 橫向溢出量都是 0。
+- 「新增主題」「微調候選」「編輯來源」三個現存彈出層，以及
+  「淘汰＋復原」狀態，均完成淺／深色 × 桌機／手機共 16 張；
+  操作後候選已復原為 6 則。
+- 主控台只剩 Streamlit 在多頁直連時對相對 `_stcore` 路徑的 404，
+  以及其 iframe permission-policy 警告；四頁與完整工作流程皆正常，
+  無產品 Python 例外。
+
+### 最終截圖路徑
+
+- 第一輪 16 張：`.screenshots/final/round1/`
+- 第二輪 16 張正式證據：`.screenshots/final/round2/`
+- 所有彈出層與淘汰復原狀態 16 張：`.screenshots/final/popups/`
+
+### 下一步
+
+等待使用者最終複驗，並決定 `codex/ia-topic-first` 要合併、推送、
+保留或捨棄。8502 的本機服務使用 `/tmp/daibu-final-validation.db`，
+不會碰真實 `daibu.db`。

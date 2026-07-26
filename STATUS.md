@@ -1,6 +1,6 @@
 # 專案現況 — 呆一布選題大腦（Daibu Content Brain）
 
-> 由 Claude 建立、於 2026-07-25 更新。**新對話請先讀這份**。
+> 由 Claude 建立、於 2026-07-26 更新。**新對話請先讀這份**。
 
 ## 這是什麼
 
@@ -52,8 +52,7 @@
   時間戳記時區導致「本週已發」算錯、正文草稿會靜默消失）。
   - 驗收回饋（給人看，含截圖）：`docs/2026-07-25-操作驗收回饋.html`
   - TDD 計畫：`docs/plan-qa-fixes.md`（Task 1–24，五個階段）
-  - **狀態：階段 A–D（Task 1–23）已完成；目前停在使用者複驗點，
-    尚未開始階段 E。**
+  - **狀態：階段 A–E（Task 1–24）與最後整體驗收全部完成。**
 
 ## 測試基線
 
@@ -61,7 +60,8 @@
 **99 passed、3 deselected**；操作驗收修正完成階段 B 後為
 **136 passed、3 deselected**；操作驗收修正完成階段 C 後為
 **157 passed、3 deselected**；操作驗收修正完成階段 D 後為
-**164 passed、3 deselected**。新增資料搬遷、主題工作台、行動概覽等回歸測試；
+**164 passed、3 deselected**；操作驗收修正全部完成後為
+**167 passed、3 deselected**。新增資料搬遷、主題工作台、行動概覽等回歸測試；
 3 個需真實 API key 的契約測試仍維持 deselected。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
@@ -86,11 +86,9 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. 使用者複驗階段 D（Task 23）
-2. 確認後由 Codex 繼續階段 E（Task 24，清理移除功能殘留）
-3. Task 24 完成後，依計畫跑四頁、雙配色、雙尺寸與完整資料流程總驗收
-4. 全部修完後決定 `codex/ia-topic-first` 如何整合回 `main`
-5. 再設計**下一輪大功能**：分平台產文字（Threads／IG／LinkedIn）＋由文字產貼圖
+1. 使用者複驗操作驗收修正的最終版本
+2. 決定 `codex/ia-topic-first` 如何整合回 `main`
+3. 再設計**下一輪大功能**：分平台產文字（Threads／IG／LinkedIn）＋由文字產貼圖
    —— 需先解決「圖片生成多數付費」與「只用免費額度」的衝突，見
    `docs/open-questions.md`
 
@@ -98,6 +96,7 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 - `main` — 目前的可用版本
 - `codex/frontend-brand-refactor` — 前端品牌重構，待整合
-- `codex/ia-topic-first` — 本輪資訊架構重整，Task 1–16 已實作並驗證
+- `codex/ia-topic-first` — 資訊架構重整與操作驗收修正 Task 1–24
+  已實作並完成整體驗收
 - `refactor/ia-topic-first` — ⚠️ Claude 越權寫的探路稿（commit `b6b66bc`），
   大致等價於新計畫的 Task 1–3，**可參考、不要直接 merge**
