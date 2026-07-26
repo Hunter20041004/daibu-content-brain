@@ -1,5 +1,6 @@
 import sqlite3
 
+from daibu.clock import now as _now
 from daibu.llm.base import Idea
 from daibu.models import Source, StoredIdea, Theme
 
@@ -430,9 +431,9 @@ def add_idea(
     cursor = conn.execute(
         """
         INSERT INTO ideas (
-            theme_id, title, angle, source_url, status
+            theme_id, title, angle, source_url, status, created_at
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             theme_id,
@@ -440,6 +441,7 @@ def add_idea(
             idea.angle,
             idea.source_url,
             status,
+            _now(),
         ),
     )
     conn.commit()

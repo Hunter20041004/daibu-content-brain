@@ -50,6 +50,19 @@ def test_marking_published_records_the_time(tmp_path):
     assert idea.published_at is not None
 
 
+def test_publishing_records_local_time(monkeypatch, tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = _candidate(conn)
+    local_time = "2031-02-03 20:09:10"
+    monkeypatch.setattr(pipeline, "_now", lambda: local_time, raising=False)
+
+    pipeline.set_status(conn, idea_id, "已發")
+
+    idea = db.get_ideas(conn, status="已發")[0]
+    assert idea.published_at == local_time
+
+
 def test_moving_back_from_published_clears_the_time(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

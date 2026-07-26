@@ -1,5 +1,7 @@
 import sqlite3
 
+from daibu.clock import now as _now
+
 STATUSES = ["候選", "採用", "已發"]
 REJECTED = "已淘汰"
 ALL_STATUSES = STATUSES + [REJECTED]
@@ -17,10 +19,10 @@ def set_status(
         conn.execute(
             """
             UPDATE ideas
-            SET status = ?, published_at = CURRENT_TIMESTAMP
+            SET status = ?, published_at = ?
             WHERE id = ?
             """,
-            (new_status, idea_id),
+            (new_status, _now(), idea_id),
         )
     else:
         conn.execute(

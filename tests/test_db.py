@@ -138,6 +138,18 @@ def test_add_and_get_candidate_idea(tmp_path):
     assert ideas[0].status == "候選"
 
 
+def test_add_idea_records_local_created_time(monkeypatch, tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    local_time = "2031-02-03 20:09:10"
+    monkeypatch.setattr(db, "_now", lambda: local_time, raising=False)
+
+    db.add_idea(conn, None, Idea("本機時間題目", "角度", ""))
+
+    idea = db.get_ideas(conn)[0]
+    assert idea.created_at == local_time
+
+
 def test_ideas_table_has_no_gate_columns(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)
