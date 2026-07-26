@@ -62,6 +62,11 @@ with context_column:
         if st.button(
             theme.name,
             key=f"select-theme-{theme.id}",
+            type=(
+                "primary"
+                if theme.id == st.session_state.selected_theme_id
+                else "secondary"
+            ),
             width="stretch",
         ):
             st.session_state.selected_theme_id = theme.id

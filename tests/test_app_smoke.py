@@ -397,6 +397,31 @@ def test_body_draft_survives_switching_themes(monkeypatch, tmp_path):
     )
 
 
+def test_selected_theme_is_visually_marked(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "主題 A", 0, [], 1))
+    db.add_theme(conn, Theme(None, "主題 B", 1, [], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "主題 B"
+    ).click().run()
+
+    theme_buttons = [
+        button for button in app.button
+        if button.label in {"主題 A", "主題 B"}
+    ]
+    assert [
+        button.label for button in theme_buttons
+        if button.proto.type == "primary"
+    ] == ["主題 B"]
+
+
 def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
