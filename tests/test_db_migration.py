@@ -293,3 +293,24 @@ def test_migration_marks_database_with_existing_themes_as_seeded(tmp_path):
     db.init_schema(conn)
 
     assert db.get_config(conn, "seeds_loaded") == "1"
+
+
+def test_migration_removes_retired_gate_line_config(tmp_path):
+    conn = _old_connection(tmp_path)
+    conn.executemany(
+        "INSERT INTO config (key, value) VALUES (?, ?)",
+        [
+            ("gate_line", "已停用的守門線"),
+            ("llm_provider", "groq"),
+        ],
+    )
+    conn.commit()
+
+    db.init_schema(conn)
+
+    config = {
+        row["key"]: row["value"]
+        for row in conn.execute("SELECT key, value FROM config")
+    }
+    assert "gate_line" not in config
+    assert config["llm_provider"] == "groq"

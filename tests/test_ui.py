@@ -35,6 +35,10 @@ def test_toolbar_mode_is_minimal():
     assert config["client"]["toolbarMode"] == "minimal"
 
 
+def test_ui_has_no_retired_gate_line_default():
+    assert not hasattr(ui, "DEFAULT_GATE_LINE")
+
+
 def test_connect_app_db_loads_dotenv(monkeypatch, tmp_path):
     loaded = []
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))

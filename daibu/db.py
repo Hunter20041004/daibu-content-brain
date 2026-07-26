@@ -243,6 +243,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
         """
     )
     conn.execute(
+        "DELETE FROM config WHERE key = ?",
+        ("gate_line",),
+    )
+    conn.execute(
         """
         INSERT OR IGNORE INTO config (key, value)
         SELECT 'seeds_loaded', '1'

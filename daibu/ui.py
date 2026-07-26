@@ -12,10 +12,6 @@ from daibu import db, seeds, theme
 DEFAULT_DB_PATH = "daibu.db"
 PENDING_TOAST_KEY = "_pending_toast"
 MASCOT_PATH = Path(__file__).resolve().parents[1] / "assets" / "mascot.svg"
-DEFAULT_GATE_LINE = (
-    "一個怕 AI 的文組同學看完這則，會不會覺得"
-    "「原來我也可以，而且我更會想事情了」？"
-)
 
 
 def connect_app_db() -> sqlite3.Connection:

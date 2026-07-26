@@ -1,6 +1,8 @@
 import pathlib
-import pytest
+import re
 import tomllib
+
+import pytest
 
 from daibu import theme
 
@@ -350,3 +352,35 @@ def test_workspace_scroll_iframe_does_not_take_layout_space():
     assert "position: absolute" in bridge_rule
     assert "height: 1px" in bridge_rule
     assert "overflow: hidden" in bridge_rule
+
+
+def test_css_has_no_unused_classes():
+    source_paths = [
+        *pathlib.Path("pages").glob("*.py"),
+        pathlib.Path("daibu/overview.py"),
+        pathlib.Path("daibu/ui.py"),
+    ]
+    product_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in source_paths
+    )
+    css_classes = set(
+        re.findall(
+            r"\.([A-Za-z][A-Za-z0-9_-]*)",
+            theme.css(),
+        )
+    )
+    product_classes = {
+        class_name
+        for class_name in css_classes
+        if (
+            class_name not in {"stApp", "stButton"}
+            and not class_name.startswith("st-emotion-cache-")
+        )
+    }
+
+    assert {
+        class_name
+        for class_name in product_classes
+        if class_name not in product_source
+    } == set()
