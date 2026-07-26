@@ -36,6 +36,10 @@ def set_status(
     conn.commit()
 
 
+def restore(conn: sqlite3.Connection, idea_id: int) -> None:
+    set_status(conn, idea_id, "候選")
+
+
 def update_body(
     conn: sqlite3.Connection,
     idea_id: int,

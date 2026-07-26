@@ -39,6 +39,18 @@ def test_rejected_is_accepted_but_not_a_visible_stage(tmp_path):
     assert db.get_ideas(conn)[0].status == pipeline.REJECTED
 
 
+def test_restore_rejected_idea_back_to_candidate(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = _candidate(conn)
+    pipeline.set_status(conn, idea_id, pipeline.REJECTED)
+
+    pipeline.restore(conn, idea_id)
+
+    restored = db.get_ideas(conn, status="候選")
+    assert [idea.id for idea in restored] == [idea_id]
+
+
 def test_marking_published_records_the_time(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

@@ -371,6 +371,57 @@ def test_selection_only_shows_candidates_of_the_selected_theme(
     assert "不該出現" not in visible_markdown
 
 
+def test_rejecting_takes_a_single_click(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "淘汰流程", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("一次淘汰這則", "不需要二次確認", ""),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "淘汰"
+    ).click().run()
+
+    rejected = db.get_ideas(conn, status=pipeline.REJECTED)
+    assert [idea.id for idea in rejected] == [idea_id]
+
+
+def test_rejecting_offers_an_undo(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "可復原流程", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("可以救回這則", "誤按也不怕", ""),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "淘汰"
+    ).click().run()
+    undo = next(
+        button for button in app.button
+        if button.label == "復原剛剛淘汰的「可以救回這則」"
+    )
+    undo.click().run()
+
+    restored = db.get_ideas(conn, status="候選")
+    assert [idea.id for idea in restored] == [idea_id]
+
+
 def test_selection_warns_when_theme_has_no_sources(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

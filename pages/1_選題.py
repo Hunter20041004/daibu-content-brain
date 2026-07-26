@@ -315,6 +315,23 @@ with candidate_column:
         if selected_theme and idea.theme_id == selected_theme.id
     ]
     st.subheader(f"候選（{len(selected_candidates)}）")
+    last_rejected = st.session_state.get("last_rejected_idea")
+    if (
+        selected_theme
+        and last_rejected
+        and last_rejected["theme_id"] == selected_theme.id
+    ):
+        if st.button(
+            f"復原剛剛淘汰的「{last_rejected['title']}」",
+            key="restore-last-rejected",
+        ):
+            pipeline.restore(conn, last_rejected["id"])
+            st.session_state.pop("last_rejected_idea", None)
+            queue_toast(
+                st.session_state,
+                f"已復原「{last_rejected['title']}」。",
+            )
+            st.rerun()
     if not selected_candidates:
         st.markdown(
             '<div class="empty-state">'
@@ -372,19 +389,22 @@ with candidate_column:
                         queue_toast(st.session_state, "微調已儲存。")
                         st.rerun()
 
-            with reject_column.popover("淘汰", width="stretch"):
-                confirm_reject = st.checkbox(
-                    "我確認要淘汰這則候選",
-                    key=f"confirm-reject-{idea.id}",
+            if reject_column.button(
+                "淘汰",
+                key=f"reject-{idea.id}",
+                width="stretch",
+            ):
+                pipeline.set_status(conn, idea.id, pipeline.REJECTED)
+                st.session_state.last_rejected_idea = {
+                    "id": idea.id,
+                    "title": idea.title,
+                    "theme_id": idea.theme_id,
+                }
+                queue_toast(
+                    st.session_state,
+                    f"已淘汰「{idea.title}」，可在候選區復原。",
                 )
-                if st.button(
-                    "確認淘汰",
-                    key=f"reject-{idea.id}",
-                    disabled=not confirm_reject,
-                    width="stretch",
-                ):
-                    pipeline.set_status(conn, idea.id, pipeline.REJECTED)
-                    st.rerun()
+                st.rerun()
 
     selected_adopted = [
         idea for idea in adopted_ideas
