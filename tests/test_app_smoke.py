@@ -438,6 +438,85 @@ def test_selection_warns_when_theme_has_no_sources(monkeypatch, tmp_path):
     )
 
 
+def test_source_library_shows_usage_count(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(
+            None,
+            "共用來源",
+            "https://news.example.com/articles/ai",
+            "rss",
+            True,
+        ),
+    )
+    db.add_theme(conn, Theme(None, "主題 A", 0, [source_id], 1))
+    db.add_theme(conn, Theme(None, "主題 B", 1, [source_id], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    visible_text = " ".join(
+        element.value
+        for elements in (app.markdown, app.caption)
+        for element in elements
+    )
+    assert "共用來源" in visible_text
+    assert "2 個主題在用" in visible_text
+
+
+def test_source_library_summary_shows_domain_without_path(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_source(
+        conn,
+        Source(
+            None,
+            "精簡網址",
+            "https://news.example.com/articles/ai",
+            "search",
+            True,
+        ),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    source_summary = next(
+        markdown.value for markdown in app.markdown
+        if '<div class="source-row__summary">' in markdown.value
+    )
+    assert "news.example.com" in source_summary
+    assert "/articles/ai" not in source_summary
+
+
+def test_delete_source_warns_usage_count(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(None, "刪除前提醒", "https://example.com/feed", "rss", True),
+    )
+    db.add_theme(conn, Theme(None, "主題 A", 0, [source_id], 1))
+    db.add_theme(conn, Theme(None, "主題 B", 1, [source_id], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    warning_text = " ".join(warning.value for warning in app.warning)
+    assert "這個來源正被 2 個主題使用" in warning_text
+
+
 def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

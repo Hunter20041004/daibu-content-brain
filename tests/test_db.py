@@ -95,6 +95,20 @@ def test_add_and_get_sources_without_layers(tmp_path):
     ]
 
 
+def test_count_themes_using_source(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(None, "共用來源", "https://example.com/feed", "rss", True),
+    )
+    db.add_theme(conn, Theme(None, "主題 A", 0, [source_id], 1))
+    db.add_theme(conn, Theme(None, "主題 B", 1, [source_id], 1))
+    db.add_theme(conn, Theme(None, "未使用", 2, [], 1))
+
+    assert db.count_themes_using_source(conn, source_id) == 2
+
+
 def test_init_schema_creates_all_product_tables(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

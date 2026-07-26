@@ -263,6 +263,87 @@ def css(mode: str | None = None) -> str:
         opacity: 0.62;
     }}
 
+    [data-testid="stVerticalBlock"][class*="st-key-source-row-"] {{
+        gap: 0 !important;
+        padding: 0.3rem 0;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+    [data-testid="stHorizontalBlock"] {{
+        align-items: center;
+        gap: 0.5rem;
+    }}
+
+    .source-row__summary {{
+        align-items: center;
+        display: grid;
+        gap: 0.1rem 0.45rem;
+        grid-template-areas:
+            "name badge"
+            "usage domain";
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 2.5rem;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }}
+
+    .source-row__name {{
+        font-size: 0.875rem;
+        font-weight: 700;
+        grid-area: name;
+        line-height: 1.2;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }}
+
+    .source-row__badge {{
+        background: var(--border);
+        border-radius: 999px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        grid-area: badge;
+        line-height: 1;
+        padding: 0.25rem 0.45rem;
+    }}
+
+    .source-row__usage,
+    .source-row__domain {{
+        font-size: 0.75rem;
+        line-height: 1.2;
+        opacity: 0.62;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }}
+
+    .source-row__usage {{
+        grid-area: usage;
+    }}
+
+    .source-row__domain {{
+        grid-area: domain;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+    [data-testid="stPopoverButton"] {{
+        height: 2.25rem;
+        min-height: 2.25rem;
+        padding: 0 0.65rem;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+    [data-testid="stPopoverButton"] p {{
+        font-size: 0.75rem;
+        line-height: 1;
+        white-space: nowrap;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+    [data-testid="stPopoverButton"] [data-testid="stIconMaterial"] {{
+        display: none;
+    }}
+
     .brand-lockup {{
         align-items: center;
         display: flex;
@@ -475,6 +556,26 @@ def css(mode: str | None = None) -> str:
 
         [data-testid="stHorizontalBlock"] {{
             gap: 1rem;
+        }}
+
+        [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+        [data-testid="stHorizontalBlock"] {{
+            flex-wrap: nowrap;
+        }}
+
+        [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+            min-width: 0 !important;
+        }}
+
+        [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {{
+            flex: 1 1 auto !important;
+        }}
+
+        [data-testid="stVerticalBlock"][class*="st-key-source-row-"]
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {{
+            flex: 0 0 3.25rem !important;
         }}
     }}
 

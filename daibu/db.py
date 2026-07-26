@@ -402,6 +402,21 @@ def get_sources(conn: sqlite3.Connection) -> list[Source]:
     ]
 
 
+def count_themes_using_source(
+    conn: sqlite3.Connection,
+    source_id: int,
+) -> int:
+    row = conn.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM theme_sources
+        WHERE source_id = ?
+        """,
+        (source_id,),
+    ).fetchone()
+    return int(row["count"])
+
+
 def update_source(conn: sqlite3.Connection, source: Source) -> None:
     if source.id is None:
         raise ValueError("更新來源需要 id")

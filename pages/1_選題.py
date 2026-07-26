@@ -1,5 +1,6 @@
 import html
 import os
+from urllib.parse import urlparse
 
 import streamlit as st
 
@@ -136,12 +137,42 @@ with context_column:
                     st.rerun()
 
         for source in sources:
-            st.markdown(f"**{source.name}**")
-            st.caption(f"{source.fetch_type} · {source.url}")
-            with st.popover(
-                f"編輯 {source.name}",
-                width="stretch",
-            ):
+            usage_count = db.count_themes_using_source(conn, source.id)
+            parsed_url = urlparse(
+                source.url
+                if "://" in source.url
+                else f"//{source.url}"
+            )
+            source_domain = (
+                parsed_url.netloc
+                or parsed_url.path.split("/", maxsplit=1)[0]
+            )
+            with st.container(key=f"source-row-{source.id}"):
+                summary_column, edit_column = st.columns(
+                    [5, 1],
+                    gap="small",
+                    vertical_alignment="center",
+                )
+                summary_column.markdown(
+                    '<div class="source-row__summary">'
+                    '<span class="source-row__name">'
+                    f"{html.escape(source.name)}"
+                    "</span>"
+                    '<span class="source-row__badge">'
+                    f"{html.escape(source.fetch_type.upper())}"
+                    "</span>"
+                    '<span class="source-row__usage">'
+                    f"{usage_count} 個主題在用"
+                    "</span>"
+                    '<span class="source-row__domain">'
+                    f"{html.escape(source_domain)}"
+                    "</span>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                source_editor = edit_column.popover("編輯", width="stretch")
+
+            with source_editor:
                 with st.form(f"edit-source-{source.id}"):
                     edited_source_name = st.text_input(
                         "來源名稱",
@@ -172,6 +203,10 @@ with context_column:
                             ),
                         )
                         st.rerun()
+                st.warning(
+                    f"這個來源正被 {usage_count} 個主題使用；"
+                    "刪除後會解除這些主題的來源綁定。"
+                )
                 confirm_delete_source = st.checkbox(
                     "確認從來源庫刪除",
                     key=f"confirm-delete-source-{source.id}",
