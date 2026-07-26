@@ -16,6 +16,8 @@ from daibu.ui import (
 )
 
 WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
+THREADS_CHARACTER_LIMIT = 500
+INSTAGRAM_CHARACTER_LIMIT = 2200
 
 st.set_page_config(page_title="選題｜呆一布", page_icon="◉", layout="wide")
 apply_styles()
@@ -454,11 +456,20 @@ with candidate_column:
             st.caption(idea.angle)
             body_key = f"body-{idea.id}"
             body = st.text_area(
-                f"正文｜{idea.title}",
+                "正文",
                 value=idea.body,
                 key=body_key,
+                height=240,
                 on_change=save_body_draft,
                 args=(idea.id, body_key),
+            )
+            body_length = len(body)
+            st.caption(
+                f"{body_length} 字 · "
+                "Threads 還可寫 "
+                f"{max(THREADS_CHARACTER_LIMIT - body_length, 0)} · "
+                "Instagram 還可寫 "
+                f"{max(INSTAGRAM_CHARACTER_LIMIT - body_length, 0)}"
             )
             saved_at = st.session_state.get(f"body-saved-at-{idea.id}")
             if saved_at:
@@ -467,6 +478,7 @@ with candidate_column:
             if save_column.button(
                 "儲存正文",
                 key=f"save-body-{idea.id}",
+                type="primary",
                 width="stretch",
             ):
                 save_body_draft(idea.id, body_key)
@@ -483,7 +495,7 @@ with candidate_column:
             if publish_column.button(
                 "標記已發",
                 key=f"publish-{idea.id}",
-                type="primary",
+                disabled=not body.strip(),
                 width="stretch",
             ):
                 pipeline.update_body(conn, idea.id, body)
