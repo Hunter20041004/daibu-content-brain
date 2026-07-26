@@ -8,6 +8,13 @@ from daibu import db, performance, pipeline
 from daibu.ui import apply_styles, connect_app_db, page_header
 
 WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
+CALENDAR_THEME_NAME_LIMIT = 7
+
+
+def truncate_calendar_theme_name(name: str) -> str:
+    if len(name) <= CALENDAR_THEME_NAME_LIMIT:
+        return name
+    return f"{name[:CALENDAR_THEME_NAME_LIMIT]}…"
 
 
 def _published_this_week(published_at: str | None) -> bool:
@@ -133,20 +140,29 @@ def render() -> None:
             if theme.weekday == weekday
         ]
         schedule_text = (
+            "、".join(
+                truncate_calendar_theme_name(name)
+                for name in scheduled_names
+            )
+            if scheduled_names
+            else "空檔"
+        )
+        schedule_title = (
             "、".join(scheduled_names)
             if scheduled_names
             else "空檔"
         )
-        today_label = (
-            " · 今天"
-            if weekday == date.today().weekday()
-            else ""
-        )
+        calendar_classes = ["daibu-card", "calendar-card"]
+        if not scheduled_names:
+            calendar_classes.append("calendar-card--empty")
+        if weekday == date.today().weekday():
+            calendar_classes.append("calendar-card--today")
         with column:
             st.markdown(
-                '<div class="daibu-card">'
-                f"<strong>{WEEKDAYS[weekday]}{today_label}</strong>"
-                f"<p>{html.escape(schedule_text)}</p>"
+                f'<div class="{" ".join(calendar_classes)}">'
+                f"<strong>{WEEKDAYS[weekday]}</strong>"
+                f'<p title="{html.escape(schedule_title, quote=True)}">'
+                f"{html.escape(schedule_text)}</p>"
                 "</div>",
                 unsafe_allow_html=True,
             )

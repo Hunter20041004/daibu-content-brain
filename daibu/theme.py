@@ -392,6 +392,29 @@ def css(mode: str | None = None) -> str:
         color: var(--primary-button-ink);
     }}
 
+    .calendar-card {{
+        box-sizing: border-box;
+        height: 7.5rem;
+        overflow: hidden;
+        position: relative;
+    }}
+
+    .calendar-card p {{
+        display: -webkit-box;
+        margin-bottom: 0;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+    }}
+
+    .calendar-card--empty p {{
+        opacity: 0.45;
+    }}
+
+    .calendar-card--today {{
+        border-top: 4px solid var(--brand-primary);
+    }}
+
     .empty-state {{
         border-style: dashed;
         text-align: center;

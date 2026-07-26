@@ -195,3 +195,14 @@ def test_context_column_sticky_applies_to_streamlit_layout_wrapper():
         '[data-testid="stVerticalBlock"][class*="st-key-context-column"])'
         in styles
     )
+
+
+def test_calendar_cards_have_fixed_height():
+    styles = theme.css()
+    calendar_rule = styles.split(
+        ".calendar-card {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "height:" in calendar_rule
+    assert "overflow: hidden" in calendar_rule
