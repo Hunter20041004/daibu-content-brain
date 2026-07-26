@@ -28,6 +28,13 @@ def test_streamlit_theme_supports_brand_light_and_dark_palettes():
     assert config["dark"]["textColor"].upper() == theme.DARK["INK"]
 
 
+def test_toolbar_mode_is_minimal():
+    with (ROOT / ".streamlit" / "config.toml").open("rb") as config_file:
+        config = tomllib.load(config_file)
+
+    assert config["client"]["toolbarMode"] == "minimal"
+
+
 def test_connect_app_db_loads_dotenv(monkeypatch, tmp_path):
     loaded = []
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))

@@ -164,7 +164,8 @@ def css(mode: str | None = None) -> str:
     }}
 
     [data-testid="stHeader"] {{
-        background: transparent;
+        background: var(--canvas);
+        border-bottom: 1px solid var(--border);
     }}
 
     [data-testid="stSidebar"] {{

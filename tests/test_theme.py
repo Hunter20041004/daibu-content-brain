@@ -231,3 +231,14 @@ def test_suggestion_card_type_overrides_streamlit_paragraph_styles():
     )[1].split("}", maxsplit=1)[0]
 
     assert f"font-size: {theme.TYPE_SCALE[2]}" in message_rule
+
+
+def test_header_is_not_transparent():
+    styles = theme.css()
+    header_rule = styles.split(
+        '[data-testid="stHeader"] {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "background: var(--canvas)" in header_rule
+    assert "background: transparent" not in header_rule
