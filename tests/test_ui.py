@@ -105,3 +105,14 @@ def test_apply_styles_places_brand_in_sidebar(monkeypatch):
     ui.apply_styles()
 
     assert "呆一布" in rendered[0]
+
+
+def test_queued_toast_is_shown_once_on_the_next_run():
+    state = {}
+    rendered = []
+
+    ui.queue_toast(state, "操作成功")
+    ui.show_queued_toast(state, rendered.append)
+    ui.show_queued_toast(state, rendered.append)
+
+    assert rendered == ["操作成功"]

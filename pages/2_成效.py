@@ -3,10 +3,17 @@ import html
 import streamlit as st
 
 from daibu import db, performance
-from daibu.ui import apply_styles, connect_app_db, page_header
+from daibu.ui import (
+    apply_styles,
+    connect_app_db,
+    page_header,
+    queue_toast,
+    show_queued_toast,
+)
 
 st.set_page_config(page_title="成效｜呆一布", page_icon="◉", layout="wide")
 apply_styles()
+show_queued_toast(st.session_state, st.toast)
 page_header(
     "Performance",
     "成效回顧",
@@ -97,5 +104,5 @@ with entry_column:
                 int(reach),
                 float(engagement),
             )
-            st.success("成效已記錄。")
+            queue_toast(st.session_state, "成效已記錄。")
             st.rerun()

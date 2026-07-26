@@ -10,12 +10,15 @@ from daibu.ui import (
     apply_styles,
     connect_app_db,
     page_header,
+    queue_toast,
+    show_queued_toast,
 )
 
 WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
 
 st.set_page_config(page_title="選題｜呆一布", page_icon="◉", layout="wide")
 apply_styles()
+show_queued_toast(st.session_state, st.toast)
 page_header(
     "Radar",
     "選題工作台",
@@ -276,7 +279,7 @@ with candidate_column:
                             selected_theme.n_ideas,
                         ),
                     )
-                    st.success("來源綁定已儲存。")
+                    queue_toast(st.session_state, "來源綁定已儲存。")
                     st.rerun()
         if not selected_theme.source_ids:
             st.warning("這個主題沒綁來源，AI 會只靠主題名發想。")
@@ -295,7 +298,7 @@ with candidate_column:
                         provider,
                         sources,
                     )
-                st.success("候選已產生。")
+                queue_toast(st.session_state, "候選已產生。")
                 st.rerun()
             except Exception as error:
                 st.error(f"產生失敗：{error}")
@@ -340,6 +343,10 @@ with candidate_column:
                 width="stretch",
             ):
                 pipeline.set_status(conn, idea.id, "採用")
+                queue_toast(
+                    st.session_state,
+                    f"已採用「{idea.title}」。",
+                )
                 st.rerun()
 
             with tweak_column.popover("微調", width="stretch"):
@@ -361,7 +368,7 @@ with candidate_column:
                             tweaked_title.strip(),
                             tweaked_angle.strip(),
                         )
-                        st.success("微調已儲存。")
+                        queue_toast(st.session_state, "微調已儲存。")
                         st.rerun()
 
             with reject_column.popover("淘汰", width="stretch"):
@@ -406,7 +413,7 @@ with candidate_column:
                 width="stretch",
             ):
                 save_body_draft(idea.id, body_key)
-                st.success("正文已儲存。")
+                queue_toast(st.session_state, "正文已儲存。")
                 st.rerun()
             if publish_column.button(
                 "標記已發",
@@ -416,7 +423,7 @@ with candidate_column:
             ):
                 pipeline.update_body(conn, idea.id, body)
                 pipeline.set_status(conn, idea.id, "已發")
-                st.success("已標記為已發。")
+                queue_toast(st.session_state, "已標記為已發。")
                 st.rerun()
 
     selected_published = [

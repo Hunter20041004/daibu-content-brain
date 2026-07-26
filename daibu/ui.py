@@ -1,6 +1,7 @@
 import os
 import re
 import sqlite3
+from collections.abc import Callable, MutableMapping
 from pathlib import Path
 
 import streamlit as st
@@ -9,6 +10,7 @@ from dotenv import load_dotenv
 from daibu import db, seeds, theme
 
 DEFAULT_DB_PATH = "daibu.db"
+PENDING_TOAST_KEY = "_pending_toast"
 MASCOT_PATH = Path(__file__).resolve().parents[1] / "assets" / "mascot.svg"
 DEFAULT_GATE_LINE = (
     "一個怕 AI 的文組同學看完這則，會不會覺得"
@@ -22,6 +24,22 @@ def connect_app_db() -> sqlite3.Connection:
     db.init_schema(conn)
     seeds.load(conn)
     return conn
+
+
+def queue_toast(
+    state: MutableMapping[str, object],
+    message: str,
+) -> None:
+    state[PENDING_TOAST_KEY] = message
+
+
+def show_queued_toast(
+    state: MutableMapping[str, object],
+    render: Callable[[str], object],
+) -> None:
+    message = state.pop(PENDING_TOAST_KEY, None)
+    if isinstance(message, str):
+        render(message)
 
 
 def apply_styles() -> None:

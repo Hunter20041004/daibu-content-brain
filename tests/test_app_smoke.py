@@ -1,3 +1,4 @@
+import re
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -420,6 +421,44 @@ def test_selected_theme_is_visually_marked(monkeypatch, tmp_path):
         button.label for button in theme_buttons
         if button.proto.type == "primary"
     ] == ["主題 B"]
+
+
+def test_adopting_shows_a_toast(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "採用主題", 0, [], 1),
+    )
+    db.add_idea(conn, theme_id, Idea("值得採用", "角度", ""))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "採用"
+    ).click().run()
+
+    assert any(
+        "已採用" in toast.value
+        for toast in app.toast
+    )
+
+
+def test_success_messages_are_not_discarded_by_immediate_rerun():
+    product_files = [
+        *sorted((PROJECT_ROOT / "pages").glob("*.py")),
+        PROJECT_ROOT / "daibu" / "overview.py",
+    ]
+    discarded_messages = []
+    for path in product_files:
+        source = path.read_text(encoding="utf-8")
+        if re.search(r"st\.success\([^\n]*\)\s*\n\s*st\.rerun\(\)", source):
+            discarded_messages.append(path.name)
+
+    assert discarded_messages == []
 
 
 def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
