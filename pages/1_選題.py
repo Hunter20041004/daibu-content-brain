@@ -59,22 +59,26 @@ with context_column:
         theme_candidates = sum(
             idea.theme_id == theme.id for idea in candidates
         )
-        if st.button(
-            theme.name,
-            key=f"select-theme-{theme.id}",
-            type=(
-                "primary"
-                if theme.id == st.session_state.selected_theme_id
-                else "secondary"
-            ),
-            width="stretch",
-        ):
-            st.session_state.selected_theme_id = theme.id
-            st.rerun()
-        st.caption(
-            f"{WEEKDAYS[theme.weekday]} · "
-            f"{len(theme.source_ids)} 來源 · {theme_candidates} 候選"
-        )
+        with st.container(key=f"theme-item-{theme.id}"):
+            if st.button(
+                theme.name,
+                key=f"select-theme-{theme.id}",
+                type=(
+                    "primary"
+                    if theme.id == st.session_state.selected_theme_id
+                    else "secondary"
+                ),
+                width="stretch",
+            ):
+                st.session_state.selected_theme_id = theme.id
+                st.rerun()
+            st.markdown(
+                '<p class="theme-item__meta">'
+                f"{WEEKDAYS[theme.weekday]} · "
+                f"{len(theme.source_ids)} 來源 · {theme_candidates} 候選"
+                "</p>",
+                unsafe_allow_html=True,
+            )
 
     with st.popover("＋ 新增主題", width="stretch"):
         with st.form("new-theme"):

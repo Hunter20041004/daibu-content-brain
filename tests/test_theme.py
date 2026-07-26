@@ -148,3 +148,18 @@ def test_css_uses_verified_streamlit_classes_for_manual_theme_switch():
     )
     assert len(dark_override) == 2
     assert f"--ink: {theme.DARK['INK']}" in dark_override[1]
+
+
+def test_theme_list_caption_hugs_its_button():
+    styles = theme.css()
+    meta_styles = styles.split(".theme-item__meta {", maxsplit=1)
+
+    assert (
+        '[data-testid="stVerticalBlock"][class*="st-key-theme-item-"]'
+        in styles
+    )
+    assert "gap: 0 !important" in styles
+    assert len(meta_styles) == 2
+    rule = meta_styles[1].split("}", maxsplit=1)[0]
+    assert "margin-top: 0.25rem" in rule
+    assert "margin-bottom: 0.9rem" in rule

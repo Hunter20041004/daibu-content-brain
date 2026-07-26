@@ -250,6 +250,19 @@ def css(mode: str | None = None) -> str:
         opacity: 0.78;
     }}
 
+    [data-testid="stVerticalBlock"][class*="st-key-theme-item-"] {{
+        gap: 0 !important;
+    }}
+
+    .theme-item__meta {{
+        color: var(--ink);
+        font-size: 0.875rem;
+        line-height: 1.5;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.9rem !important;
+        opacity: 0.62;
+    }}
+
     .brand-lockup {{
         align-items: center;
         display: flex;
