@@ -161,3 +161,50 @@ Claude 在 2026-07-25 用「真的在經營社群的人」的身分，把
 - 新增了 `.claude/launch.json`，讓預覽工具可以啟動 app（port 8502）。
 - 上一輪的紀錄：Claude 曾經越權直接改程式碼，改動封存在分支
   `refactor/ia-topic-first` 的 commit `b6b66bc`，**可參考、不要直接 merge**。
+
+---
+
+## 本輪狀態（Codex，2026-07-25）
+
+**狀態：階段 A（Task 1–6）完成並停在使用者複驗點；尚未開始階段 B。**
+
+### 已完成與提交
+
+- Task 1 `ae98dca`：修正深色模式彈出視窗文字；保留 `LIGHT`／`DARK`
+  色票數值與既有對比度規則。
+- Task 2 `38c55c8`：建立本機時鐘邊界，建立題目與標記已發都存本地時間。
+- Task 3 `00d2227`：補上本週已發的晚間與跨週 AppTest 回歸測試。
+- Task 4 `aa80a42`：刪主題會連動清除題目與成效，操作前列出各狀態筆數。
+- Task 5 `f9c909e`：預設主題／來源只灌一次；既有資料庫升級時補初始化旗標。
+- Task 6 `c487aa6`：正文欄位變更即寫入 SQLite，顯示自動保存時間，切主題與
+  重新整理後內容仍在。
+
+### 驗收證據
+
+- 最終全套測試：`.venv/bin/pytest -q` → `116 passed, 3 deselected`
+  （基線為 `99 passed, 3 deselected`）。
+- Task 5 使用真實 `daibu.db` 的副本
+  `/tmp/daibu-task5-real-copy.db` 驗收：升級後維持 3 主題／15 來源；
+  在副本刪除一個預設主題與來源後重開，維持 2／14，沒有復活。
+  原始 `daibu.db` 前後 SHA-256 都是
+  `0af8410730fc2859e3cfb105c5681040073f799a78de2558b57928b162925382`。
+- Task 4 在 `/tmp/daibu-task4.db` 實刪含 6 則候選的主題後，首頁待決策由 6
+  降到 0；孤兒題目與孤兒成效皆為 0。
+- Task 6 在 `/tmp/daibu-task6.db` 完成輸入正文 → 切主題 → 切回 →
+  重新整理，正文均保留。
+- 禁止修改的 `daibu/fetch/rss.py`、`daibu/fetch/search.py` 未動；
+  `pages/` 沒有新增寫死色碼；`.screenshots/` 已在 `.gitignore`。
+
+### 最終截圖路徑
+
+- Task 1 全部彈出視窗（新增主題、微調、淘汰、編輯來源；深／淺色）：
+  `.screenshots/task1/round2/`
+- Task 4 刪除警告與刪除後首頁（深／淺色、桌機／手機）：
+  `.screenshots/task4/round2/`
+- Task 6 自動保存正文（深／淺色、桌機／手機）：
+  `.screenshots/task6/round2/`
+
+### 下一步
+
+等待使用者複驗階段 A。取得確認後才從 `docs/plan-qa-fixes.md` 的 Task 7
+開始階段 B。
