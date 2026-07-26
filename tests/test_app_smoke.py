@@ -1,8 +1,9 @@
+from datetime import date, timedelta
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from daibu import db, performance, seeds, selection
+from daibu import db, performance, pipeline, seeds, selection
 from daibu.llm import base
 from daibu.llm.base import Idea
 from daibu.models import Source, Theme
@@ -103,6 +104,59 @@ def test_home_does_not_count_unknown_publish_time_as_this_week(
         Idea("沒有發布時間的舊貼文", "角度", ""),
         status="已發",
     )
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    weekly_published = next(
+        metric for metric in app.metric
+        if metric.label == "本週已發"
+    )
+    assert weekly_published.value == "0"
+
+
+def test_home_counts_a_post_published_today(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "今天發布主題", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("今天晚上發布", "角度", ""),
+    )
+    today_evening = f"{date.today().isoformat()} 20:09:00"
+    monkeypatch.setattr(pipeline, "_now", lambda: today_evening)
+    pipeline.set_status(conn, idea_id, "已發")
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    weekly_published = next(
+        metric for metric in app.metric
+        if metric.label == "本週已發"
+    )
+    assert weekly_published.value == "1"
+
+
+def test_home_excludes_post_published_last_week(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "上週發布主題", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("上週發布", "角度", ""),
+    )
+    previous_sunday = date.today() - timedelta(
+        days=date.today().weekday() + 1,
+    )
+    last_week_evening = f"{previous_sunday.isoformat()} 20:09:00"
+    monkeypatch.setattr(pipeline, "_now", lambda: last_week_evening)
+    pipeline.set_status(conn, idea_id, "已發")
 
     app = AppTest.from_file(PROJECT_ROOT / "app.py")
     app.run()
