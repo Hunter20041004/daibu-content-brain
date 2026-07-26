@@ -101,22 +101,24 @@ def render() -> None:
     else:
         next_action = "目前沒有待辦；先建立第一個主題"
 
-    st.markdown(
-        '<div class="suggestion-card">'
-        "<strong>下一步</strong>"
-        f"<p>{html.escape(next_action)}</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
     cta_label = (
         f"去看「{candidate_target.name}」的 {candidate_target_count} 則"
         if candidate_target and candidate_target_count
         else "前往選題工作台"
     )
-    if st.button(cta_label, type="primary"):
-        if candidate_target and candidate_target_count:
-            st.session_state.selected_theme_id = candidate_target.id
-        st.switch_page("pages/1_選題.py")
+    with st.container(key="next-action-card"):
+        st.markdown(
+            '<div class="suggestion-card">'
+            '<span class="suggestion-card__label">下一步</span>'
+            '<p class="suggestion-card__message">'
+            f"{html.escape(next_action)}</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        if st.button(cta_label, type="primary"):
+            if candidate_target and candidate_target_count:
+                st.session_state.selected_theme_id = candidate_target.id
+            st.switch_page("pages/1_選題.py")
 
     st.subheader("待辦數字")
     focus_columns = st.columns(3)

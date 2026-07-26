@@ -30,8 +30,9 @@ results_column, entry_column = st.columns([2, 1], gap="large")
 with results_column:
     st.markdown(
         '<div class="suggestion-card">'
-        "<strong>下週建議</strong>"
-        f"<p>{html.escape(recommendation)}</p>"
+        '<span class="suggestion-card__label">下週建議</span>'
+        '<p class="suggestion-card__message">'
+        f"{html.escape(recommendation)}</p>"
         "</div>",
         unsafe_allow_html=True,
     )

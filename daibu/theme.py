@@ -392,6 +392,38 @@ def css(mode: str | None = None) -> str:
         color: var(--primary-button-ink);
     }}
 
+    .stApp .suggestion-card__label {{
+        color: var(--primary-button-ink);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        opacity: 0.65;
+    }}
+
+    .stApp .suggestion-card__message {{
+        color: var(--primary-button-ink);
+        font-size: {TYPE_SCALE[2]};
+        font-weight: {TYPE_WEIGHTS[2]};
+        line-height: 1.35;
+        margin: 0.4rem 0 0;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-next-action-card"] {{
+        background: var(--highlight);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        gap: 0.75rem;
+        padding: 1.25rem;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-next-action-card"]
+    .suggestion-card {{
+        background: transparent;
+        border: 0;
+        padding: 0;
+    }}
+
     .calendar-card {{
         box-sizing: border-box;
         height: 7.5rem;

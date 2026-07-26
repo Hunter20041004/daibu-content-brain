@@ -206,3 +206,28 @@ def test_calendar_cards_have_fixed_height():
 
     assert "height:" in calendar_rule
     assert "overflow: hidden" in calendar_rule
+
+
+def test_suggestion_card_label_is_smaller_than_its_message():
+    styles = theme.css()
+    label_rule = styles.split(
+        ".suggestion-card__label {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    message_rule = styles.split(
+        ".suggestion-card__message {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "font-size: 0.75rem" in label_rule
+    assert f"font-size: {theme.TYPE_SCALE[2]}" in message_rule
+
+
+def test_suggestion_card_type_overrides_streamlit_paragraph_styles():
+    styles = theme.css()
+    message_rule = styles.split(
+        ".stApp .suggestion-card__message {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert f"font-size: {theme.TYPE_SCALE[2]}" in message_rule
