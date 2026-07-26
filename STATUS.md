@@ -52,12 +52,13 @@
   時間戳記時區導致「本週已發」算錯、正文草稿會靜默消失）。
   - 驗收回饋（給人看，含截圖）：`docs/2026-07-25-操作驗收回饋.html`
   - TDD 計畫：`docs/plan-qa-fixes.md`（Task 1–24，五個階段）
-  - **狀態：等 Codex 實作。階段 A（Task 1–6）做完要先停下來讓使用者複驗。**
+  - **狀態：階段 A、B（Task 1–14）已完成；目前停在使用者複驗點，尚未開始階段 C。**
 
 ## 測試基線
 
 重整前 `main` 的基線為 **68 passed、3 deselected**。重整後為
-**99 passed、3 deselected**，新增資料搬遷、主題工作台、行動概覽等回歸測試；
+**99 passed、3 deselected**；操作驗收修正完成階段 B 後為
+**136 passed、3 deselected**。新增資料搬遷、主題工作台、行動概覽等回歸測試；
 3 個需真實 API key 的契約測試仍維持 deselected。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
@@ -82,8 +83,8 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. Codex 依 `docs/plan-qa-fixes.md` 實作，階段 A（Task 1–6）做完先回報
-2. 使用者複驗階段 A，再繼續階段 B–E
+1. 使用者複驗階段 B（Task 7–14）
+2. 確認後由 Codex 繼續階段 C（Task 15–22）；所有彈出視窗必須做深／淺模式截圖自檢
 3. 全部修完後決定 `codex/ia-topic-first` 如何整合回 `main`
 4. 再設計**下一輪大功能**：分平台產文字（Threads／IG／LinkedIn）＋由文字產貼圖
    —— 需先解決「圖片生成多數付費」與「只用免費額度」的衝突，見

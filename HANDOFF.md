@@ -1,8 +1,8 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 兩個貼上區塊：規劃找 🧠 Claude、實作找 🖐 Codex。由 Claude 於 2026-07-25 更新。
-> 一句話現況：**資訊架構重整已實作完成並通過實際操作驗收，但驗收找出 24 條要修的東西，
-> 其中 4 條會弄壞資料。計畫已寫好（`docs/plan-qa-fixes.md`），等 Codex 實作。**
+> 一句話現況：**操作驗收修正的階段 A、B（Task 1–14）已完成；目前停在使用者複驗點，
+> 尚未開始階段 C。**
 
 ---
 
@@ -208,3 +208,43 @@ Claude 在 2026-07-25 用「真的在經營社群的人」的身分，把
 
 等待使用者複驗階段 A。取得確認後才從 `docs/plan-qa-fixes.md` 的 Task 7
 開始階段 B。
+
+---
+
+## 本輪狀態（Codex，2026-07-26）
+
+**狀態：階段 B（Task 7–14）完成並停在使用者複驗點；尚未開始階段 C。**
+
+### 已完成與提交
+
+- Task 7 `8f180d2`：切換主題後，左欄選中樣式會持續保留。
+- Task 8 `3be7068`：主題排程、來源數與候選數回到所屬主題按鈕下方。
+- Task 9 `da9d45d`：採用、儲存正文、標記已發與回填成效的成功訊息可跨 rerun 顯示。
+- Task 10 `d8695e6`：首頁行動按鈕直接帶到有待決策候選的主題。
+- Task 11 `bd1d355`：淘汰改成一步完成，且可由成功訊息立即復原。
+- Task 12 `6bd4cd1`：已採用可退回候選；已發可退回已採用。
+- Task 13 `cbe1752`：成效表單儲存後清空；資料不足時不再下過度肯定的建議。
+- Task 14 `73a3be2`：來源庫改為精簡資料列，顯示使用主題數與網域，刪除前提示關聯影響。
+
+### 驗收證據
+
+- 最終全套測試：`.venv/bin/pytest -q` → `136 passed, 3 deselected`
+  （階段 A 完成時為 `116 passed, 3 deselected`）。
+- Task 14 桌面與 375px 手機實測：來源列高皆為 `45.59px`，頁面沒有橫向捲動。
+- 全程使用 `/tmp/daibu-phaseb.db`；真實 `daibu.db` 未作為 Streamlit 測試目標。
+- 禁止修改的 `daibu/fetch/rss.py`、`daibu/fetch/search.py` 未動；
+  `pages/` 沒有新增寫死色碼。
+
+### 最終截圖路徑
+
+- Task 7–9：`.screenshots/task7/round2/`、`.screenshots/task8/round2/`、
+  `.screenshots/task9/round2/`
+- Task 10–12：`.screenshots/task10/round2/`、`.screenshots/task11/round2/`、
+  `.screenshots/task12/round2/`
+- Task 13–14：`.screenshots/task13/round2/`、`.screenshots/task14/round1/`、
+  `.screenshots/task14/round2/`
+
+### 下一步
+
+等待使用者複驗階段 B。取得確認後才從 `docs/plan-qa-fixes.md` 的 Task 15
+開始階段 C；階段 C 仍須逐一打開所有彈出視窗，完成深／淺模式截圖自檢。
