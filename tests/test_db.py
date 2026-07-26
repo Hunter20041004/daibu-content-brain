@@ -1,4 +1,4 @@
-from daibu import db
+from daibu import db, performance
 from daibu.llm.base import Idea
 from daibu.models import Source, Theme
 
@@ -204,6 +204,71 @@ def test_delete_theme_removes_it(tmp_path):
         ).fetchone()[0]
         == 0
     )
+
+
+def test_delete_theme_also_deletes_its_ideas(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "連內容刪除", 0, [], 3))
+    for status in ("候選", "採用", "已發"):
+        idea_id = db.add_idea(
+            conn,
+            theme_id,
+            Idea(f"{status}題目", "角度", ""),
+            status=status,
+        )
+    performance.record(conn, idea_id, "Threads", 1, 10, 2.0)
+
+    db.delete_theme(conn, theme_id)
+
+    assert db.get_ideas(conn) == []
+    assert conn.execute("SELECT COUNT(*) FROM performance").fetchone()[0] == 0
+
+
+def test_delete_theme_leaves_other_themes_ideas_untouched(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    deleted_theme_id = db.add_theme(
+        conn,
+        Theme(None, "刪除這個", 0, [], 1),
+    )
+    kept_theme_id = db.add_theme(
+        conn,
+        Theme(None, "保留這個", 1, [], 1),
+    )
+    db.add_idea(conn, deleted_theme_id, Idea("一起刪除", "角度", ""))
+    kept_idea_id = db.add_idea(
+        conn,
+        kept_theme_id,
+        Idea("必須保留", "角度", ""),
+    )
+
+    db.delete_theme(conn, deleted_theme_id)
+
+    assert [idea.id for idea in db.get_ideas(conn)] == [kept_idea_id]
+
+
+def test_count_theme_content_reports_what_will_be_deleted(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "刪除預覽", 0, [], 9))
+    other_theme_id = db.add_theme(
+        conn,
+        Theme(None, "不列入預覽", 1, [], 1),
+    )
+    for index in range(8):
+        db.add_idea(conn, theme_id, Idea(f"候選 {index}", "角度", ""))
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea("已發布", "角度", ""),
+        status="已發",
+    )
+    db.add_idea(conn, other_theme_id, Idea("別的主題", "角度", ""))
+
+    counts = db.count_theme_content(conn, theme_id)
+
+    assert counts == {"候選": 8, "採用": 0, "已發": 1}
 
 
 def test_update_source_replaces_editable_fields(tmp_path):

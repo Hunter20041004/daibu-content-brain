@@ -327,11 +327,41 @@ def update_theme(conn: sqlite3.Connection, theme: Theme) -> None:
 
 def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
     conn.execute(
+        """
+        DELETE FROM performance
+        WHERE idea_id IN (
+            SELECT id FROM ideas WHERE theme_id = ?
+        )
+        """,
+        (theme_id,),
+    )
+    conn.execute("DELETE FROM ideas WHERE theme_id = ?", (theme_id,))
+    conn.execute(
         "DELETE FROM theme_sources WHERE theme_id = ?",
         (theme_id,),
     )
     conn.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
     conn.commit()
+
+
+def count_theme_content(
+    conn: sqlite3.Connection,
+    theme_id: int,
+) -> dict[str, int]:
+    counts = {"候選": 0, "採用": 0, "已發": 0}
+    rows = conn.execute(
+        """
+        SELECT status, COUNT(*) AS count
+        FROM ideas
+        WHERE theme_id = ?
+        GROUP BY status
+        """,
+        (theme_id,),
+    ).fetchall()
+    for row in rows:
+        if row["status"] in counts:
+            counts[row["status"]] = int(row["count"])
+    return counts
 
 
 def add_source(conn: sqlite3.Connection, source: Source) -> int:

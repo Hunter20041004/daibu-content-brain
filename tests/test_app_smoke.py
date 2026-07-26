@@ -310,6 +310,34 @@ def test_selection_warns_when_theme_has_no_sources(monkeypatch, tmp_path):
     )
 
 
+def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "有內容主題", 0, [], 3))
+    for index in range(2):
+        db.add_idea(
+            conn,
+            theme_id,
+            Idea(f"候選 {index}", "角度", ""),
+        )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea("已發布", "角度", ""),
+        status="已發",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    warning_text = " ".join(warning.value for warning in app.warning)
+    assert "2 則候選" in warning_text
+    assert "1 則已發" in warning_text
+    assert "無法復原" in warning_text
+
+
 def test_selection_lists_adopted_ideas_with_body_editor(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

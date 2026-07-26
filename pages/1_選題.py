@@ -206,6 +206,21 @@ with candidate_column:
                         ),
                     )
                     st.rerun()
+            content_counts = db.count_theme_content(
+                conn,
+                selected_theme.id,
+            )
+            content_summary = "、".join(
+                f"{count} 則{status}"
+                for status, count in content_counts.items()
+                if count
+            )
+            warning_message = (
+                f"這會一併刪掉 {content_summary}，且無法復原。"
+                if content_summary
+                else "這會刪除主題，且無法復原。"
+            )
+            st.warning(warning_message)
             confirm_delete_theme = st.checkbox(
                 "確認刪除這個主題",
                 key=f"confirm-delete-theme-{selected_theme.id}",
