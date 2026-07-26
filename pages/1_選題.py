@@ -52,8 +52,9 @@ provider_config["LLM_MODEL"] = db.get_config(
 )
 
 context_column, candidate_column = st.columns([1, 2], gap="medium")
+context_panel = context_column.container(key="context-column")
 
-with context_column:
+with context_panel:
     st.subheader("我的主題")
     if themes and st.session_state.get("selected_theme_id") not in {
         theme.id for theme in themes

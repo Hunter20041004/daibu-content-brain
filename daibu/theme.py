@@ -536,6 +536,20 @@ def css(mode: str | None = None) -> str:
         }}
     }}
 
+    @media (min-width: 701px) {{
+        [data-testid="stLayoutWrapper"]:has(> [data-testid="stVerticalBlock"][class*="st-key-context-column"]) {{
+            position: sticky;
+            top: 4.5rem;
+        }}
+
+        .context-column,
+        [data-testid="stVerticalBlock"][class*="st-key-context-column"] {{
+            max-height: calc(100vh - 5.5rem);
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }}
+    }}
+
     @media (max-width: 700px) {{
         .hero-lockup {{
             align-items: flex-start;

@@ -163,3 +163,35 @@ def test_theme_list_caption_hugs_its_button():
     rule = meta_styles[1].split("}", maxsplit=1)[0]
     assert "margin-top: 0.25rem" in rule
     assert "margin-bottom: 0.9rem" in rule
+
+
+def test_context_column_sticks_on_desktop():
+    styles = theme.css()
+    desktop_styles = styles.split(
+        "@media (min-width: 701px)",
+        maxsplit=1,
+    )
+
+    assert len(desktop_styles) == 2
+    wrapper_rule = desktop_styles[1].split(
+        '[data-testid="stLayoutWrapper"]:has(',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    context_rule = desktop_styles[1].split(
+        ".context-column",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "position: sticky" in wrapper_rule
+    assert "top:" in wrapper_rule
+    assert "max-height:" in context_rule
+    assert "overflow-y: auto" in context_rule
+
+
+def test_context_column_sticky_applies_to_streamlit_layout_wrapper():
+    styles = theme.css()
+
+    assert (
+        '[data-testid="stLayoutWrapper"]:has(> '
+        '[data-testid="stVerticalBlock"][class*="st-key-context-column"])'
+        in styles
+    )
