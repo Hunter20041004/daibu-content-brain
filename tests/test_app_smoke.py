@@ -50,6 +50,82 @@ def test_home_next_action_falls_back_when_nothing_pending(
     assert "目前沒有待辦" in visible_text
 
 
+def test_home_cta_targets_the_theme_with_candidates(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "沒有候選", 0, [], 1))
+    target_theme_id = db.add_theme(
+        conn,
+        Theme(None, "有候選主題", 1, [], 1),
+    )
+    for index in range(2):
+        db.add_idea(
+            conn,
+            target_theme_id,
+            Idea(f"候選 {index}", "角度", ""),
+        )
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+    next(
+        button for button in app.button
+        if "有候選主題" in button.label
+    ).click().run()
+
+    assert any(
+        subheader.value == "有候選主題工作區"
+        for subheader in app.subheader
+    )
+
+
+def test_home_cta_names_target_theme_and_count(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 1, [], 3),
+    )
+    for index in range(3):
+        db.add_idea(
+            conn,
+            theme_id,
+            Idea(f"候選 {index}", "角度", ""),
+        )
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    assert any(
+        button.label == "去看「AI 新創介紹」的 3 則"
+        for button in app.button
+    )
+
+
+def test_empty_candidate_state_points_at_the_right_button(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "等待產生", 0, [], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    empty_state = " ".join(
+        markdown.value for markdown in app.markdown
+        if "尚無候選" in markdown.value
+    )
+    assert "左邊" not in empty_state
+    assert "上方的「產生候選」" in empty_state
+
+
 def test_home_shows_the_week_schedule(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 

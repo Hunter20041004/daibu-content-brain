@@ -318,7 +318,8 @@ with candidate_column:
     if not selected_candidates:
         st.markdown(
             '<div class="empty-state">'
-            "<p>這個主題尚無候選，按左邊的按鈕讓 AI 先整理一輪。</p>"
+            "<p>這個主題尚無候選，按上方的「產生候選」"
+            "讓 AI 先整理一輪。</p>"
             "</div>",
             unsafe_allow_html=True,
         )

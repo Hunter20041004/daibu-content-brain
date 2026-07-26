@@ -40,6 +40,23 @@ def render() -> None:
         status: len([idea for idea in ideas if idea.status == status])
         for status in pipeline.STATUSES
     }
+    candidate_counts = {
+        theme.id: sum(
+            idea.status == "候選" and idea.theme_id == theme.id
+            for idea in ideas
+        )
+        for theme in themes
+    }
+    candidate_target = max(
+        themes,
+        key=lambda theme: candidate_counts[theme.id],
+        default=None,
+    )
+    candidate_target_count = (
+        candidate_counts[candidate_target.id]
+        if candidate_target
+        else 0
+    )
     blank_adopted = [
         idea for idea in ideas
         if idea.status == "採用" and not idea.body.strip()
@@ -84,10 +101,14 @@ def render() -> None:
         "</div>",
         unsafe_allow_html=True,
     )
-    if st.button(
-        "前往選題工作台",
-        type="primary",
-    ):
+    cta_label = (
+        f"去看「{candidate_target.name}」的 {candidate_target_count} 則"
+        if candidate_target and candidate_target_count
+        else "前往選題工作台"
+    )
+    if st.button(cta_label, type="primary"):
+        if candidate_target and candidate_target_count:
+            st.session_state.selected_theme_id = candidate_target.id
         st.switch_page("pages/1_選題.py")
 
     st.subheader("待辦數字")
