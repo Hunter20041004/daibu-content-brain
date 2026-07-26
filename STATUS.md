@@ -61,7 +61,7 @@
 **99 passed、3 deselected**；操作驗收修正完成階段 B 後為
 **136 passed、3 deselected**；操作驗收修正完成階段 C 後為
 **157 passed、3 deselected**；操作驗收修正完成階段 D 後為
-**161 passed、3 deselected**。新增資料搬遷、主題工作台、行動概覽等回歸測試；
+**164 passed、3 deselected**。新增資料搬遷、主題工作台、行動概覽等回歸測試；
 3 個需真實 API key 的契約測試仍維持 deselected。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
