@@ -15,12 +15,13 @@ page_header(
 
 conn = connect_app_db()
 
-st.subheader("系統設定")
-with st.form("system-config"):
+settings_panel = st.container(key="settings-form")
+settings_panel.subheader("系統設定")
+with settings_panel.form("system-config"):
     provider_options = ["gemini", "groq"]
     current_provider = db.get_config(conn, "llm_provider", "gemini")
     provider = st.selectbox(
-        "LLM provider",
+        "AI 服務商",
         provider_options,
         index=provider_options.index(current_provider)
         if current_provider in provider_options
@@ -35,26 +36,39 @@ with st.form("system-config"):
         "模型",
         value=db.get_config(conn, "llm_model", default_model),
     )
-    search_provider = st.selectbox(
-        "搜尋 provider",
-        ["tavily"],
-        help="目前固定使用 Tavily 免費層。",
-    )
+    search_provider = "tavily"
+    st.markdown("搜尋服務：Tavily")
     st.caption("API key 只放在本次執行環境，不寫入 SQLite，也不會進 Git。")
-    gemini_key = st.text_input(
-        "Gemini API key",
-        type="password",
-        placeholder="已設環境變數時可留空",
-    )
-    groq_key = st.text_input(
-        "Groq API key",
-        type="password",
-        placeholder="已設環境變數時可留空",
-    )
+    gemini_key = ""
+    groq_key = ""
+    if provider == "gemini":
+        gemini_key = st.text_input(
+            "Gemini 金鑰",
+            type="password",
+            placeholder="已設環境變數時可留空",
+        )
+        st.caption(
+            "Gemini 金鑰："
+            f"{'已設定' if os.getenv('GEMINI_API_KEY') else '尚未設定'}"
+        )
+    else:
+        groq_key = st.text_input(
+            "Groq 金鑰",
+            type="password",
+            placeholder="已設環境變數時可留空",
+        )
+        st.caption(
+            "Groq 金鑰："
+            f"{'已設定' if os.getenv('GROQ_API_KEY') else '尚未設定'}"
+        )
     tavily_key = st.text_input(
-        "Tavily API key",
+        "Tavily 金鑰",
         type="password",
         placeholder="已設環境變數時可留空",
+    )
+    st.caption(
+        "Tavily 金鑰："
+        f"{'已設定' if os.getenv('TAVILY_API_KEY') else '尚未設定'}"
     )
     if st.form_submit_button("儲存系統設定", type="primary"):
         db.set_config(conn, "llm_provider", provider)

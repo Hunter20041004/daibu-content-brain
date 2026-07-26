@@ -876,6 +876,63 @@ def test_settings_page_only_keeps_system_settings(monkeypatch, tmp_path):
     assert "來源白名單" not in visible_text
 
 
+def test_settings_reports_key_status(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+    for key_name in ("GEMINI_API_KEY", "GROQ_API_KEY", "TAVILY_API_KEY"):
+        monkeypatch.delenv(key_name, raising=False)
+
+    unset_app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
+    unset_app.run()
+    unset_text = " ".join(
+        caption.value for caption in unset_app.caption
+    )
+
+    assert "Gemini 金鑰：尚未設定" in unset_text
+    assert "Tavily 金鑰：尚未設定" in unset_text
+
+    monkeypatch.setenv("GEMINI_API_KEY", "do-not-display-this-secret")
+    monkeypatch.setenv("TAVILY_API_KEY", "also-secret")
+    configured_app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
+    configured_app.run()
+    configured_text = " ".join(
+        caption.value for caption in configured_app.caption
+    )
+
+    assert "Gemini 金鑰：已設定" in configured_text
+    assert "Tavily 金鑰：已設定" in configured_text
+    assert "do-not-display-this-secret" not in configured_text
+    assert "also-secret" not in configured_text
+
+
+def test_settings_only_shows_the_active_provider_key(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
+    app.run()
+
+    field_labels = [field.label for field in app.text_input]
+    assert "Gemini 金鑰" in field_labels
+    assert "Groq 金鑰" not in field_labels
+
+
+def test_settings_uses_chinese_labels_and_static_search_service(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
+    app.run()
+
+    assert [field.label for field in app.selectbox] == ["AI 服務商"]
+    visible_text = " ".join(
+        element.value
+        for elements in (app.markdown, app.caption)
+        for element in elements
+    )
+    assert "搜尋服務：Tavily" in visible_text
+
+
 def test_no_pipeline_page_exists():
     assert not any("流水線" in page.name for page in (PROJECT_ROOT / "pages").iterdir())
 

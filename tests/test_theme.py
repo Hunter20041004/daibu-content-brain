@@ -242,3 +242,14 @@ def test_header_is_not_transparent():
 
     assert "background: var(--canvas)" in header_rule
     assert "background: transparent" not in header_rule
+
+
+def test_settings_form_has_a_readable_max_width():
+    styles = theme.css()
+    settings_rule = styles.split(
+        '[class*="st-key-settings-form"] {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "max-width: 35rem" in settings_rule
+    assert "width: 100%" in settings_rule

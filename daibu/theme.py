@@ -425,6 +425,11 @@ def css(mode: str | None = None) -> str:
         padding: 0;
     }}
 
+    [data-testid="stVerticalBlock"][class*="st-key-settings-form"] {{
+        max-width: 35rem;
+        width: 100%;
+    }}
+
     .calendar-card {{
         box-sizing: border-box;
         height: 7.5rem;
