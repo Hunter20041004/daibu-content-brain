@@ -489,6 +489,59 @@ def test_selection_lists_adopted_ideas_with_body_editor(monkeypatch, tmp_path):
     )
 
 
+def test_adopted_idea_can_go_back_to_candidate(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "退回流程", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("採用錯了這則", "可以退回", ""),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "退回候選"
+    ).click().run()
+
+    candidates = db.get_ideas(conn, status="候選")
+    assert [idea.id for idea in candidates] == [idea_id]
+    assert any(
+        "採用錯了這則" in markdown.value
+        for markdown in app.markdown
+    )
+
+
+def test_published_idea_can_go_back_to_adopted(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "發布退回", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("發布錯了這則", "退回繼續編輯", ""),
+    )
+    pipeline.set_status(conn, idea_id, "已發")
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "退回已採用"
+    ).click().run()
+
+    adopted = db.get_ideas(conn, status="採用")
+    assert [idea.id for idea in adopted] == [idea_id]
+    assert adopted[0].published_at is None
+
+
 def test_body_draft_survives_switching_themes(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

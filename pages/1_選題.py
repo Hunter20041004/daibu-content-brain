@@ -427,7 +427,7 @@ with candidate_column:
             saved_at = st.session_state.get(f"body-saved-at-{idea.id}")
             if saved_at:
                 st.caption(f"已自動儲存於 {saved_at}")
-            save_column, publish_column = st.columns(2)
+            save_column, return_column, publish_column = st.columns(3)
             if save_column.button(
                 "儲存正文",
                 key=f"save-body-{idea.id}",
@@ -435,6 +435,14 @@ with candidate_column:
             ):
                 save_body_draft(idea.id, body_key)
                 queue_toast(st.session_state, "正文已儲存。")
+                st.rerun()
+            if return_column.button(
+                "退回候選",
+                key=f"return-candidate-{idea.id}",
+                width="stretch",
+            ):
+                pipeline.set_status(conn, idea.id, "候選")
+                queue_toast(st.session_state, "已退回候選。")
                 st.rerun()
             if publish_column.button(
                 "標記已發",
@@ -456,3 +464,10 @@ with candidate_column:
             for idea in selected_published:
                 st.markdown(f"**{idea.title}**")
                 st.caption(idea.published_at or "發布時間未知")
+                if st.button(
+                    "退回已採用",
+                    key=f"return-adopted-{idea.id}",
+                ):
+                    pipeline.set_status(conn, idea.id, "採用")
+                    queue_toast(st.session_state, "已退回已採用。")
+                    st.rerun()
