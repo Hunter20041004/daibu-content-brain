@@ -726,6 +726,45 @@ def test_performance_page_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_performance_form_clears_after_submit(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "成效表單", 0, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("要填成效這則", "角度", ""),
+    )
+    pipeline.set_status(conn, idea_id, "已發")
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/2_成效.py")
+    app.run()
+    next(
+        field for field in app.number_input
+        if field.label == "讚"
+    ).set_value(248)
+    next(
+        field for field in app.number_input
+        if field.label == "觸及"
+    ).set_value(5120)
+    next(
+        field for field in app.number_input
+        if field.label == "互動"
+    ).set_value(7.5)
+    next(
+        button for button in app.button
+        if button.label == "儲存成效"
+    ).click().run()
+
+    values = {
+        field.label: field.value
+        for field in app.number_input
+    }
+    assert values == {"讚": 0, "觸及": 0, "互動": 0.0}
+
+
 def test_performance_shows_recommendation_before_chart(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

@@ -71,6 +71,15 @@ with entry_column:
             unsafe_allow_html=True,
         )
 
+    number_defaults = {
+        "performance-likes": 0,
+        "performance-reach": 0,
+        "performance-engagement": 0.0,
+    }
+    if st.session_state.pop("clear-performance-form", False):
+        for key, value in number_defaults.items():
+            st.session_state[key] = value
+
     with st.form("performance-entry"):
         idea = st.selectbox(
             "貼文",
@@ -82,13 +91,26 @@ with entry_column:
             "平台",
             ["Instagram", "Facebook", "Threads", "LinkedIn", "其他"],
         )
-        likes = st.number_input("讚", min_value=0, value=0, step=1)
-        reach = st.number_input("觸及", min_value=0, value=0, step=1)
+        likes = st.number_input(
+            "讚",
+            min_value=0,
+            value=0,
+            step=1,
+            key="performance-likes",
+        )
+        reach = st.number_input(
+            "觸及",
+            min_value=0,
+            value=0,
+            step=1,
+            key="performance-reach",
+        )
         engagement = st.number_input(
             "互動",
             min_value=0.0,
             value=0.0,
             step=0.1,
+            key="performance-engagement",
             help="填入平台提供的互動數值；不同平台請維持同一口徑再比較。",
         )
         if st.form_submit_button(
@@ -104,5 +126,6 @@ with entry_column:
                 int(reach),
                 float(engagement),
             )
+            st.session_state["clear-performance-form"] = True
             queue_toast(st.session_state, "成效已記錄。")
             st.rerun()

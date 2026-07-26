@@ -50,6 +50,16 @@ def suggest(summary: list[dict[str, object]]) -> str:
         key=lambda row: float(row["avg_engagement"]),
         reverse=True,
     )
+    if (
+        all("posts" in row for row in ranked)
+        and max(int(row["posts"]) for row in ranked) < 3
+    ):
+        sample_sizes = "、".join(
+            f"{row['theme']} {int(row['posts'])} 篇"
+            for row in ranked
+        )
+        return f"資料還太少（{sample_sizes}）；先累積更多貼文再比較。"
+
     strongest = str(ranked[0]["theme"])
     if len(ranked) == 1:
         return f"目前表現最好的是「{strongest}」；累積更多主題後再比較。"

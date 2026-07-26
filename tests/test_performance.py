@@ -68,3 +68,44 @@ def test_suggest_names_strongest_and_weakest_themes():
 
     assert "表現最好" in text and "A" in text
     assert "優先補強" in text and "B" in text
+
+
+def test_suggest_stays_cautious_when_each_theme_has_one_post():
+    summary = [
+        {
+            "theme": "A",
+            "posts": 1,
+            "avg_engagement": 8.0,
+        },
+        {
+            "theme": "B",
+            "posts": 1,
+            "avg_engagement": 3.0,
+        },
+    ]
+
+    text = performance.suggest(summary)
+
+    assert "資料還太少" in text
+    assert "A 1 篇" in text and "B 1 篇" in text
+    assert "優先補強" not in text
+
+
+def test_suggest_compares_when_there_is_enough_data():
+    summary = [
+        {
+            "theme": "A",
+            "posts": 3,
+            "avg_engagement": 8.0,
+        },
+        {
+            "theme": "B",
+            "posts": 4,
+            "avg_engagement": 3.0,
+        },
+    ]
+
+    text = performance.suggest(summary)
+
+    assert "表現最好" in text and "A" in text
+    assert "優先補強" in text and "B" in text
