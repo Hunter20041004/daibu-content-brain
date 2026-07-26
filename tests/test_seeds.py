@@ -45,3 +45,20 @@ def test_load_seeds_themes_without_duplicates(tmp_path):
 
     assert len(db.get_sources(conn)) == len(sources)
     assert len(db.get_themes(conn)) == len(themes)
+
+
+def test_load_seeds_only_when_database_is_brand_new(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    seeds.load(conn)
+    deleted_theme_id = db.get_themes(conn)[0].id
+    deleted_source_id = db.get_sources(conn)[0].id
+    assert deleted_theme_id is not None
+    assert deleted_source_id is not None
+
+    db.delete_theme(conn, deleted_theme_id)
+    db.delete_source(conn, deleted_source_id)
+    seeds.load(conn)
+
+    assert len(db.get_themes(conn)) == len(seeds.DEFAULT_THEMES) - 1
+    assert len(db.get_sources(conn)) == len(seeds.DEFAULT_SOURCES) - 1

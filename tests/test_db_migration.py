@@ -285,3 +285,11 @@ def test_migration_is_idempotent(tmp_path):
         for table in expected_counts
     }
     assert actual_counts == expected_counts
+
+
+def test_migration_marks_database_with_existing_themes_as_seeded(tmp_path):
+    conn = _old_connection(tmp_path)
+
+    db.init_schema(conn)
+
+    assert db.get_config(conn, "seeds_loaded") == "1"

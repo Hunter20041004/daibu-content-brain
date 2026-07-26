@@ -119,6 +119,9 @@ DEFAULT_SOURCES = [
 
 
 def load(conn: sqlite3.Connection) -> None:
+    if db.get_config(conn, "seeds_loaded") == "1":
+        return
+
     existing_source_names = {source.name for source in db.get_sources(conn)}
     for source in DEFAULT_SOURCES:
         if source.name not in existing_source_names:
@@ -145,3 +148,4 @@ def load(conn: sqlite3.Connection) -> None:
                     seed.n_ideas,
                 ),
             )
+    db.set_config(conn, "seeds_loaded", "1")

@@ -242,6 +242,13 @@ def init_schema(conn: sqlite3.Connection) -> None:
         );
         """
     )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO config (key, value)
+        SELECT 'seeds_loaded', '1'
+        WHERE EXISTS (SELECT 1 FROM themes)
+        """
+    )
     conn.commit()
 
 
