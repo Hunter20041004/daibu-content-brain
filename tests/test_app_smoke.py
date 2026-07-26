@@ -361,6 +361,42 @@ def test_selection_lists_adopted_ideas_with_body_editor(monkeypatch, tmp_path):
     )
 
 
+def test_body_draft_survives_switching_themes(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    first_theme_id = db.add_theme(
+        conn,
+        Theme(None, "主題 A", 0, [], 1),
+    )
+    db.add_theme(conn, Theme(None, "主題 B", 1, [], 1))
+    db.add_idea(
+        conn,
+        first_theme_id,
+        Idea("準備寫正文", "採用角度", ""),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    app.text_area[0].set_value("切換主題也不能消失的正文")
+    next(
+        button for button in app.button
+        if button.label == "主題 B"
+    ).click().run()
+    next(
+        button for button in app.button
+        if button.label == "主題 A"
+    ).click().run()
+
+    assert app.text_area[0].value == "切換主題也不能消失的正文"
+    assert any(
+        caption.value.startswith("已自動儲存於 ")
+        for caption in app.caption
+    )
+
+
 def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

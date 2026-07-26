@@ -3,7 +3,7 @@ import os
 
 import streamlit as st
 
-from daibu import db, pipeline, selection
+from daibu import clock, db, pipeline, selection
 from daibu.llm import base
 from daibu.models import Source, Theme
 from daibu.ui import (
@@ -23,6 +23,13 @@ page_header(
 )
 
 conn = connect_app_db()
+
+
+def save_body_draft(idea_id: int, body_key: str) -> None:
+    pipeline.update_body(conn, idea_id, st.session_state[body_key])
+    st.session_state[f"body-saved-at-{idea_id}"] = clock.now()[11:16]
+
+
 themes = db.get_themes(conn)
 sources = db.get_sources(conn)
 candidates = db.get_ideas(conn, status="候選")
@@ -372,18 +379,24 @@ with candidate_column:
     for idea in selected_adopted:
         with st.expander(idea.title):
             st.caption(idea.angle)
+            body_key = f"body-{idea.id}"
             body = st.text_area(
                 f"正文｜{idea.title}",
                 value=idea.body,
-                key=f"body-{idea.id}",
+                key=body_key,
+                on_change=save_body_draft,
+                args=(idea.id, body_key),
             )
+            saved_at = st.session_state.get(f"body-saved-at-{idea.id}")
+            if saved_at:
+                st.caption(f"已自動儲存於 {saved_at}")
             save_column, publish_column = st.columns(2)
             if save_column.button(
                 "儲存正文",
                 key=f"save-body-{idea.id}",
                 width="stretch",
             ):
-                pipeline.update_body(conn, idea.id, body)
+                save_body_draft(idea.id, body_key)
                 st.success("正文已儲存。")
                 st.rerun()
             if publish_column.button(
