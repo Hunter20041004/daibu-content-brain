@@ -3,6 +3,7 @@ import os
 from urllib.parse import urlparse
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from daibu import clock, db, pipeline, selection
 from daibu.llm import base
@@ -78,6 +79,7 @@ with context_panel:
                 width="stretch",
             ):
                 st.session_state.selected_theme_id = theme.id
+                st.session_state.scroll_to_workspace = True
                 st.rerun()
             st.markdown(
                 '<p class="theme-item__meta">'
@@ -224,6 +226,46 @@ with context_panel:
                     st.rerun()
 
 with candidate_column:
+    scroll_to_workspace = st.session_state.pop(
+        "scroll_to_workspace",
+        False,
+    )
+    scroll_marker = (
+        ' data-scroll-requested="true"'
+        if scroll_to_workspace
+        else ""
+    )
+    st.markdown(
+        f'<span id="theme-workspace"{scroll_marker}></span>',
+        unsafe_allow_html=True,
+    )
+    if scroll_to_workspace:
+        components.html(
+            """
+            <script>
+                const parentWindow = window.parent;
+                const anchor = parentWindow.document.getElementById(
+                    "theme-workspace"
+                );
+                const isMobile = parentWindow.matchMedia(
+                    "(max-width: 700px)"
+                ).matches;
+                const reduceMotion = parentWindow.matchMedia(
+                    "(prefers-reduced-motion: reduce)"
+                ).matches;
+                if (anchor && isMobile) {
+                    parentWindow.requestAnimationFrame(() => {
+                        anchor.scrollIntoView({
+                            behavior: reduceMotion ? "auto" : "smooth",
+                            block: "start",
+                        });
+                    });
+                }
+            </script>
+            """,
+            height=0,
+        )
+
     selected_theme = next(
         (
             theme for theme in themes

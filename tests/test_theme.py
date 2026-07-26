@@ -273,3 +273,62 @@ def test_candidate_title_overrides_streamlit_heading_styles():
     )[1].split("}", maxsplit=1)[0]
 
     assert f"font-size: {theme.TYPE_SCALE[3]}" in candidate_rule
+
+
+def test_metrics_stay_in_one_row_on_mobile():
+    styles = theme.css()
+    mobile_styles = styles.split(
+        "@media (max-width: 700px)",
+        maxsplit=1,
+    )[1]
+    selector = (
+        '[data-testid="stHorizontalBlock"]:has('
+        '[data-testid="stMetric"]) {'
+    )
+    assert selector in mobile_styles
+    metrics_rule = mobile_styles.split(
+        selector,
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in metrics_rule
+
+
+def test_mobile_overview_focuses_on_the_primary_action():
+    styles = theme.css()
+    mobile_styles = styles.split(
+        "@media (max-width: 700px)",
+        maxsplit=1,
+    )[1]
+
+    assert (
+        '[class*="st-key-next-action-card"] .stButton > button {'
+        in mobile_styles
+    )
+    assert "width: 100%" in mobile_styles.split(
+        '[class*="st-key-next-action-card"] .stButton > button {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "display: none" in mobile_styles.split(
+        ".page-deck {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+
+def test_mobile_primary_action_expands_streamlit_wrapper():
+    styles = theme.css()
+    mobile_styles = styles.split(
+        "@media (max-width: 700px)",
+        maxsplit=1,
+    )[1]
+    wrapper_selector = (
+        '[class*="st-key-next-action-card"] '
+        '[data-testid="stElementContainer"]:has(.stButton) {'
+    )
+
+    assert wrapper_selector in mobile_styles
+    wrapper_rule = mobile_styles.split(
+        wrapper_selector,
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "width: 100%" in wrapper_rule

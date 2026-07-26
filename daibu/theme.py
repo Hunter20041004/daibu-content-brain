@@ -634,6 +634,43 @@ def css(mode: str | None = None) -> str:
     }}
 
     @media (max-width: 700px) {{
+        .page-deck {{
+            display: none;
+        }}
+
+        [class*="st-key-next-action-card"] .stButton,
+        [class*="st-key-next-action-card"] .stButton > button {{
+            width: 100%;
+        }}
+
+        [class*="st-key-next-action-card"] [data-testid="stElementContainer"]:has(.stButton) {{
+            width: 100%;
+        }}
+
+        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) {{
+            display: grid;
+            gap: 0.5rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }}
+
+        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"])
+        > [data-testid="stColumn"] {{
+            min-width: 0 !important;
+            width: auto !important;
+        }}
+
+        [data-testid="stMetric"] {{
+            padding: 0.75rem 0.5rem;
+        }}
+
+        [data-testid="stMetricLabel"] p {{
+            font-size: 0.75rem;
+        }}
+
+        [data-testid="stMetricValue"] {{
+            font-size: 1.75rem;
+        }}
+
         .hero-lockup {{
             align-items: flex-start;
             flex-direction: column;
