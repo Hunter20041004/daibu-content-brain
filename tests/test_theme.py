@@ -96,15 +96,55 @@ def test_css_preserves_streamlit_material_icon_font():
     assert '"Material Symbols Rounded"' in styles
 
 
-def test_css_tokens_follow_streamlit_color_scheme():
+def test_css_does_not_depend_on_light_dark_function():
+    styles = theme.css()
+
+    assert "light-dark(" not in styles
+
+
+def test_css_defines_dark_palette_in_media_query():
+    styles = theme.css()
+
+    dark_section = styles.split(
+        "@media (prefers-color-scheme: dark)",
+        maxsplit=1,
+    )
+    assert len(dark_section) == 2
+    assert f"--ink: {theme.DARK['INK']}" in dark_section[1]
+
+
+def test_palette_variables_are_defined_on_root_not_app():
+    styles = theme.css()
+    root_section = styles.split(":root {", maxsplit=1)[1].split("}", maxsplit=1)[0]
+
+    assert f"--ink: {theme.LIGHT['INK']}" in root_section
+
+
+def test_app_text_color_rule_does_not_override_portal_labels():
+    styles = theme.css()
+
+    assert "\n    p, label, span {" not in styles
+    assert ".stApp p, .stApp label, .stApp span {" in styles
+
+
+def test_css_explicit_mode_is_the_final_palette_override():
+    styles = theme.css("light")
+
+    assert styles.rfind(f"--ink: {theme.LIGHT['INK']}") > styles.rfind(
+        "@media (prefers-color-scheme: dark)",
+    )
+
+
+def test_css_uses_verified_streamlit_classes_for_manual_theme_switch():
     styles = theme.css()
 
     assert (
-        f"--ink: light-dark({theme.LIGHT['INK']}, {theme.DARK['INK']})"
+        "body:has(.stApp.st-emotion-cache-1ad78rz)"
         in styles
     )
-    assert (
-        f"--surface: light-dark("
-        f"{theme.LIGHT['SURFACE']}, {theme.DARK['SURFACE']})"
-        in styles
+    dark_override = styles.split(
+        "body:has(.stApp.st-emotion-cache-13icvhg)",
+        maxsplit=1,
     )
+    assert len(dark_override) == 2
+    assert f"--ink: {theme.DARK['INK']}" in dark_override[1]

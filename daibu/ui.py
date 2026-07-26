@@ -25,8 +25,9 @@ def connect_app_db() -> sqlite3.Connection:
 
 
 def apply_styles() -> None:
+    theme_mode = st.context.theme.type
     st.markdown(
-        f"<style>{theme.css()}</style>",
+        f"<style>{theme.css(theme_mode)}</style>",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown(

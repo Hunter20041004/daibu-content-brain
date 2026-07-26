@@ -32,6 +32,14 @@ DARK = {
     "BORDER": "#2A2A4A",
 }
 
+# Streamlit 1.60.0 exposes no stable data-theme attribute. These verified
+# Emotion classes let manual theme changes update both .stApp and #portal
+# immediately; media queries and st.context remain fallback layers.
+STREAMLIT_THEME_CLASSES = {
+    "light": "st-emotion-cache-1ad78rz",
+    "dark": "st-emotion-cache-13icvhg",
+}
+
 
 def relative_luminance(hex_color: str) -> float:
     normalized = hex_color.removeprefix("#")
@@ -53,19 +61,53 @@ def contrast_ratio(first: str, second: str) -> float:
     return (lighter + 0.05) / (darker + 0.05)
 
 
-def _adaptive_css_variables() -> str:
+def _css_variables(palette: dict[str, str]) -> str:
     return "\n".join(
-        f"--{key.lower().replace('_', '-')}: "
-        f"light-dark({LIGHT[key]}, {DARK[key]});"
-        if LIGHT[key] != DARK[key]
-        else f"--{key.lower().replace('_', '-')}: {LIGHT[key]};"
+        f"--{key.lower().replace('_', '-')}: {palette[key]};"
         for key in PALETTE_KEYS
     )
 
 
-def css(mode: str = "light") -> str:
-    {"light": LIGHT, "dark": DARK}[mode]
-    adaptive_variables = _adaptive_css_variables()
+def _adaptive_css_variables() -> str:
+    light_variables = _css_variables(LIGHT)
+    dark_variables = _css_variables(DARK)
+    return f"""
+    :root {{
+        {light_variables}
+    }}
+
+    @media (prefers-color-scheme: dark) {{
+        :root {{
+            {dark_variables}
+        }}
+    }}
+    """
+
+
+def _manual_theme_overrides() -> str:
+    return "\n".join(
+        (
+            f"body:has(.stApp.{STREAMLIT_THEME_CLASSES[mode]}) {{\n"
+            f"{_css_variables(palette)}\n"
+            "}"
+        )
+        for mode, palette in (("light", LIGHT), ("dark", DARK))
+    )
+
+
+def css(mode: str | None = None) -> str:
+    selected_palette_rules = ""
+    if mode is not None:
+        selected_variables = _css_variables(
+            {"light": LIGHT, "dark": DARK}[mode],
+        )
+        selected_palette_rules = f"""
+        :root {{
+            {selected_variables}
+        }}
+        """
+    adaptive_rules = _adaptive_css_variables()
+    manual_theme_rules = _manual_theme_overrides()
     heading_rules = "\n".join(
         (
             f"h{level} {{ font-size: {size}; font-weight: {weight}; }}"
@@ -76,8 +118,11 @@ def css(mode: str = "light") -> str:
         ),
     )
     return f"""
+    {adaptive_rules}
+    {manual_theme_rules}
+    {selected_palette_rules}
+
     :root {{
-        {adaptive_variables}
         --primary-button-ink: {LIGHT["INK"]};
         --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
         font-family: {FONT_STACK};
@@ -108,8 +153,9 @@ def css(mode: str = "light") -> str:
         line-height: 1.12;
     }}
 
-    h1, h2, h3, h4, h5, h6,
-    p, label, span {{
+    .stApp h1, .stApp h2, .stApp h3,
+    .stApp h4, .stApp h5, .stApp h6,
+    .stApp p, .stApp label, .stApp span {{
         color: var(--ink);
     }}
 

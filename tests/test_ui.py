@@ -1,5 +1,6 @@
 import tomllib
 from pathlib import Path
+from types import SimpleNamespace
 
 from daibu import theme, ui
 
@@ -52,6 +53,30 @@ def test_apply_styles_injects_brand_theme(monkeypatch):
     assert "--brand-primary" in styles
     assert "prefers-reduced-motion" in styles
     assert "color: var(--ink)" in styles
+
+
+def test_apply_styles_uses_current_streamlit_theme(monkeypatch):
+    received_modes = []
+    monkeypatch.setattr(
+        ui.st,
+        "context",
+        SimpleNamespace(theme=SimpleNamespace(type="dark")),
+    )
+    monkeypatch.setattr(
+        ui.theme,
+        "css",
+        lambda mode: received_modes.append(mode) or "",
+    )
+    monkeypatch.setattr(ui.st, "markdown", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        ui.st.sidebar,
+        "markdown",
+        lambda *args, **kwargs: None,
+    )
+
+    ui.apply_styles()
+
+    assert received_modes == ["dark"]
 
 
 def test_brand_lockup_inlines_svg_not_img():

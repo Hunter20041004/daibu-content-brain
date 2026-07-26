@@ -40,6 +40,21 @@ v1 以 GitHub 搜尋與官方 releases 並用。未來若要真的做「熱門�
 先共用品牌藍綠、次級藍、Highlight 三色；若未來需要各自最佳化深色圖表，再改由圖表
 層依模式指定。
 
+### Streamlit 手動配色模式沒有穩定的 DOM 屬性
+
+2026-07-25 實測 Streamlit 1.60：從右上選單手動切換 Light／Dark 時，`.stApp` 的
+`color-scheme` 計算值與 Emotion 產生的 class 會改變，但 `html`、`body`、`.stApp`
+都沒有 `data-theme` 或其他可供自訂 CSS 穩定判斷的屬性；`#portal` 仍是
+`color-scheme: normal`。`st.context.theme.type` 是正式介面，但官方文件也警告它在
+使用者切換主題時可能慢一個重跑才更新。
+
+本輪以三層方式處理：`prefers-color-scheme` 當系統預設備援、`st.context.theme.type`
+當伺服器端覆寫，並用瀏覽器實測的 Streamlit 1.60 Light／Dark Emotion class 讓
+`body:has(...)` 在切換當下同步 `.stApp` 與 `#portal`。最後一層會受 Streamlit
+版本影響；未來升級 Streamlit 時，必須重跑深淺模式的全部彈窗截圖，若 class 改名就
+更新對應值。若 Streamlit 日後提供穩定的 `data-theme`，應改用正式屬性並移除
+Emotion class 相依。
+
 ### 舊 schema 欄位名稱的驗收規則
 
 完工清單要求全 repo 搜尋 `gate_score`、`source_layers` 等舊名稱時只能剩 `docs/`，
