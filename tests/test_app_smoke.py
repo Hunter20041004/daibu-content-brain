@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import date, timedelta
 from pathlib import Path
@@ -860,6 +861,24 @@ def test_performance_shows_recommendation_before_chart(monkeypatch, tmp_path):
         status="已發",
     )
     performance.record(conn, idea_id, "Instagram", 10, 100, 5.0)
+    comparison_theme_id = db.add_theme(
+        conn,
+        Theme(None, "比較主題", 1, [], 1),
+    )
+    comparison_idea_id = db.add_idea(
+        conn,
+        comparison_theme_id,
+        Idea("比較貼文", "另一個角度", ""),
+        status="已發",
+    )
+    performance.record(
+        conn,
+        comparison_idea_id,
+        "Threads",
+        8,
+        80,
+        4.0,
+    )
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/2_成效.py")
     app.run()
@@ -885,3 +904,82 @@ def test_performance_shows_recommendation_before_chart(monkeypatch, tmp_path):
 
     assert not app.exception
     assert recommendation_index < chart_index
+
+
+def test_performance_hides_chart_when_data_is_thin(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "單一成效主題", 0, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("唯一已發貼文", "切入角度", ""),
+        status="已發",
+    )
+    performance.record(conn, idea_id, "Instagram", 10, 100, 5.0)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/2_成效.py")
+    app.run()
+
+    def walk(block):
+        for child in block.children.values():
+            yield child
+            if hasattr(child, "children"):
+                yield from walk(child)
+
+    assert not any(
+        element.type == "vega_lite_chart"
+        for element in walk(app._tree[0])
+    )
+    assert app.dataframe
+
+
+def test_performance_chart_axes_are_chinese(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    for weekday, name in enumerate(("主題甲", "主題乙")):
+        theme_id = db.add_theme(
+            conn,
+            Theme(None, name, weekday, [], 1),
+        )
+        idea_id = db.add_idea(
+            conn,
+            theme_id,
+            Idea(f"{name}貼文", "切入角度", ""),
+            status="已發",
+        )
+        performance.record(
+            conn,
+            idea_id,
+            "Threads",
+            10,
+            100,
+            float(weekday + 1),
+        )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/2_成效.py")
+    app.run()
+
+    def walk(block):
+        for child in block.children.values():
+            yield child
+            if hasattr(child, "children"):
+                yield from walk(child)
+
+    chart = next(
+        element
+        for element in walk(app._tree[0])
+        if element.type == "vega_lite_chart"
+    )
+    spec = json.loads(chart.proto.spec)
+
+    assert spec["encoding"]["x"]["title"] == "主題"
+    assert spec["encoding"]["x"]["axis"]["labelAngle"] == 0
+    assert spec["encoding"]["y"]["title"] == "平均互動"

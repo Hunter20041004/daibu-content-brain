@@ -1,5 +1,6 @@
 import html
 
+import altair as alt
 import streamlit as st
 
 from daibu import db, performance
@@ -47,8 +48,32 @@ with results_column:
             unsafe_allow_html=True,
         )
     else:
-        st.bar_chart(summary, x="theme", y="avg_engagement")
-        st.caption("圖表指標：每個主題的平均互動。")
+        if len(summary) >= 2:
+            chart = (
+                alt.Chart(alt.Data(values=summary))
+                .mark_bar()
+                .encode(
+                    x=alt.X(
+                        "theme:N",
+                        title="主題",
+                        sort=None,
+                        axis=alt.Axis(labelAngle=0),
+                    ),
+                    y=alt.Y(
+                        "avg_engagement:Q",
+                        title="平均互動",
+                    ),
+                    tooltip=[
+                        alt.Tooltip("theme:N", title="主題"),
+                        alt.Tooltip(
+                            "avg_engagement:Q",
+                            title="平均互動",
+                        ),
+                    ],
+                )
+            )
+            st.altair_chart(chart, width="stretch")
+            st.caption("圖表指標：每個主題的平均互動。")
         st.dataframe(
             summary,
             width="stretch",
