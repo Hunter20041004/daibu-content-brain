@@ -3,7 +3,6 @@ import os
 from urllib.parse import urlparse
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from daibu import clock, db, pipeline, selection
 from daibu.llm import base
@@ -235,36 +234,43 @@ with candidate_column:
         if scroll_to_workspace
         else ""
     )
-    st.markdown(
-        f'<span id="theme-workspace"{scroll_marker}></span>',
-        unsafe_allow_html=True,
-    )
-    if scroll_to_workspace:
-        components.html(
-            """
-            <script>
-                const parentWindow = window.parent;
-                const anchor = parentWindow.document.getElementById(
-                    "theme-workspace"
-                );
-                const isMobile = parentWindow.matchMedia(
-                    "(max-width: 700px)"
-                ).matches;
-                const reduceMotion = parentWindow.matchMedia(
-                    "(prefers-reduced-motion: reduce)"
-                ).matches;
-                if (anchor && isMobile) {
-                    parentWindow.requestAnimationFrame(() => {
-                        anchor.scrollIntoView({
-                            behavior: reduceMotion ? "auto" : "smooth",
-                            block: "start",
-                        });
-                    });
-                }
-            </script>
-            """,
-            height=0,
+    with st.container(key="workspace-scroll-bridge"):
+        st.markdown(
+            f'<span id="theme-workspace"{scroll_marker}></span>',
+            unsafe_allow_html=True,
         )
+        if scroll_to_workspace:
+            st.iframe(
+                """
+                <!doctype html>
+                <html>
+                <body>
+                <script>
+                    const parentWindow = window.parent;
+                    const anchor = parentWindow.document.getElementById(
+                        "theme-workspace"
+                    );
+                    const isMobile = parentWindow.matchMedia(
+                        "(max-width: 700px)"
+                    ).matches;
+                    const reduceMotion = parentWindow.matchMedia(
+                        "(prefers-reduced-motion: reduce)"
+                    ).matches;
+                    if (anchor && isMobile) {
+                        parentWindow.requestAnimationFrame(() => {
+                            anchor.scrollIntoView({
+                                behavior: reduceMotion ? "auto" : "smooth",
+                                block: "start",
+                            });
+                        });
+                    }
+                </script>
+                </body>
+                </html>
+                """,
+                height="content",
+                tab_index=-1,
+            )
 
     selected_theme = next(
         (

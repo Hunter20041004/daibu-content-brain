@@ -350,6 +350,36 @@ def test_selecting_theme_requests_scroll_to_its_workspace(
     assert 'data-scroll-requested="true"' in scroll_markup
 
 
+def test_selecting_theme_uses_the_supported_iframe_api(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "第一個主題", 0, [], 1))
+    db.add_theme(conn, Theme(None, "第二個主題", 1, [], 1))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+    next(
+        button for button in app.button
+        if button.label == "第二個主題"
+    ).click().run()
+
+    assert not app.exception
+
+
+def test_workspace_scroll_iframe_has_a_body_for_auto_sizing():
+    page_source = (
+        PROJECT_ROOT / "pages/1_選題.py"
+    ).read_text(encoding="utf-8")
+
+    assert "<body>" in page_source
+    assert "</body>" in page_source
+
+
 def test_selection_generates_for_the_selected_theme_only(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

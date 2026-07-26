@@ -332,3 +332,21 @@ def test_mobile_primary_action_expands_streamlit_wrapper():
         maxsplit=1,
     )[1].split("}", maxsplit=1)[0]
     assert "width: 100%" in wrapper_rule
+
+
+def test_workspace_scroll_iframe_does_not_take_layout_space():
+    styles = theme.css()
+    selector = (
+        '[class*="st-key-workspace-scroll-bridge"] '
+        '[data-testid="stElementContainer"]:has('
+        '[data-testid="stIFrame"]) {'
+    )
+
+    assert selector in styles
+    bridge_rule = styles.split(
+        selector,
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "position: absolute" in bridge_rule
+    assert "height: 1px" in bridge_rule
+    assert "overflow: hidden" in bridge_rule

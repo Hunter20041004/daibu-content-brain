@@ -430,6 +430,15 @@ def css(mode: str | None = None) -> str:
         width: 100%;
     }}
 
+    [class*="st-key-workspace-scroll-bridge"] [data-testid="stElementContainer"]:has([data-testid="stIFrame"]) {{
+        height: 1px;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+        position: absolute;
+        width: 1px;
+    }}
+
     .calendar-card {{
         box-sizing: border-box;
         height: 7.5rem;
