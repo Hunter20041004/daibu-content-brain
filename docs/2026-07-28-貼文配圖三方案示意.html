@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>呆一布 · 貼文配圖三種做法比較</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#6FC1CC;
+    --brand-deep:#32738F;
+    --ink:#0E0E2C;
+    --surface:#FAFCFE;
+    --canvas:#E9F6FF;
+    --accent:#F8C0A0;
+    --border:#C7E2EA;
+    --muted:#5B6B7B;
+    --page:#F4F9FC;
+    --ease:cubic-bezier(.23,1,.32,1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#EAF3F8; --surface:#171733; --canvas:#0E0E2C; --border:#2A2A4A;
+      --muted:#9BB0C2; --page:#0B0B22; --brand-deep:#8FD3DC;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Noto Sans TC",system-ui,sans-serif;
+    background:var(--page); color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:clamp(24px,5vw,64px) clamp(16px,4vw,48px) 96px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* ---------- 頁首 ---------- */
+  header{max-width:640px;margin-bottom:clamp(36px,5vw,64px)}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;font-weight:700;letter-spacing:.14em;
+    color:var(--brand-deep);text-transform:uppercase;margin-bottom:18px;
+  }
+  .eyebrow::before{content:"";width:22px;height:2px;background:var(--accent);border-radius:2px}
+  h1{
+    font-family:"Noto Serif TC",serif;font-weight:700;
+    font-size:clamp(28px,4.4vw,44px);line-height:1.25;letter-spacing:-.01em;
+    margin-bottom:16px;
+  }
+  header p{font-size:16px;line-height:1.85;color:var(--muted)}
+  header p b{color:var(--ink);font-weight:500}
+
+  /* ---------- 卡片列 ---------- */
+  .grid{
+    display:grid;gap:clamp(24px,3vw,36px);
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    margin-bottom:clamp(48px,6vw,80px);
+  }
+  .option{display:flex;flex-direction:column;gap:16px}
+  .option-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .num{
+    font-family:"Noto Serif TC",serif;font-size:13px;font-weight:700;
+    width:26px;height:26px;flex:0 0 26px;border-radius:50%;
+    display:grid;place-items:center;
+    background:var(--ink);color:var(--page);
+  }
+  .option-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .cost{
+    margin-left:auto;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;
+    background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--brand-deep);
+    white-space:nowrap;
+  }
+  .cost.paid{background:color-mix(in srgb,var(--accent) 55%,transparent);color:#8A4A20}
+  @media (prefers-color-scheme: dark){ .cost.paid{color:#F8C0A0;background:color-mix(in srgb,var(--accent) 22%,transparent)} }
+
+  /* 正方形貼文圖：用 container query 單位讓內容等比縮放 */
+  .post{
+    container-type:inline-size;
+    aspect-ratio:1/1;width:100%;border-radius:18px;overflow:hidden;
+    position:relative;border:1px solid rgba(14,14,44,.14);
+    box-shadow:0 1px 2px rgba(14,14,44,.04),0 12px 32px -12px rgba(14,14,44,.18);
+    transition:transform .45s var(--ease),box-shadow .45s var(--ease);
+  }
+  .post:hover{transform:translateY(-5px);box-shadow:0 1px 2px rgba(14,14,44,.05),0 26px 50px -16px rgba(14,14,44,.28)}
+  @media (prefers-reduced-motion:reduce){ .post,.post:hover{transition:none;transform:none} }
+
+  .note{font-size:13.5px;line-height:1.8;color:var(--muted)}
+  .note b{color:var(--ink);font-weight:700}
+
+  /* ---------- 版本 A：純文字圖卡 ---------- */
+  .cardA{background:#E9F6FF;padding:8cqw 7cqw;display:flex;flex-direction:column;color:#0E0E2C}
+  .cardA::after{
+    content:"";position:absolute;right:-18cqw;bottom:-24cqw;
+    width:56cqw;height:56cqw;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,#6FC1CC 0%,#6FC1CC 55%,transparent 72%);
+    opacity:.22;
+  }
+  .chip{
+    align-self:flex-start;font-size:3.4cqw;font-weight:700;letter-spacing:.06em;
+    padding:1.5cqw 3.4cqw;border-radius:999px;background:#0E0E2C;color:#FAFCFE;
+  }
+  .cardA h3{
+    font-size:8.2cqw;line-height:1.34;font-weight:900;letter-spacing:-.02em;
+    margin-top:6cqw;position:relative;z-index:1;
+  }
+  .mark{
+    background:linear-gradient(180deg,transparent 58%,#F8C0A0 58%,#F8C0A0 96%,transparent 96%);
+    padding:0 .4cqw;
+  }
+  .cardA .angle{
+    margin-top:4cqw;font-size:3.5cqw;line-height:1.75;color:#3C4C5C;
+    position:relative;z-index:1;max-width:82%;
+  }
+  .foot{
+    margin-top:auto;padding-top:5cqw;display:flex;align-items:center;gap:2.6cqw;
+    position:relative;z-index:1;
+  }
+  .foot svg{width:7cqw;height:auto;display:block}
+  .foot span{font-size:3.4cqw;font-weight:700;color:#32738F;letter-spacing:.04em}
+  .foot em{margin-left:auto;font-style:normal;font-size:3cqw;color:#7C8B9A}
+
+  /* ---------- AI 插畫（示意）---------- */
+  .ai-art{position:absolute;inset:0;background:#1B2A4A;overflow:hidden}
+  .ai-art .blob{position:absolute;border-radius:50%;filter:blur(6cqw)}
+  .b1{width:64cqw;height:64cqw;left:-14cqw;top:-16cqw;background:#7C5CE6;opacity:.85}
+  .b2{width:56cqw;height:56cqw;right:-12cqw;top:8cqw;background:#F2825B;opacity:.8}
+  .b3{width:70cqw;height:70cqw;left:12cqw;bottom:-30cqw;background:#2FB6C4;opacity:.75}
+  .b4{width:30cqw;height:30cqw;right:18cqw;bottom:6cqw;background:#F6D46B;opacity:.6}
+  .ai-art .grain{
+    position:absolute;inset:0;opacity:.28;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* AI 常見的「假中文」：真字經過扭曲後看起來像但不成字 */
+  .glitch-text{
+    position:absolute;left:9cqw;top:33cqw;z-index:2;
+    font-weight:900;font-size:9cqw;line-height:1.2;color:rgba(255,255,255,.94);
+    text-shadow:0 .4cqw 1.6cqw rgba(0,0,0,.45);
+  }
+  .glitch-text i{display:inline-block;font-style:normal;filter:blur(.18cqw)}
+  .glitch-text i:nth-child(1){transform:scaleX(1.18) skewX(-7deg)}
+  .glitch-text i:nth-child(2){transform:scaleY(.82) skewY(5deg);opacity:.9}
+  .glitch-text i:nth-child(3){transform:scaleX(.74) rotate(3deg)}
+  .glitch-text i:nth-child(4){transform:scaleY(1.16) skewX(9deg);opacity:.86}
+  .glitch-text i:nth-child(5){transform:scaleX(1.1) rotate(-4deg)}
+  .glitch-text i:nth-child(6){transform:scaleY(.88) skewX(-6deg)}
+
+  /* ---------- 版本 B：AI 圖為主 ---------- */
+  .cardB{background:#1B2A4A}
+  .cardB .scrim{
+    position:absolute;inset:0;z-index:3;
+    background:linear-gradient(180deg,transparent 34%,rgba(9,14,30,.62) 62%,rgba(9,14,30,.92) 100%);
+  }
+  .cardB .txt{position:absolute;z-index:4;left:7cqw;right:7cqw;bottom:7cqw;color:#fff}
+  .cardB h3{font-size:6.6cqw;line-height:1.4;font-weight:900;letter-spacing:-.01em}
+  .cardB .chip{background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(6px);margin-bottom:3.4cqw}
+  .cardB .by{margin-top:3.4cqw;font-size:3.2cqw;color:rgba(255,255,255,.72);letter-spacing:.04em}
+
+  /* ---------- 版本 C：混合 ---------- */
+  .cardC{display:flex;flex-direction:column;background:#FAFCFE}
+  .cardC .art-zone{position:relative;height:56%;overflow:hidden}
+  .cardC .panel{
+    flex:1;padding:6cqw 6.5cqw;display:flex;flex-direction:column;background:#FAFCFE;color:#0E0E2C;
+  }
+  .cardC .chip{font-size:3.2cqw;padding:1.3cqw 3.2cqw}
+  .cardC h3{font-size:6cqw;line-height:1.38;font-weight:900;margin-top:3.2cqw;letter-spacing:-.02em}
+  .cardC .foot{padding-top:3.4cqw}
+
+  /* ---------- 標註 ---------- */
+  .callout{
+    display:flex;gap:10px;align-items:flex-start;
+    font-size:13px;line-height:1.7;padding:12px 14px;border-radius:12px;
+    background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--ink);
+    border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);
+  }
+  @media (prefers-color-scheme: dark){
+    .callout{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  }
+  .callout::before{content:"↑";font-weight:900;color:#B5622C;line-height:1.5}
+  @media (prefers-color-scheme: dark){ .callout::before{color:var(--accent)} }
+
+  /* ---------- 比較表 ---------- */
+  h2.sec{
+    font-family:"Noto Serif TC",serif;font-size:clamp(21px,2.6vw,28px);
+    font-weight:700;margin-bottom:20px;
+  }
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:16px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+  th,td{padding:15px 18px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+  thead th{
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+    color:var(--muted);background:color-mix(in srgb,var(--brand) 10%,transparent);
+    border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  tbody th{font-weight:700;color:var(--ink);white-space:nowrap;width:1%}
+  tbody tr:last-child th,tbody tr:last-child td{border-bottom:none}
+  td.good{color:#1F7A5A;font-weight:500}
+  td.bad{color:#B5482C;font-weight:500}
+  @media (prefers-color-scheme: dark){
+    td.good{color:#6ED3A8} td.bad{color:#FF9E7A}
+  }
+  footer.fine{margin-top:28px;font-size:12.5px;line-height:1.9;color:var(--muted);max-width:720px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">呆一布選題大腦 · 設計發想</div>
+    <h1>選完題目之後，這張「貼文的圖」該長什麼樣？</h1>
+    <p>下面三張圖是<b>同一則貼文</b>的三種做法，用的是你資料庫裡真實的選題
+       「AI新創不只看技術⋯」，配色來自專案既有的品牌色。
+       先看畫面，再看下面的比較表決定要走哪一條。</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- ============ A ============ -->
+    <div class="option">
+      <div class="option-head">
+        <span class="num">A</span>
+        <h2>純文字圖卡</h2>
+        <span class="cost">完全免費</span>
+      </div>
+
+      <div class="post cardA">
+        <span class="chip">AI 新創介紹</span>
+        <h3>AI 新創不只看技術<br>文組腦的<span class="mark">「人性偵測器」</span><br>才是辨識好產品的關鍵</h3>
+        <p class="angle">從產品設計、使用者體驗、倫理與市場需求切入，<br>凸顯文組的批判思考與同理心。</p>
+        <div class="foot">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 118" role="img" aria-label="呆一布吉祥物">
+            <g fill="none">
+              <path d="M64 20V10" stroke="#32738F" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="64" cy="8" r="8" fill="#F8C0A0"/>
+              <rect x="0" y="52" width="14" height="30" rx="7" fill="#6FC1CC"/>
+              <rect x="114" y="52" width="14" height="30" rx="7" fill="#6FC1CC"/>
+              <rect x="10" y="20" width="108" height="90" rx="30" fill="#6FC1CC"/>
+              <rect x="24" y="34" width="80" height="62" rx="22" fill="#FAFCFE"/>
+              <ellipse cx="48" cy="58" rx="6" ry="6.5" fill="#0E0E2C"/>
+              <ellipse cx="80" cy="58" rx="6" ry="6.5" fill="#0E0E2C"/>
+              <ellipse cx="37" cy="74" rx="8" ry="6" fill="#F8C0A0"/>
+              <ellipse cx="91" cy="74" rx="8" ry="6" fill="#F8C0A0"/>
+              <path d="M55 72q9 13 18 0" stroke="#0E0E2C" stroke-width="4.5" stroke-linecap="round"/>
+            </g>
+          </svg>
+          <span>@呆一布</span>
+          <em>1/5</em>
+        </div>
+      </div>
+
+      <p class="note"><b>本質是「網頁排版後截圖」。</b>電腦照你定好的版型畫，
+         中文字永遠正確、每張長得像同一家、改一個字重畫只要一秒。
+         代價是它就是「排版」，沒有插畫的氛圍感。</p>
+    </div>
+
+    <!-- ============ B ============ -->
+    <div class="option">
+      <div class="option-head">
+        <span class="num">B</span>
+        <h2>AI 生成插畫為主</h2>
+        <span class="cost paid">多數要付費</span>
+      </div>
+
+      <div class="post cardB">
+        <div class="ai-art">
+          <div class="blob b1"></div><div class="blob b2"></div>
+          <div class="blob b3"></div><div class="blob b4"></div>
+          <div class="grain"></div>
+        </div>
+        <div class="glitch-text"><i>人</i><i>怑</i><i>偵</i><i>測</i><i>噐</i><i>朩</i></div>
+        <div class="scrim"></div>
+        <div class="txt">
+          <span class="chip">AI 新創介紹</span>
+          <h3>AI 新創不只看技術，<br>文組腦才是辨識好產品的關鍵</h3>
+          <div class="by">@呆一布</div>
+        </div>
+      </div>
+
+      <div class="callout">圖裡那六個字就是實際會發生的狀況：AI 畫中文常常畫出「看起來像字、其實不是字」的東西，而且你無法叫它重畫得剛好對。</div>
+      <p class="note"><b>氛圍最好、也最不受控。</b>同一句 prompt 每次畫出來都不一樣，
+         品牌一致性要靠運氣；文字只能事後用排版疊上去。</p>
+    </div>
+
+    <!-- ============ C ============ -->
+    <div class="option">
+      <div class="option-head">
+        <span class="num">C</span>
+        <h2>混合：AI 圖 ＋ 圖卡</h2>
+        <span class="cost paid">部分要付費</span>
+      </div>
+
+      <div class="post cardC">
+        <div class="art-zone">
+          <div class="ai-art">
+            <div class="blob b1"></div><div class="blob b2"></div>
+            <div class="blob b3"></div><div class="blob b4"></div>
+            <div class="grain"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <span class="chip">AI 新創介紹</span>
+          <h3>AI 新創不只看技術<br>文組腦的<span class="mark">「人性偵測器」</span></h3>
+          <div class="foot">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 118" role="img" aria-label="呆一布吉祥物">
+              <g fill="none">
+                <path d="M64 20V10" stroke="#32738F" stroke-width="7" stroke-linecap="round"/>
+                <circle cx="64" cy="8" r="8" fill="#F8C0A0"/>
+                <rect x="0" y="52" width="14" height="30" rx="7" fill="#6FC1CC"/>
+                <rect x="114" y="52" width="14" height="30" rx="7" fill="#6FC1CC"/>
+                <rect x="10" y="20" width="108" height="90" rx="30" fill="#6FC1CC"/>
+                <rect x="24" y="34" width="80" height="62" rx="22" fill="#FAFCFE"/>
+                <ellipse cx="48" cy="58" rx="6" ry="6.5" fill="#0E0E2C"/>
+                <ellipse cx="80" cy="58" rx="6" ry="6.5" fill="#0E0E2C"/>
+                <ellipse cx="37" cy="74" rx="8" ry="6" fill="#F8C0A0"/>
+                <ellipse cx="91" cy="74" rx="8" ry="6" fill="#F8C0A0"/>
+                <path d="M55 72q9 13 18 0" stroke="#0E0E2C" stroke-width="4.5" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <span>@呆一布</span>
+            <em>1/5</em>
+          </div>
+        </div>
+      </div>
+
+      <p class="note"><b>AI 只負責上半部的氛圍，一個字都不放；</b>文字全部交給下半部的圖卡。
+         品質上限最高，但等於要同時養兩套系統，工程量大約兩倍。</p>
+    </div>
+  </div>
+
+  <!-- ============ 比較表 ============ -->
+  <h2 class="sec">六個實際會影響你的差別</h2>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>比較項目</th><th>A · 純文字圖卡</th><th>B · AI 生成圖</th><th>C · 混合</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>每張的成本</th>
+          <td class="good">0 元，無上限</td>
+          <td class="bad">多數服務付費；免費額度通常每天十幾張</td>
+          <td>同 B，但只有背景需要生成</td>
+        </tr>
+        <tr>
+          <th>中文字正確嗎</th>
+          <td class="good">永遠正確</td>
+          <td class="bad">常常畫壞，且無法修</td>
+          <td class="good">正確（字不交給 AI 畫）</td>
+        </tr>
+        <tr>
+          <th>每張看起來像同一家嗎</th>
+          <td class="good">完全一致</td>
+          <td class="bad">每張都不太一樣</td>
+          <td>下半致、上半不一致</td>
+        </tr>
+        <tr>
+          <th>改一個錯字</th>
+          <td class="good">重畫，1 秒</td>
+          <td class="bad">整張重生成，圖會完全變掉</td>
+          <td class="good">只重畫下半部</td>
+        </tr>
+        <tr>
+          <th>做起來多難</th>
+          <td class="good">最單純：一套版型 ＋ 截圖</td>
+          <td>要接外部服務、處理失敗與等待</td>
+          <td class="bad">兩套都要做，還要處理合成</td>
+        </tr>
+        <tr>
+          <th>網路斷了還能用嗎</th>
+          <td class="good">可以</td>
+          <td class="bad">不行</td>
+          <td class="bad">不行</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="fine">
+    註：B 與 C 的插畫是<b>用程式做的示意畫面</b>，不是真的呼叫 AI 生圖服務畫出來的——
+    這一步要花錢，等你決定方向再花。示意的用意是讓你感受「氛圍感 vs 可控性」的差別，
+    以及中文被畫壞時實際看起來像什麼。
+  </footer>
+
+</div>
+</body>
+</html>

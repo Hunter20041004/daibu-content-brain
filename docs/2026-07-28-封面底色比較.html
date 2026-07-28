@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>呆一布 · 封面比例二選一</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Iansui&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E0E2C; --muted:#5B6B7B; --page:#F4F9FC; --border:#C7E2EA;
+    --brand-deep:#32738F; --accent:#F8C0A0; --ease:cubic-bezier(.23,1,.32,1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#EAF3F8; --muted:#9BB0C2; --page:#0B0B22; --border:#2A2A4A; --brand-deep:#8FD3DC; }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Noto Sans TC",system-ui,sans-serif;background:var(--page);color:var(--ink);
+    -webkit-font-smoothing:antialiased;padding:clamp(24px,5vw,56px) clamp(16px,4vw,48px) 80px;
+  }
+  .wrap{max-width:920px;margin:0 auto}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:.14em;color:var(--brand-deep);text-transform:uppercase;margin-bottom:16px;
+  }
+  .eyebrow::before{content:"";width:22px;height:2px;background:var(--accent);border-radius:2px}
+  h1{font-family:"Noto Serif TC",serif;font-size:clamp(26px,4vw,38px);line-height:1.3;margin-bottom:14px}
+  .lede{font-size:15.5px;line-height:1.85;color:var(--muted);max-width:620px;margin-bottom:clamp(30px,4vw,48px)}
+  .lede b{color:var(--ink);font-weight:500}
+
+  .grid{display:grid;gap:clamp(22px,3vw,36px);grid-template-columns:repeat(auto-fit,minmax(270px,1fr));align-items:start}
+  .item{display:flex;flex-direction:column;gap:12px}
+
+  /* ===== 貼文封面：外框淡藍 + 大白卡（顏色全部寫死） ===== */
+  .cover{
+    container-type:inline-size;width:100%;background:#D5E6F4;
+    border-radius:16px;overflow:hidden;position:relative;
+    border:1px solid rgba(14,14,44,.12);
+    box-shadow:0 1px 2px rgba(14,14,44,.05),0 14px 34px -14px rgba(14,14,44,.2);
+    transition:transform .45s var(--ease),box-shadow .45s var(--ease);
+  }
+  .cover:hover{transform:translateY(-5px);box-shadow:0 1px 2px rgba(14,14,44,.06),0 28px 54px -18px rgba(14,14,44,.28)}
+  @media (prefers-reduced-motion:reduce){ .cover,.cover:hover{transition:none;transform:none} }
+  .square{aspect-ratio:1/1}
+  .portrait{aspect-ratio:4/5}
+
+  .stripes{
+    position:absolute;left:0;bottom:0;width:52cqw;height:26cqw;z-index:0;
+    background:repeating-linear-gradient(-16deg,rgba(255,255,255,.9) 0 1.5cqw,transparent 1.5cqw 4.2cqw);
+    -webkit-mask-image:linear-gradient(to top right,#000 24%,transparent 76%);
+            mask-image:linear-gradient(to top right,#000 24%,transparent 76%);
+  }
+  .dots{
+    position:absolute;right:0;top:0;width:46cqw;height:32cqw;z-index:0;
+    background-image:radial-gradient(rgba(255,255,255,.85) 24%,transparent 26%);
+    background-size:3.2cqw 3.2cqw;
+    -webkit-mask-image:linear-gradient(to bottom left,#000 14%,transparent 70%);
+            mask-image:linear-gradient(to bottom left,#000 14%,transparent 70%);
+  }
+
+  .card{
+    position:absolute;z-index:1;inset:6.5cqw;border-radius:5.5cqw;background:#FFFFFF;
+    box-shadow:0 .6cqw 2.6cqw rgba(46,92,158,.13);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:7cqw 6cqw;text-align:center;color:#2E5C9E;
+  }
+  .tag{font-family:"Iansui",cursive;font-size:3.2cqw;letter-spacing:.34em;color:#8FA9C8;margin-bottom:4.4cqw}
+  .hook{font-family:"Iansui",cursive;font-size:7cqw;line-height:1.6;letter-spacing:.05em}
+  .hl{background:linear-gradient(180deg,transparent 58%,#F6BCC8 58%,#F6BCC8 96%,transparent 96%);padding:0 .5cqw}
+  .company{font-family:"Iansui",cursive;font-size:10.4cqw;line-height:1.15;margin-top:4.6cqw}
+  .mascot{width:20cqw;margin-top:4.4cqw}
+  .mascot svg{width:100%;height:auto;display:block}
+  .handle{
+    position:absolute;z-index:2;right:9.5cqw;bottom:9cqw;
+    font-family:"Iansui",cursive;font-size:3.1cqw;letter-spacing:.12em;color:#A9BDD6;
+  }
+
+  .meta{display:flex;align-items:baseline;gap:10px}
+  .meta strong{font-size:15px;font-weight:700}
+  .hex{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);margin-left:auto}
+  .why{font-size:13.5px;line-height:1.75;color:var(--muted)}
+  .why b{color:var(--ink);font-weight:700}
+  footer.fine{
+    margin-top:clamp(32px,4vw,50px);font-size:12.5px;line-height:1.9;color:var(--muted);
+    max-width:700px;border-top:1px solid var(--border);padding-top:20px;
+  }
+  footer.fine b{color:var(--ink)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">呆一布選題大腦 · 模板設計 v3</div>
+  <h1>正方形，還是直式？</h1>
+  <p class="lede">底色定案：淡藍 <code>#D5E6F4</code> ＋ 白卡。剩下要決定比例。
+     兩張的<b>內容與版面完全相同</b>，只差畫布高度——直式多出來的高度全部進了留白與字級。</p>
+
+  <div class="grid">
+
+    <!-- 1:1 -->
+    <div class="item">
+      <div class="cover square">
+        <div class="stripes"></div><div class="dots"></div>
+        <div class="card">
+          <div class="tag">AI 新創介紹</div>
+          <div class="hook">讓文字<span class="hl">開口說話</span>的<br>那家公司</div>
+          <div class="company">ElevenLabs</div>
+          <div class="mascot">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 118" aria-label="呆一布">
+              <g fill="none">
+                <path d="M64 20V10" stroke="#5B8FC9" stroke-width="7" stroke-linecap="round"/>
+                <circle cx="64" cy="8" r="8" fill="#F6BCC8"/>
+                <rect x="0" y="52" width="14" height="30" rx="7" fill="#5B8FC9"/>
+                <rect x="114" y="52" width="14" height="30" rx="7" fill="#5B8FC9"/>
+                <rect x="10" y="20" width="108" height="90" rx="30" fill="#5B8FC9"/>
+                <rect x="24" y="34" width="80" height="62" rx="22" fill="#FFFFFF"/>
+                <ellipse cx="48" cy="58" rx="6" ry="6.5" fill="#2E5C9E"/>
+                <ellipse cx="80" cy="58" rx="6" ry="6.5" fill="#2E5C9E"/>
+                <ellipse cx="37" cy="74" rx="8" ry="6" fill="#F6BCC8"/>
+                <ellipse cx="91" cy="74" rx="8" ry="6" fill="#F6BCC8"/>
+                <path d="M55 72q9 13 18 0" stroke="#2E5C9E" stroke-width="4.5" stroke-linecap="round"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="handle">@呆一布</div>
+      </div>
+      <div class="meta"><strong>正方形</strong><span class="hex">1080 × 1080</span></div>
+      <p class="why"><b>你原本以為的那個。</b>安全、通用，Threads 與 LinkedIn 也吃這個比例。
+         缺點是在 IG 上佔的螢幕高度較少，滑動時比較容易被略過。</p>
+    </div>
+
+    <!-- 4:5 -->
+    <div class="item">
+      <div class="cover portrait">
+        <div class="stripes"></div><div class="dots"></div>
+        <div class="card">
+          <div class="tag">AI 新創介紹</div>
+          <div class="hook">讓文字<span class="hl">開口說話</span>的<br>那家公司</div>
+          <div class="company">ElevenLabs</div>
+          <div class="mascot">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 118" aria-label="呆一布">
+              <g fill="none">
+                <path d="M64 20V10" stroke="#5B8FC9" stroke-width="7" stroke-linecap="round"/>
+                <circle cx="64" cy="8" r="8" fill="#F6BCC8"/>
+                <rect x="0" y="52" width="14" height="30" rx="7" fill="#5B8FC9"/>
+                <rect x="114" y="52" width="14" height="30" rx="7" fill="#5B8FC9"/>
+                <rect x="10" y="20" width="108" height="90" rx="30" fill="#5B8FC9"/>
+                <rect x="24" y="34" width="80" height="62" rx="22" fill="#FFFFFF"/>
+                <ellipse cx="48" cy="58" rx="6" ry="6.5" fill="#2E5C9E"/>
+                <ellipse cx="80" cy="58" rx="6" ry="6.5" fill="#2E5C9E"/>
+                <ellipse cx="37" cy="74" rx="8" ry="6" fill="#F6BCC8"/>
+                <ellipse cx="91" cy="74" rx="8" ry="6" fill="#F6BCC8"/>
+                <path d="M55 72q9 13 18 0" stroke="#2E5C9E" stroke-width="4.5" stroke-linecap="round"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="handle">@呆一布</div>
+      </div>
+      <div class="meta"><strong>直式（推薦）</strong><span class="hex">1080 × 1350</span></div>
+      <p class="why"><b>IG 現在輪播的主流。</b>佔的螢幕高度多約三成，滑到時停留時間更長；
+         多出來的高度給了留白，字可以放更大。缺點是同一份圖轉貼到 LinkedIn 會被裁。</p>
+    </div>
+
+  </div>
+
+  <footer class="fine">
+    <b>一套輪播裡所有圖必須同比例</b>，中途換會讓 IG 自動裁切，所以這個要一次定下來。<br>
+    決定之後模板的所有尺寸都以此為基準；之後若要出 Threads／LinkedIn 版本，
+    是另外做一套版面，不是把同一張拉扁。
+  </footer>
+</div>
+</body>
+</html>
