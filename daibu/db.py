@@ -250,6 +250,28 @@ def init_schema(conn: sqlite3.Connection) -> None:
             conn.execute(
                 f"ALTER TABLE ideas ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
             )
+    already_pruned = conn.execute(
+        "SELECT 1 FROM config WHERE key = 'startup_sources_pruned'"
+    ).fetchone()
+    if not already_pruned and _table_exists(conn, "theme_sources"):
+        conn.execute(
+            """
+            DELETE FROM theme_sources
+            WHERE theme_id IN (
+                SELECT id FROM themes WHERE name = 'AI 新創介紹'
+            )
+              AND source_id NOT IN (
+                  SELECT id FROM sources WHERE name IN (
+                      'Product Hunt AI', 'Y Combinator Blog',
+                      'a16z', 'TechCrunch', 'INSIDE'
+                  )
+              )
+            """
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+            ("startup_sources_pruned", "1"),
+        )
     conn.execute(
         "DELETE FROM config WHERE key = ?",
         ("gate_line",),
