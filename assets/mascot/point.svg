@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" role="img" aria-label="呆一布伸手拿教學棒指引">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M90 30V17" stroke="#47819A" stroke-width="7"/>
+    <circle cx="90" cy="13" r="9" fill="#F8C5A9"/>
+    <path d="M145 132q24 10 43-19" stroke="#8ACDD6" stroke-width="13"/>
+    <circle cx="188" cy="113" r="7" fill="#F8C5A9"/>
+    <path d="m192 107 4-17" stroke="#47819A" stroke-width="5"/>
+    <path d="m196 81 1 5 3 4-3 3-1 5-2-5-3-3 3-4z" fill="#F8C5A9"/>
+    <rect x="18" y="40" width="144" height="116" rx="42" fill="#8ACDD6"/>
+    <rect x="2" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="154" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="38" y="60" width="104" height="76" rx="29" fill="#FBFCFE"/>
+    <ellipse cx="69" cy="89" rx="7" ry="8" fill="#47819A"/>
+    <ellipse cx="111" cy="89" rx="7" ry="8" fill="#47819A"/>
+    <ellipse cx="55" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <ellipse cx="125" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <path d="M77 108q13 18 26 0" stroke="#47819A" stroke-width="6"/>
+  </g>
+</svg>

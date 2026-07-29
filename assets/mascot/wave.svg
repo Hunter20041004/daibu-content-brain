@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" role="img" aria-label="呆一布揮手打招呼">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 30V17" stroke="#47819A" stroke-width="7"/>
+    <circle cx="100" cy="13" r="9" fill="#F8C5A9"/>
+    <path d="M158 91c12-4 19-16 20-31" stroke="#8ACDD6" stroke-width="13"/>
+    <rect x="28" y="40" width="144" height="116" rx="42" fill="#8ACDD6"/>
+    <rect x="12" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="164" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="48" y="60" width="104" height="76" rx="29" fill="#FBFCFE"/>
+    <ellipse cx="79" cy="89" rx="7" ry="8" fill="#47819A"/>
+    <ellipse cx="121" cy="89" rx="7" ry="8" fill="#47819A"/>
+    <ellipse cx="65" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <ellipse cx="135" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <path d="M87 108q13 18 26 0" stroke="#47819A" stroke-width="6"/>
+    <circle cx="180" cy="49" r="9" fill="#F8C5A9" stroke="#47819A" stroke-width="5"/>
+    <path d="m175 42-6-8m11 6v-10m5 12 7-7" stroke="#47819A" stroke-width="6"/>
+  </g>
+</svg>

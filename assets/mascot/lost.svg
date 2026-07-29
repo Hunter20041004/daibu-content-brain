@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" role="img" aria-label="呆一布拿著地圖迷路">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 30V22q0-8 8-8h4" stroke="#47819A" stroke-width="7"/>
+    <circle cx="116" cy="14" r="9" fill="#F8C5A9"/>
+    <rect x="28" y="40" width="144" height="116" rx="42" fill="#8ACDD6"/>
+    <rect x="12" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="164" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="48" y="60" width="104" height="76" rx="29" fill="#FBFCFE"/>
+    <ellipse cx="79" cy="90" rx="7" ry="8" fill="#47819A"/>
+    <ellipse cx="121" cy="90" rx="7" ry="8" fill="#47819A"/>
+    <circle cx="76" cy="87" r="2.5" fill="#FBFCFE"/>
+    <circle cx="124" cy="87" r="2.5" fill="#FBFCFE"/>
+    <ellipse cx="65" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <ellipse cx="135" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <path d="M87 111q7-5 13 0t13 0" stroke="#47819A" stroke-width="6"/>
+    <path d="M42 123 78 115l44 8 36-8v51l-36 8-44-8-36 8z" fill="#FBFCFE" stroke="#47819A" stroke-width="5"/>
+    <path d="m78 115v51m44-43v51" stroke="#47819A" stroke-width="4"/>
+    <path d="M57 150q18-19 36-8t35 4" stroke="#F8C5A9" stroke-width="7" stroke-dasharray="4 11"/>
+    <path d="M129 135c0-10 15-10 15 0 0 7-8 13-8 13s-7-6-7-13z" fill="#F8C5A9" stroke="#47819A" stroke-width="4"/>
+    <circle cx="136.5" cy="135" r="2.5" fill="#47819A"/>
+    <circle cx="43" cy="145" r="8" fill="#F8C5A9" stroke="#47819A" stroke-width="4"/>
+    <circle cx="157" cy="139" r="8" fill="#F8C5A9" stroke="#47819A" stroke-width="4"/>
+  </g>
+</svg>

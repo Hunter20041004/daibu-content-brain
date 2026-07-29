@@ -61,8 +61,16 @@ B3 開場前要先處理的兩件小事，已記在
 
 ## 本輪狀態
 
-（Codex 實作時填：完成到哪個 Task、全套測試數字、契約測試結果、
-截圖路徑、卡住的地方。）
+- 2026-07-29：Task 12 完成。七種吉祥物 SVG 已由使用者目視核可；LINE Seed TW
+  Regular／Bold／ExtraBold 與官方授權已放入 `assets/fonts/`。
+- 素材測試 `5 passed`；全套測試 `200 passed, 8 deselected`。
+- 使用者回饋 `point`／`lost` 肢體語言不自然後，已改成「伸手指引」與
+  「拿折疊地圖迷路」；指引改成與 `wave`／`happy` 同風格的水藍手臂，
+  由桃色圓手握教學棒，手掌已右移避免黏住耳朵。新版併排圖：
+  `.screenshots/mascot-review-point-detached-final.png`，
+  瀏覽器 console `0 errors, 0 warnings`。
+- 官方 ExtraBold 實際檔名為 `LINESeedTW_OTF_Eb.otf`，Task 13 必須沿用。
+  尚未碰 Task 13–17。
 
 ---
 

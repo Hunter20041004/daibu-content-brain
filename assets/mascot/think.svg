@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" role="img" aria-label="呆一布托腮思考">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 30V17" stroke="#47819A" stroke-width="7"/>
+    <circle cx="100" cy="13" r="9" fill="#F8C5A9"/>
+    <path d="M164 116c17 0 20-17 9-28-8-8-14-2-16 8" stroke="#8ACDD6" stroke-width="13"/>
+    <rect x="28" y="40" width="144" height="116" rx="42" fill="#8ACDD6"/>
+    <rect x="12" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="164" y="79" width="24" height="40" rx="12" fill="#8ACDD6"/>
+    <rect x="48" y="60" width="104" height="76" rx="29" fill="#FBFCFE"/>
+    <circle cx="158" cy="92" r="9" fill="#F8C5A9" stroke="#47819A" stroke-width="5"/>
+    <path d="M70 92q9-10 18 0m24 0q9-10 18 0" stroke="#47819A" stroke-width="6"/>
+    <ellipse cx="65" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <ellipse cx="135" cy="111" rx="10" ry="7" fill="#F8C5A9"/>
+    <path d="m95 111 12-7" stroke="#47819A" stroke-width="6"/>
+  </g>
+</svg>
