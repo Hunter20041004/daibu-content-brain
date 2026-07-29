@@ -6,3 +6,5 @@ google-genai
 groq
 python-dotenv
 pytest
+playwright
+Pillow

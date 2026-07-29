@@ -36,6 +36,7 @@
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+.venv/bin/playwright install chromium
 cp .env.example .env   # 填入免費 API key
 .venv/bin/pytest                 # 測試
 .venv/bin/streamlit run app.py   # 跑起來
