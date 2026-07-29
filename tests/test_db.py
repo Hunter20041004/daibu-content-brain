@@ -434,3 +434,70 @@ def test_delete_idea_removes_rejected_candidate(tmp_path):
     db.delete_idea(conn, idea_id)
 
     assert db.get_ideas(conn) == []
+
+
+def _seven_rows():
+    from daibu.cards import pages
+
+    return [
+        {
+            "page_no": index + 1,
+            "page_type": page_type,
+            "heading": f"標題{index}",
+            "body": f"內文{index}",
+            "grounding": "source" if index < 3 else "model",
+            "source_quote": "原文" if index < 3 else "",
+        }
+        for index, page_type in enumerate(pages.PAGE_TYPES)
+    ]
+
+
+def test_save_and_get_carousel(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(title="t", angle="a", source_url=""),
+    )
+
+    db.save_carousel(conn, idea_id, _seven_rows())
+    got = db.get_carousel(conn, idea_id)
+
+    assert [row["page_no"] for row in got] == [1, 2, 3, 4, 5, 6, 7]
+    assert got[0]["page_type"] == "cover"
+    assert got[6]["grounding"] == "model"
+    conn.close()
+
+
+def test_save_carousel_overwrites_previous_draft(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(title="t", angle="a", source_url=""),
+    )
+
+    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _seven_rows())
+
+    assert len(db.get_carousel(conn, idea_id)) == 7
+    conn.close()
+
+
+def test_update_single_carousel_page(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(title="t", angle="a", source_url=""),
+    )
+    db.save_carousel(conn, idea_id, _seven_rows())
+    page_id = db.get_carousel(conn, idea_id)[0]["id"]
+
+    db.update_carousel_page(conn, page_id, "新標題", "新內文")
+
+    assert db.get_carousel(conn, idea_id)[0]["heading"] == "新標題"
+    conn.close()

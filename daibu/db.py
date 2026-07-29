@@ -242,6 +242,19 @@ def init_schema(conn: sqlite3.Connection) -> None:
             posted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
         );
+
+        CREATE TABLE IF NOT EXISTS carousel_pages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            idea_id INTEGER NOT NULL,
+            page_no INTEGER NOT NULL,
+            page_type TEXT NOT NULL,
+            heading TEXT NOT NULL DEFAULT '',
+            body TEXT NOT NULL DEFAULT '',
+            grounding TEXT NOT NULL DEFAULT 'model',
+            source_quote TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (idea_id) REFERENCES ideas(id)
+        );
         """
     )
     idea_columns = _table_columns(conn, "ideas")
@@ -292,7 +305,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
             INSERT INTO sources (name, url, fetch_type, enabled)
             SELECT 'VentureBeat AI',
                    'https://venturebeat.com/category/ai/feed/', 'rss', 1
-            WHERE NOT EXISTS (
+            WHERE EXISTS (
+                SELECT 1 FROM themes WHERE name = 'AI 新創介紹'
+            )
+              AND NOT EXISTS (
                 SELECT 1 FROM sources WHERE name = 'VentureBeat AI'
             )
             """
@@ -648,4 +664,62 @@ def update_idea_content(
 def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
     # TODO(需澄清): spec 沒有「淘汰」狀態；v1 先把淘汰候選移除。
     conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
+    conn.commit()
+
+
+def save_carousel(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    rows: list[dict],
+) -> None:
+    conn.execute("DELETE FROM carousel_pages WHERE idea_id = ?", (idea_id,))
+    conn.executemany(
+        """
+        INSERT INTO carousel_pages (
+            idea_id, page_no, page_type, heading, body,
+            grounding, source_quote, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                idea_id,
+                row["page_no"],
+                row["page_type"],
+                row["heading"],
+                row["body"],
+                row["grounding"],
+                row["source_quote"],
+                _now(),
+            )
+            for row in rows
+        ],
+    )
+    conn.commit()
+
+
+def get_carousel(
+    conn: sqlite3.Connection,
+    idea_id: int,
+) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM carousel_pages WHERE idea_id = ? ORDER BY page_no",
+        (idea_id,),
+    ).fetchall()
+
+
+def update_carousel_page(
+    conn: sqlite3.Connection,
+    page_id: int,
+    heading: str,
+    body: str,
+) -> None:
+    conn.execute(
+        """
+        UPDATE carousel_pages
+        SET heading = ?, body = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (heading, body, _now(), page_id),
+    )
     conn.commit()
