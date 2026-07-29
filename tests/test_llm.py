@@ -204,3 +204,34 @@ def test_provider_exposes_last_raw_response_after_retry_fails(monkeypatch):
         )
 
     assert error.value.raw_response == "第二次仍壞掉"
+
+
+def test_parse_ideas_reads_company_and_excerpt():
+    raw = """[
+      {"company": "ElevenLabs",
+       "title": "讓文字開口說話",
+       "angle": "配音成本被改寫",
+       "source_url": "https://example.com/a",
+       "source_excerpt": "2022 年於倫敦成立。"}
+    ]"""
+
+    ideas = prompt.parse_ideas(raw)
+
+    assert ideas[0].company == "ElevenLabs"
+    assert ideas[0].source_excerpt == "2022 年於倫敦成立。"
+
+
+def test_build_prompt_demands_a_named_company():
+    materials = [
+        Material(title="t", url="https://example.com/a", snippet="s")
+    ]
+
+    text = prompt.build("AI 新創介紹", materials, 3)
+
+    assert "公司" in text
+    assert "company" in text
+    assert "source_excerpt" in text
+    # 明確禁止產出無公司名的通用觀點文
+    assert "沒有公司名" in text
+    # 寧可少產也不要湊數
+    assert "寧可少產" in text

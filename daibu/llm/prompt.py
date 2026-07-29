@@ -35,10 +35,16 @@ def build(
 {avoid_section}
 
 要求：
+- 每一則候選必須是**一家具體的公司**，而且公司名要出現在素材裡，不可憑印象編造。
+- 嚴禁產出沒有公司名的通用觀點文（例如「文組生在 AI 新創的價值」這類）。
+- 若素材裡找得到的公司不足 {n} 家，寧可少產幾則，也不要湊數。
 - 切入角度使用文組視角，拆解邏輯，避免紅海 hype 腔。
-- 有素材時必須填 source_url。
+- title 是「一句話說明這家公司在做什麼」。
+- angle 是「為什麼現在值得講」。
+- source_url 必須是該公司所依據的那一則素材的網址。
+- source_excerpt 是該素材中支持這則候選的原文片段，原樣抄錄，不要改寫。
 - 只輸出 JSON 陣列，不要 Markdown 或額外說明。
-- 每個物件只含 title、angle、source_url。
+- 每個物件只含 company、title、angle、source_url、source_excerpt。
 """.strip()
 
 
@@ -56,6 +62,8 @@ def parse_ideas(raw: str) -> list[Idea]:
             title=str(item.get("title", "")),
             angle=str(item.get("angle", "")),
             source_url=str(item.get("source_url", "")),
+            company=str(item.get("company", "")),
+            source_excerpt=str(item.get("source_excerpt", "")),
         )
         for item in decoded
         if isinstance(item, dict)
