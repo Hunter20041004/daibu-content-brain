@@ -223,6 +223,8 @@ def init_schema(conn: sqlite3.Connection) -> None:
             title TEXT NOT NULL,
             angle TEXT NOT NULL,
             source_url TEXT NOT NULL DEFAULT '',
+            company TEXT NOT NULL DEFAULT '',
+            source_excerpt TEXT NOT NULL DEFAULT '',
             status TEXT NOT NULL,
             body TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -242,6 +244,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
         );
         """
     )
+    idea_columns = _table_columns(conn, "ideas")
+    for column in ("company", "source_excerpt"):
+        if column not in idea_columns:
+            conn.execute(
+                f"ALTER TABLE ideas ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
+            )
     conn.execute(
         "DELETE FROM config WHERE key = ?",
         ("gate_line",),

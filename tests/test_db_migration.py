@@ -314,3 +314,35 @@ def test_migration_removes_retired_gate_line_config(tmp_path):
     }
     assert "gate_line" not in config
     assert config["llm_provider"] == "groq"
+
+
+def test_adds_company_and_excerpt_columns_to_existing_db(tmp_path):
+    """舊資料庫升級後要多出兩欄，且既有題目不得消失。"""
+    path = tmp_path / "old.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    conn.execute(
+        """
+        INSERT INTO ideas (theme_id, title, angle, status)
+        VALUES (NULL, '舊題目', '舊切角', '候選')
+        """
+    )
+    conn.commit()
+    # 模擬舊結構：把新欄位拿掉
+    conn.execute("ALTER TABLE ideas DROP COLUMN company")
+    conn.execute("ALTER TABLE ideas DROP COLUMN source_excerpt")
+    conn.commit()
+    conn.close()
+
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(ideas)")}
+    assert "company" in columns
+    assert "source_excerpt" in columns
+
+    rows = conn.execute("SELECT title, company FROM ideas").fetchall()
+    assert len(rows) == 1
+    assert rows[0]["title"] == "舊題目"
+    assert rows[0]["company"] == ""
+    conn.close()
