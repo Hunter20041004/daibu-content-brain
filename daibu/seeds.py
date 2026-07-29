@@ -58,7 +58,7 @@ DEFAULT_THEMES = [
         [
             "Product Hunt AI",
             "Y Combinator Blog",
-            "a16z",
+            "VentureBeat AI",
             "TechCrunch",
             "INSIDE",
         ],
@@ -78,7 +78,13 @@ DEFAULT_SOURCES = [
         "search",
         True,
     ),
-    Source(None, "Y Combinator Blog", "https://www.ycombinator.com/blog", "search", True),
+    Source(
+        None,
+        "Y Combinator Blog",
+        "https://www.ycombinator.com/blog/rss",
+        "rss",
+        True,
+    ),
     Source(
         None,
         "Anthropic Skills Releases",
@@ -104,7 +110,14 @@ DEFAULT_SOURCES = [
         True,
     ),
     Source(None, "a16z", "https://a16z.com/feed/", "rss", True),
-    Source(None, "INSIDE", "https://www.inside.com.tw/tag/AI", "search", True),
+    Source(
+        None,
+        "VentureBeat AI",
+        "https://venturebeat.com/category/ai/feed/",
+        "rss",
+        True,
+    ),
+    Source(None, "INSIDE", "https://www.inside.com.tw/feed/rss", "rss", True),
 ]
 
 

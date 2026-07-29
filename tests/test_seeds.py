@@ -1,7 +1,15 @@
 from daibu import db, seeds
+from daibu.models import Source
 
 
 KEEP = {"Product Hunt AI", "Y Combinator Blog", "a16z", "TechCrunch", "INSIDE"}
+FIXED_KEEP = {
+    "Product Hunt AI",
+    "Y Combinator Blog",
+    "VentureBeat AI",
+    "TechCrunch",
+    "INSIDE",
+}
 
 
 def test_seed_sources_have_no_manual_fetch_type():
@@ -39,7 +47,7 @@ def test_load_seeds_themes_without_duplicates(tmp_path):
 
     sources = db.get_sources(conn)
     themes = db.get_themes(conn)
-    assert len(sources) == 15
+    assert len(sources) == len(seeds.DEFAULT_SOURCES)
     assert any("AI 近期大事" in theme.name for theme in themes)
     assert any("Skill" in theme.name for theme in themes)
     assert any("AI 新創介紹" in theme.name for theme in themes)
@@ -133,4 +141,48 @@ def test_startup_theme_sources_are_pruned_once(tmp_path):
         if source.id in set(theme.source_ids)
     }
     assert "Hacker News" in names
+    conn.close()
+
+
+def test_broken_sources_are_fixed_once(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    seeds.load(conn)
+
+    by_name = {source.name: source for source in db.get_sources(conn)}
+    assert by_name["Y Combinator Blog"].fetch_type == "rss"
+    assert by_name["Y Combinator Blog"].url.endswith("/blog/rss")
+    assert by_name["INSIDE"].fetch_type == "rss"
+    assert by_name["INSIDE"].url.endswith("/feed/rss")
+
+    theme = [
+        theme
+        for theme in db.get_themes(conn)
+        if theme.name == "AI 新創介紹"
+    ][0]
+    names = {
+        source.name
+        for source in db.get_sources(conn)
+        if source.id in set(theme.source_ids)
+    }
+    assert names == FIXED_KEEP
+    # a16z 只是解除綁定，不可從來源庫消失
+    assert "a16z" in by_name
+
+    # 使用者自己把 YC 改回 search 之後，再跑一次不可以又被改掉
+    yc = by_name["Y Combinator Blog"]
+    db.update_source(
+        conn,
+        Source(
+            yc.id,
+            yc.name,
+            "https://www.ycombinator.com/blog",
+            "search",
+            True,
+        ),
+    )
+    db.init_schema(conn)
+
+    again = {source.name: source for source in db.get_sources(conn)}
+    assert again["Y Combinator Blog"].fetch_type == "search"
     conn.close()

@@ -272,6 +272,55 @@ def init_schema(conn: sqlite3.Connection) -> None:
             "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
             ("startup_sources_pruned", "1"),
         )
+    already_fixed = conn.execute(
+        "SELECT 1 FROM config WHERE key = 'startup_sources_fixed'"
+    ).fetchone()
+    if not already_fixed and _table_exists(conn, "sources"):
+        conn.execute(
+            "UPDATE sources SET url = ?, fetch_type = 'rss' WHERE name = ?",
+            (
+                "https://www.ycombinator.com/blog/rss",
+                "Y Combinator Blog",
+            ),
+        )
+        conn.execute(
+            "UPDATE sources SET url = ?, fetch_type = 'rss' WHERE name = ?",
+            ("https://www.inside.com.tw/feed/rss", "INSIDE"),
+        )
+        conn.execute(
+            """
+            INSERT INTO sources (name, url, fetch_type, enabled)
+            SELECT 'VentureBeat AI',
+                   'https://venturebeat.com/category/ai/feed/', 'rss', 1
+            WHERE NOT EXISTS (
+                SELECT 1 FROM sources WHERE name = 'VentureBeat AI'
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO theme_sources (theme_id, source_id)
+            SELECT themes.id, sources.id
+            FROM themes, sources
+            WHERE themes.name = 'AI 新創介紹'
+              AND sources.name = 'VentureBeat AI'
+            """
+        )
+        conn.execute(
+            """
+            DELETE FROM theme_sources
+            WHERE theme_id IN (
+                SELECT id FROM themes WHERE name = 'AI 新創介紹'
+            )
+              AND source_id IN (
+                  SELECT id FROM sources WHERE name = 'a16z'
+              )
+            """
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+            ("startup_sources_fixed", "1"),
+        )
     conn.execute(
         "DELETE FROM config WHERE key = ?",
         ("gate_line",),
