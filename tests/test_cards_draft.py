@@ -3,6 +3,13 @@ import json
 from daibu import db
 from daibu.cards import draft, pages
 from daibu.llm.base import Idea
+from daibu.models import Theme
+
+
+LONG_EXCERPT = (
+    "ElevenLabs 於 2022 年在倫敦成立，專注於讓合成語音保留自然語氣與節奏。"
+    "團隊的產品已用於有聲書、遊戲和內容製作，讓小型團隊能降低配音成本。"
+)
 
 
 def _fake_response() -> str:
@@ -32,7 +39,7 @@ def test_generate_saves_seven_pages(tmp_path):
             angle="配音成本被改寫",
             source_url="https://example.com/a",
             company="ElevenLabs",
-            source_excerpt="2022 年於倫敦成立。",
+            source_excerpt=LONG_EXCERPT,
         ),
     )
     idea = [
@@ -57,7 +64,7 @@ def test_generate_passes_company_into_the_prompt(tmp_path):
             angle="a",
             source_url="",
             company="ElevenLabs",
-            source_excerpt="片段",
+            source_excerpt=f"片段：{LONG_EXCERPT}",
         ),
     )
     idea = [
@@ -101,6 +108,53 @@ def test_generate_refuses_when_company_is_empty(tmp_path):
         assert "公司" in str(error)
     else:
         raise AssertionError("空公司名應該要擋下來")
+
+    assert called == []
+    conn.close()
+
+
+def test_generate_rejects_too_short_excerpt(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            id=None,
+            name="AI 新創介紹",
+            weekday=4,
+            source_ids=[],
+            n_ideas=3,
+        ),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            title="t",
+            angle="a",
+            source_url="https://example.com/a",
+            company="Vela",
+            source_excerpt=(
+                "The AI Recruiting Coordinator Discussion | Link"
+            ),
+        ),
+        status="採用",
+    )
+    idea = [
+        item for item in db.get_ideas(conn) if item.id == idea_id
+    ][0]
+    called = []
+
+    try:
+        draft.generate(
+            conn,
+            idea,
+            lambda text: called.append(text) or "[]",
+        )
+    except ValueError as error:
+        assert "引文" in str(error)
+    else:
+        raise AssertionError("引文太短應該要擋下來")
 
     assert called == []
     conn.close()
