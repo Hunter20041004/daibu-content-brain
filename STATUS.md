@@ -54,6 +54,16 @@
   - TDD 計畫：`docs/plan-qa-fixes.md`（Task 1–24，五個階段）
   - **狀態：階段 A–E（Task 1–24）與最後整體驗收全部完成。**
 
+- **貼文輪播圖產生器**：進行中，同樣位於 `codex/ia-topic-first`。
+  - 設計規格：`docs/specs/2026-07-28-貼文輪播圖產生器-design.md`
+  - TDD 計畫：`docs/plan-carousel.md`（Task 1–17，分階段 A ＋ B1／B2／B3）
+  - **階段 A（Task 1–6）已驗收**（2026-07-29）：選題產得出具體公司名與來源引文。
+  - **B1（Task 6.5、7–11）已驗收**（2026-07-29）：五個來源全部修成免 key 的 RSS；
+    七格結構、`carousel_pages` 資料表、輪播 prompt 與解析、草稿生成與 60 字引文門檻。
+    驗收證據：`docs/history/HANDOFF-2026-07-29-carousel-b1.md`
+  - **下一輪 B2（Task 12–14）**：字型與吉祥物就位、一則草稿輸出 7 張 PNG。
+    ⚠️ 需使用者先手動下載 LINE Seed TW 字型放進 `assets/fonts/`。
+
 ## 測試基線
 
 重整前 `main` 的基線為 **68 passed、3 deselected**。重整後為
@@ -63,6 +73,10 @@
 **164 passed、3 deselected**；操作驗收修正全部完成後為
 **167 passed、3 deselected**。新增資料搬遷、主題工作台、行動概覽等回歸測試；
 3 個需真實 API key 的契約測試仍維持 deselected。
+
+輪播圖階段 A 完成後為 **174 passed、3 deselected**；**B1 完成後為
+195 passed、8 deselected**（2026-07-29 驗收實測相符）。deselected 多出的 5 個
+是新增的 RSS 契約測試，跑 `-m contract` 時會真的打網路——五個網址當天全綠。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
 加入 `pythonpath = .` 解決。）
@@ -86,11 +100,11 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. 使用者複驗操作驗收修正的最終版本
-2. 決定 `codex/ia-topic-first` 如何整合回 `main`
-3. 再設計**下一輪大功能**：分平台產文字（Threads／IG／LinkedIn）＋由文字產貼圖
-   —— 需先解決「圖片生成多數付費」與「只用免費額度」的衝突，見
-   `docs/open-questions.md`
+1. **B2（Task 12–14）**：使用者先下載 LINE Seed TW 字型，再開新對話交給 Codex
+2. 之後 **B3（Task 15–17）**：不爆版、打包 zip、選題頁接上「產貼圖」按鈕
+3. 決定 `codex/ia-topic-first` 如何整合回 `main`
+4. 更遠的一輪：分平台產文字（Threads／IG／LinkedIn）——本輪明確不做，
+   見 `docs/open-questions.md`
 
 ## 分支現況
 

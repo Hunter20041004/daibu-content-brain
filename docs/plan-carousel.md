@@ -2356,6 +2356,21 @@ git commit -m "feat(cards): 七張圖打包成 zip"
 - Consumes：`draft.generate`、`db.get_carousel`、`db.update_carousel_page`、
   `shoot.zip_bytes`、`pages.label`。
 
+### ⚠️ Step 0（先做這一刀，否則按鈕接不上 AI）
+
+**B1 驗收（2026-07-29）發現的缺口**：`draft.generate(conn, idea, generate_text)`
+要的是一個「餵一段字串、回一段字串」的函式，但 `GeminiProvider` 與 `GroqProvider`
+只有**私有**的 `_generate_text`，`daibu/llm/base.py` 的 `LLMProvider` 協定上也沒有
+這個方法。頁面層拿不到合法的 callable。
+
+**做法**（照樣紅→綠）：先在 `tests/test_llm.py` 寫一個失敗的測試，斷言
+`LLMProvider` 協定與兩個 provider 都有公開的 `generate_text(text: str) -> str`；
+再把兩邊的 `_generate_text` 改名成 `generate_text`（`generate_ideas` 內部的呼叫
+一併更新），並在協定上補上這個方法。
+
+**不要在 `pages/1_選題.py` 直接呼叫 `provider._generate_text`**——那是私有方法，
+換供應商時會靜默壞掉。
+
 **草稿的存檔必須走跟 `save_body_draft()`（`pages/1_選題.py:34-36`）一樣的機制**
 ——`on_change` callback ＋ `st.session_state`。這個專案上一輪發生過
 「正文草稿在頁面重跑時靜默消失」，規格 §7.3 指名這是必防的風險。
