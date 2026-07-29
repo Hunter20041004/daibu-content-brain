@@ -1,14 +1,14 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 兩個貼上區塊：規劃找 🧠 Claude、實作找 🖐 Codex。由 Claude 於 2026-07-29 更新。
-> 一句話現況：**階段 A 已驗收通過，這一輪做階段 B 的第一輪（B1）。**
+> 一句話現況：**B1 已實作完成；五個 RSS 來源全活，等待使用者驗收。**
 > 專案全貌、設計決策、測試基線一律看 `STATUS.md`，這裡不重複。
 
 ---
 
 ## 這一輪要做什麼
 
-**只做 B1 ＝ Task 6.5 與 Task 7–11，做完停下來，不要往 B2 衝。**
+**B1 ＝ Task 6.5 與 Task 7–11 已完成，尚未進入 B2。**
 
 階段 B 有 11 個 Task，一場對話塞不下，切成三輪（見 `docs/plan-carousel.md`
 「階段 B 分三輪做」）。B1 交付的是：**壞掉的來源修好，而且一則採用的候選能產出
@@ -43,42 +43,29 @@
 
 ---
 
-## ▼ 貼給 🖐 Codex（照計畫實作）
+## 下一步
 
-先讀 `STATUS.md`，再讀 `docs/plan-carousel.md`。
-
-這一輪只做 **Task 6.5，接著 Task 7 到 Task 11**。嚴格 TDD、垂直切片，一次一個
-失敗測試 → 綠 → 重構 → 下一個。紅→綠循環只跑當前那一個測試檔，收尾才跑全套。
-每個 Task 做完就 commit。
-
-收尾請做三件事，然後**停下來**：跑一次全套；跑一次
-`.venv/bin/pytest -m contract -q` 確認五個來源的網址真的活著；把結果寫進下面的
-「本輪狀態」。B2（Task 12–14）等使用者驗收過再開新對話做。
-
-設計層有疑問寫進 `docs/open-questions.md`，不要自行更動產品方向。
-
----
-
-## ▼ 貼給 🧠 Claude（討論／規劃／決策）
-
-我要繼續呆一布選題大腦。先讀 `STATUS.md` 與 `docs/open-questions.md`。
-
-要談的：
-
-1. B1 的驗收結果
-2. B2（Task 12–14，出圖）開工前要不要調整
-3. `codex/ia-topic-first` 要不要現在就合併回 `main`（領先 58 個 commit、
-   0 衝突、是 fast-forward；`refactor/ia-topic-first` 只剩一個標明作廢的
-   探路 commit 可刪。**這個 repo 沒有遠端，推不上 GitHub 也沒有正式站**）
-
-我完全沒有程式背景，專有名詞第一次出現請先用白話解釋。
-**我負責產品決策，實作交給 Codex；請不要直接動程式碼。**
+使用者先驗收 B1。通過後另開新對話做 B2（Task 12–14）；不要提前做 Task 12。
+驗收時一併決定下方真實 LLM 契約測試的測資要如何調整。
 
 ---
 
 ## 本輪狀態
 
-- 尚未開工。
+- **已完成** Task 6.5、7–11；提交：
+  `16410b4`、`64a4b60`、`d5370c8`、`2d83873`、`a9e57fb`、
+  `7ce3f72`、`963386b`。
+- 交付：5 個免 key RSS 來源；七格資料契約；`carousel_pages` CRUD 與刪除一致性；
+  輪播 prompt／安全解析；草稿生成、保存與 60 字引文門檻。
+- 全套：`.venv/bin/pytest -q` → **195 passed, 8 deselected**。
+- 契約：五個指定 RSS 網址**全部通過**。整條
+  `.venv/bin/pytest -m contract -q` 為 **1 failed, 6 passed, 1 skipped**；
+  失敗的是既有 `test_real_llm_returns_parsable_ideas`：測資沒有具體公司名，
+  新 prompt 依規格回 0 則。不是來源網址失效，未改鬆測試。
+- UI 自檢：桌機／手機兩輪，無橫向捲動、console 0 error。
+  最終圖：`.screenshots/task9-final-desktop.png`、
+  `.screenshots/task9-final-mobile.png`。
+- **停止點**：等待使用者驗收，不做 B2。
 
 ---
 
