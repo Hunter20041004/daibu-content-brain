@@ -315,11 +315,16 @@ with candidate_column:
                 conn,
                 selected_theme.id,
             )
-            content_summary = "、".join(
-                f"{count} 則{status}"
-                for status, count in content_counts.items()
-                if count
-            )
+            content_parts = [
+                f"{content_counts[status]} 則{status}"
+                for status in ("候選", "採用", "已發")
+                if content_counts[status]
+            ]
+            if content_counts["輪播草稿"]:
+                content_parts.append(
+                    f"{content_counts['輪播草稿']} 份輪播草稿"
+                )
+            content_summary = "、".join(content_parts)
             warning_message = (
                 f"這會一併刪掉 {content_summary}，且無法復原。"
                 if content_summary

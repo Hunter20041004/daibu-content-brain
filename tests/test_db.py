@@ -1,4 +1,4 @@
-from daibu import db, performance
+from daibu import db, performance, pipeline
 from daibu.llm.base import Idea
 from daibu.models import Source, Theme
 
@@ -321,19 +321,37 @@ def test_count_theme_content_reports_what_will_be_deleted(tmp_path):
         conn,
         Theme(None, "不列入預覽", 1, [], 1),
     )
-    for index in range(8):
-        db.add_idea(conn, theme_id, Idea(f"候選 {index}", "角度", ""))
+    candidate_ids = [
+        db.add_idea(
+            conn,
+            theme_id,
+            Idea(f"候選 {index}", "角度", ""),
+        )
+        for index in range(8)
+    ]
+    db.save_carousel(conn, candidate_ids[0], _seven_rows())
+    db.save_carousel(conn, candidate_ids[1], _seven_rows())
     db.add_idea(
         conn,
         theme_id,
         Idea("已發布", "角度", ""),
         status="已發",
     )
-    db.add_idea(conn, other_theme_id, Idea("別的主題", "角度", ""))
+    other_idea_id = db.add_idea(
+        conn,
+        other_theme_id,
+        Idea("別的主題", "角度", ""),
+    )
+    db.save_carousel(conn, other_idea_id, _seven_rows())
 
     counts = db.count_theme_content(conn, theme_id)
 
-    assert counts == {"候選": 8, "採用": 0, "已發": 1}
+    assert counts == {
+        "候選": 8,
+        "採用": 0,
+        "已發": 1,
+        "輪播草稿": 2,
+    }
 
 
 def test_update_source_replaces_editable_fields(tmp_path):
@@ -500,4 +518,62 @@ def test_update_single_carousel_page(tmp_path):
     db.update_carousel_page(conn, page_id, "新標題", "新內文")
 
     assert db.get_carousel(conn, idea_id)[0]["heading"] == "新標題"
+    conn.close()
+
+
+def test_rejecting_idea_keeps_its_carousel(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(title="t", angle="a", source_url=""),
+    )
+    db.save_carousel(conn, idea_id, _seven_rows())
+
+    pipeline.set_status(conn, idea_id, "已淘汰")
+
+    assert len(db.get_carousel(conn, idea_id)) == 7
+    conn.close()
+
+
+def test_deleting_idea_removes_its_carousel(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(title="t", angle="a", source_url=""),
+    )
+    db.save_carousel(conn, idea_id, _seven_rows())
+
+    db.delete_idea(conn, idea_id)
+
+    orphans = conn.execute(
+        "SELECT COUNT(*) AS n FROM carousel_pages"
+    ).fetchone()
+    assert orphans["n"] == 0
+    conn.close()
+
+
+def test_deleting_theme_removes_carousels_of_its_ideas(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(id=None, name="X", weekday=1, source_ids=[], n_ideas=3),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(title="t", angle="a", source_url=""),
+    )
+    db.save_carousel(conn, idea_id, _seven_rows())
+
+    db.delete_theme(conn, theme_id)
+
+    orphans = conn.execute(
+        "SELECT COUNT(*) AS n FROM carousel_pages"
+    ).fetchone()
+    assert orphans["n"] == 0
     conn.close()

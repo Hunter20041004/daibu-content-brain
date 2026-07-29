@@ -441,6 +441,15 @@ def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
         """,
         (theme_id,),
     )
+    conn.execute(
+        """
+        DELETE FROM carousel_pages
+        WHERE idea_id IN (
+            SELECT id FROM ideas WHERE theme_id = ?
+        )
+        """,
+        (theme_id,),
+    )
     conn.execute("DELETE FROM ideas WHERE theme_id = ?", (theme_id,))
     conn.execute(
         "DELETE FROM theme_sources WHERE theme_id = ?",
@@ -454,7 +463,7 @@ def count_theme_content(
     conn: sqlite3.Connection,
     theme_id: int,
 ) -> dict[str, int]:
-    counts = {"候選": 0, "採用": 0, "已發": 0}
+    counts = {"候選": 0, "採用": 0, "已發": 0, "輪播草稿": 0}
     rows = conn.execute(
         """
         SELECT status, COUNT(*) AS count
@@ -467,6 +476,16 @@ def count_theme_content(
     for row in rows:
         if row["status"] in counts:
             counts[row["status"]] = int(row["count"])
+    carousel_row = conn.execute(
+        """
+        SELECT COUNT(DISTINCT carousel_pages.idea_id) AS count
+        FROM carousel_pages
+        JOIN ideas ON ideas.id = carousel_pages.idea_id
+        WHERE ideas.theme_id = ?
+        """,
+        (theme_id,),
+    ).fetchone()
+    counts["輪播草稿"] = int(carousel_row["count"])
     return counts
 
 
@@ -662,7 +681,7 @@ def update_idea_content(
 
 
 def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
-    # TODO(需澄清): spec 沒有「淘汰」狀態；v1 先把淘汰候選移除。
+    conn.execute("DELETE FROM carousel_pages WHERE idea_id = ?", (idea_id,))
     conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
     conn.commit()
 
