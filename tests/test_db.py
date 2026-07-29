@@ -504,6 +504,36 @@ def test_save_carousel_overwrites_previous_draft(tmp_path):
     conn.close()
 
 
+def test_structured_carousel_round_trip(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    expected = carousel_draft()
+
+    db.save_carousel_draft(conn, idea_id, expected)
+
+    assert db.get_carousel_draft(conn, idea_id) == expected
+    conn.close()
+
+
+def test_deleting_idea_removes_its_structured_carousel_sources(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    db.delete_idea(conn, idea_id)
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_sources"
+    ).fetchone()[0] == 0
+    conn.close()
+
+
 def test_update_single_carousel_page(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)
@@ -576,4 +606,28 @@ def test_deleting_theme_removes_carousels_of_its_ideas(tmp_path):
         "SELECT COUNT(*) AS n FROM carousel_pages"
     ).fetchone()
     assert orphans["n"] == 0
+    conn.close()
+
+
+def test_deleting_theme_removes_structured_carousel_sources(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(id=None, name="X", weekday=1, source_ids=[], n_ideas=3),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(title="t", angle="a", source_url=""),
+    )
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    db.delete_theme(conn, theme_id)
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_sources"
+    ).fetchone()[0] == 0
     conn.close()

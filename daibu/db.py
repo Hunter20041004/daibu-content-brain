@@ -1,5 +1,16 @@
+import json
 import sqlite3
+from dataclasses import asdict
 
+from daibu.cards.schema import (
+    CarouselDraft,
+    CarouselPage,
+    ContentSection,
+    DiagramNode,
+    DiagramSpec,
+    VerifiedSource,
+    validate_draft,
+)
 from daibu.clock import now as _now
 from daibu.llm.base import Idea
 from daibu.models import Source, StoredIdea, Theme
@@ -252,7 +263,21 @@ def init_schema(conn: sqlite3.Connection) -> None:
             body TEXT NOT NULL DEFAULT '',
             grounding TEXT NOT NULL DEFAULT 'model',
             source_quote TEXT NOT NULL DEFAULT '',
+            sections_json TEXT NOT NULL DEFAULT '[]',
+            diagram_json TEXT NOT NULL DEFAULT '',
+            source_label TEXT NOT NULL DEFAULT '',
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (idea_id) REFERENCES ideas(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS carousel_sources (
+            idea_id INTEGER NOT NULL,
+            source_key TEXT NOT NULL,
+            publisher TEXT NOT NULL,
+            published_at TEXT NOT NULL,
+            url TEXT NOT NULL,
+            excerpt TEXT NOT NULL,
+            PRIMARY KEY (idea_id, source_key),
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
         );
         """
@@ -262,6 +287,18 @@ def init_schema(conn: sqlite3.Connection) -> None:
         if column not in idea_columns:
             conn.execute(
                 f"ALTER TABLE ideas ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
+            )
+    page_columns = _table_columns(conn, "carousel_pages")
+    structured_columns = {
+        "sections_json": "'[]'",
+        "diagram_json": "''",
+        "source_label": "''",
+    }
+    for column, default in structured_columns.items():
+        if column not in page_columns:
+            conn.execute(
+                "ALTER TABLE carousel_pages "
+                f"ADD COLUMN {column} TEXT NOT NULL DEFAULT {default}"
             )
     already_pruned = conn.execute(
         "SELECT 1 FROM config WHERE key = 'startup_sources_pruned'"
@@ -447,6 +484,13 @@ def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
         WHERE idea_id IN (
             SELECT id FROM ideas WHERE theme_id = ?
         )
+        """,
+        (theme_id,),
+    )
+    conn.execute(
+        """
+        DELETE FROM carousel_sources
+        WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
         """,
         (theme_id,),
     )
@@ -682,6 +726,7 @@ def update_idea_content(
 
 def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
     conn.execute("DELETE FROM carousel_pages WHERE idea_id = ?", (idea_id,))
+    conn.execute("DELETE FROM carousel_sources WHERE idea_id = ?", (idea_id,))
     conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
     conn.commit()
 
@@ -725,6 +770,152 @@ def get_carousel(
         "SELECT * FROM carousel_pages WHERE idea_id = ? ORDER BY page_no",
         (idea_id,),
     ).fetchall()
+
+
+def save_carousel_draft(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    draft: CarouselDraft,
+) -> None:
+    validate_draft(draft)
+    with conn:
+        conn.execute(
+            "DELETE FROM carousel_pages WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.execute(
+            "DELETE FROM carousel_sources WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.executemany(
+            """
+            INSERT INTO carousel_sources (
+                idea_id, source_key, publisher, published_at, url, excerpt
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    idea_id,
+                    source.source_id,
+                    source.publisher,
+                    source.published_at,
+                    source.url,
+                    source.excerpt,
+                )
+                for source in draft.sources
+            ],
+        )
+        conn.executemany(
+            """
+            INSERT INTO carousel_pages (
+                idea_id, page_no, page_type, heading, body,
+                grounding, source_quote, sections_json, diagram_json,
+                source_label, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 'source', '', ?, ?, ?, ?)
+            """,
+            [
+                (
+                    idea_id,
+                    page.page_no,
+                    page.page_type,
+                    page.heading,
+                    "\n".join(section.text for section in page.sections),
+                    json.dumps(
+                        [asdict(section) for section in page.sections],
+                        ensure_ascii=False,
+                    ),
+                    (
+                        json.dumps(asdict(page.diagram), ensure_ascii=False)
+                        if page.diagram
+                        else ""
+                    ),
+                    page.source_label,
+                    _now(),
+                )
+                for page in draft.pages
+            ],
+        )
+
+
+def get_carousel_draft(
+    conn: sqlite3.Connection,
+    idea_id: int,
+) -> CarouselDraft | None:
+    source_rows = conn.execute(
+        """
+        SELECT source_key, publisher, published_at, url, excerpt
+        FROM carousel_sources
+        WHERE idea_id = ?
+        ORDER BY source_key
+        """,
+        (idea_id,),
+    ).fetchall()
+    page_rows = conn.execute(
+        """
+        SELECT page_no, page_type, heading, sections_json,
+               diagram_json, source_label
+        FROM carousel_pages
+        WHERE idea_id = ? AND sections_json != '[]'
+        ORDER BY page_no
+        """,
+        (idea_id,),
+    ).fetchall()
+    if not page_rows:
+        return None
+
+    sources = tuple(
+        VerifiedSource(
+            row["source_key"],
+            row["publisher"],
+            row["published_at"],
+            row["url"],
+            row["excerpt"],
+        )
+        for row in source_rows
+    )
+    pages = []
+    for row in page_rows:
+        sections = tuple(
+            ContentSection(
+                item["label"],
+                item["text"],
+                tuple(item["source_ids"]),
+            )
+            for item in json.loads(row["sections_json"])
+        )
+        raw_diagram = (
+            json.loads(row["diagram_json"])
+            if row["diagram_json"]
+            else None
+        )
+        diagram = (
+            DiagramSpec(
+                raw_diagram["kind"],
+                tuple(
+                    DiagramNode(
+                        node["title"],
+                        node["text"],
+                        node.get("expression", ""),
+                    )
+                    for node in raw_diagram["nodes"]
+                ),
+            )
+            if raw_diagram
+            else None
+        )
+        pages.append(
+            CarouselPage(
+                row["page_no"],
+                row["page_type"],
+                row["heading"],
+                sections,
+                diagram,
+                row["source_label"],
+            )
+        )
+    draft = CarouselDraft(sources, tuple(pages))
+    validate_draft(draft)
+    return draft
 
 
 def update_carousel_page(

@@ -346,3 +346,27 @@ def test_adds_company_and_excerpt_columns_to_existing_db(tmp_path):
     assert rows[0]["title"] == "舊題目"
     assert rows[0]["company"] == ""
     conn.close()
+
+
+def test_migration_adds_structured_carousel_storage_idempotently(tmp_path):
+    path = tmp_path / "carousel.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    conn.execute("ALTER TABLE carousel_pages DROP COLUMN sections_json")
+    conn.execute("ALTER TABLE carousel_pages DROP COLUMN diagram_json")
+    conn.execute("ALTER TABLE carousel_pages DROP COLUMN source_label")
+    conn.execute("DROP TABLE carousel_sources")
+    conn.commit()
+
+    db.init_schema(conn)
+    db.init_schema(conn)
+
+    columns = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(carousel_pages)")
+    }
+    assert {"sections_json", "diagram_json", "source_label"} <= columns
+    assert conn.execute(
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name='carousel_sources'"
+    ).fetchone()
