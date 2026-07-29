@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from daibu.llm import base, prompt
@@ -235,3 +237,90 @@ def test_build_prompt_demands_a_named_company():
     assert "沒有公司名" in text
     # 寧可少產也不要湊數
     assert "寧可少產" in text
+
+
+def test_parse_carousel_returns_seven_pages_with_grounding():
+    raw = """[
+      {"page_type": "cover", "heading": "讓文字開口說話",
+       "body": "ElevenLabs", "grounding": "source",
+       "source_quote": "2022 年於倫敦成立。"},
+      {"page_type": "who", "heading": "他們是誰", "body": "英國新創",
+       "grounding": "source", "source_quote": "2022 年於倫敦成立。"},
+      {"page_type": "problem", "heading": "配音很貴", "body": "小團隊做不起",
+       "grounding": "model", "source_quote": ""},
+      {"page_type": "how-ai", "heading": "學會說話的節奏", "body": "不只唸字",
+       "grounding": "model", "source_quote": ""},
+      {"page_type": "results", "heading": "誰在用", "body": "有聲書與遊戲",
+       "grounding": "model", "source_quote": ""},
+      {"page_type": "why-care", "heading": "成本被改寫", "body": "內容產業變了",
+       "grounding": "model", "source_quote": ""},
+      {"page_type": "cta", "heading": "追蹤呆一布", "body": "每週五更新",
+       "grounding": "model", "source_quote": ""}
+    ]"""
+
+    got = prompt.parse_carousel(raw)
+
+    assert len(got) == 7
+    assert [row["page_no"] for row in got] == [1, 2, 3, 4, 5, 6, 7]
+    assert got[0]["grounding"] == "source"
+    assert got[2]["grounding"] == "model"
+    assert got[2]["source_quote"] == ""
+
+
+def test_parse_carousel_rejects_wrong_page_count():
+    with pytest.raises(ValueError):
+        prompt.parse_carousel('[{"page_type": "cover"}]')
+
+
+def test_parse_carousel_defaults_unknown_grounding_to_model():
+    """AI 沒標或亂標時，一律當成需查證，不可預設為有依據。"""
+    payload = [
+        {"page_type": page_type, "heading": "h", "body": "b"}
+        for page_type in (
+            "cover",
+            "who",
+            "problem",
+            "how-ai",
+            "results",
+            "why-care",
+            "cta",
+        )
+    ]
+    got = prompt.parse_carousel(json.dumps(payload, ensure_ascii=False))
+
+    assert {row["grounding"] for row in got} == {"model"}
+
+
+def test_build_carousel_prompt_carries_limits_and_grounding_rule():
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "讓文字開口說話",
+        "配音成本被改寫",
+        "2022 年於倫敦成立。",
+    )
+
+    assert "ElevenLabs" in text
+    assert "2022 年於倫敦成立。" in text
+    assert "grounding" in text
+    # 字數上限要寫進指令
+    assert "14" in text and "60" in text
+    # 七個頁型都要出現
+    for page_type in (
+        "cover",
+        "who",
+        "problem",
+        "how-ai",
+        "results",
+        "why-care",
+        "cta",
+    ):
+        assert page_type in text
+
+
+def test_build_carousel_prompt_forbids_anxiety_framing():
+    """網站 PRD 第二條營運鐵律：降低焦慮，不製造焦慮。"""
+    text = prompt.build_carousel("ElevenLabs", "t", "a", "片段")
+
+    assert "焦慮" in text
+    assert "落伍" in text
+    assert "取代" in text
