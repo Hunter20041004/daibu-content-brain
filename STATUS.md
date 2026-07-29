@@ -61,8 +61,8 @@
   - **B1（Task 6.5、7–11）已驗收**（2026-07-29）：五個來源全部修成免 key 的 RSS；
     七格結構、`carousel_pages` 資料表、輪播 prompt 與解析、草稿生成與 60 字引文門檻。
     驗收證據：`docs/history/HANDOFF-2026-07-29-carousel-b1.md`
-  - **下一輪 B2（Task 12–14）**：字型與吉祥物就位、一則草稿輸出 7 張 PNG。
-    ⚠️ 需使用者先手動下載 LINE Seed TW 字型放進 `assets/fonts/`。
+  - **B2 Task 12–13 已完成（2026-07-29）**：字型與吉祥物就位，七格草稿可渲染成
+    固定 1080×1350 品牌 HTML；下一輪只做 Task 14，把 HTML 輸出為 7 張 PNG。
 
 ## 測試基線
 
@@ -77,6 +77,7 @@
 輪播圖階段 A 完成後為 **174 passed、3 deselected**；**B1 完成後為
 195 passed、8 deselected**（2026-07-29 驗收實測相符）。deselected 多出的 5 個
 是新增的 RSS 契約測試，跑 `-m contract` 時會真的打網路——五個網址當天全綠。
+**B2 Task 13 完成後為 216 passed、8 deselected**。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
 加入 `pythonpath = .` 解決。）
@@ -100,7 +101,7 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. **B2（Task 12–14）**：使用者先下載 LINE Seed TW 字型，再開新對話交給 Codex
+1. **B2 Task 14**：HTML 轉 PNG，加上像素契約測試
 2. 之後 **B3（Task 15–17）**：不爆版、打包 zip、選題頁接上「產貼圖」按鈕
 3. 決定 `codex/ia-topic-first` 如何整合回 `main`
 4. 更遠的一輪：分平台產文字（Threads／IG／LinkedIn）——本輪明確不做，

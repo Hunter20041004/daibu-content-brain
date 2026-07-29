@@ -61,16 +61,17 @@ B3 開場前要先處理的兩件小事，已記在
 
 ## 本輪狀態
 
-- 2026-07-29：Task 12 完成。七種吉祥物 SVG 已由使用者目視核可；LINE Seed TW
-  Regular／Bold／ExtraBold 與官方授權已放入 `assets/fonts/`。
-- 素材測試 `5 passed`；全套測試 `200 passed, 8 deselected`。
-- 使用者回饋 `point`／`lost` 肢體語言不自然後，已改成「伸手指引」與
-  「拿折疊地圖迷路」；指引改成與 `wave`／`happy` 同風格的水藍手臂，
-  由桃色圓手握教學棒，手掌已右移避免黏住耳朵。新版併排圖：
-  `.screenshots/mascot-review-point-detached-final.png`，
-  瀏覽器 console `0 errors, 0 warnings`。
-- 官方 ExtraBold 實際檔名為 `LINESeedTW_OTF_Eb.otf`，Task 13 必須沿用。
-  尚未碰 Task 13–17。
+- 2026-07-29：Task 12、13 完成；尚未碰 Task 14–17。
+- 七種吉祥物 SVG 已由使用者目視核可；LINE Seed TW 三字重與官方授權已就位。
+  ExtraBold 沿用官方檔名 `LINESeedTW_OTF_Eb.otf`。
+- 新增 `render.page_html(row, company)`、獨立 HTML 外殼與固定品牌 CSS；文字會轉義，
+  字型走本機 `file://` 絕對路徑，頁型會帶正確吉祥物 SVG。
+- Task 13 測試 `16 passed`；全套 `216 passed, 8 deselected`。程式審查另抓出原計畫
+  把署名放進白卡的矛盾，已依設計規格移到外框底帶並加回歸測試。
+- 兩輪 Playwright 視覺自檢完成，三字重均實際載入，console `0 errors, 0 warnings`。
+  最終圖：`.screenshots/task13-final-desktop.png`、
+  `.screenshots/task13-final-mobile.png`。
+- 下一輪只做 Task 14：把單頁 HTML 轉成 1080×1350 PNG，補三個像素契約測試。
 
 ---
 
