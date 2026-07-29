@@ -641,7 +641,204 @@ DAIBU_DB_PATH=/tmp/daibu-carousel.db .venv/bin/streamlit run app.py --server.por
 
 ---
 
+## Task 6.5 — 修好抓不到的來源（階段 B 的前置）
+
+**為什麼補這個 Task**：階段 A 驗收（2026-07-29）發現收斂後的 5 個來源實際只有
+2 個抓得到——`a16z` 的 `https://a16z.com/feed/` 回 404，`Y Combinator Blog` 與
+`INSIDE` 被設成 `search` 型、缺 `TAVILY_API_KEY` 就整個抓不到。階段 B 的輪播圖
+品質直接吃來源品質，只靠 TechCrunch＋Product Hunt 會讓每週的圖一直在講同一類公司。
+
+**驗收時實測過的網址（可直接用，不必再自己找）**：
+
+| 來源 | 現況 | 改成 |
+|---|---|---|
+| Y Combinator Blog | `search` ＋ `https://www.ycombinator.com/blog` | `rss` ＋ `https://www.ycombinator.com/blog/rss`（HTTP 200，是 RSS） |
+| INSIDE | `search` ＋ `https://www.inside.com.tw/tag/AI` | `rss` ＋ `https://www.inside.com.tw/feed/rss`（HTTP 200，是 RSS） |
+| a16z | `rss` ＋ `https://a16z.com/feed/`（404） | **換掉**：改綁 `VentureBeat AI` ＝ `https://venturebeat.com/category/ai/feed/`（HTTP 200，是 RSS） |
+
+`a16z` 官網已無任何可用 feed（`/feed/`、`/rss/`、`/blog/feed/`、`/index.xml`、
+`/rss.xml`、`/posts/feed/`、`/feed/rss/` 全部 404，驗收時逐一試過），所以是換掉不是修好。
+**`a16z` 這筆來源本身留在來源庫、只解除它與「AI 新創介紹」的綁定**——它沒有被其他
+主題使用，但留著讓使用者日後想改回 `search` 型仍找得到。
+
+改成 `rss` 之後，「AI 新創介紹」的 5 個來源全部不需要 `TAVILY_API_KEY`。
+`Y Combinator Blog` 同時被另外兩個主題使用，這一改對它們也一併生效。
+
+**Files:**
+- Modify: `daibu/seeds.py`（`DEFAULT_SOURCES` 三筆 ＋「AI 新創介紹」的來源清單）
+- Modify: `daibu/db.py`（一次性搬遷，比照 Task 4 的 `config` 標記寫法）
+- Test: `tests/test_seeds.py`（單元）
+- Test: `tests/test_rss.py`（**契約測試**，打真實網路）
+
+**Interfaces:**
+- Produces：`db.init_schema` 執行後，若 `config` 沒有 `startup_sources_fixed`
+  標記，就把上表三筆修好，然後寫入標記。
+
+- [ ] **Step 1: 寫失敗的測試（單元）**
+
+在 `tests/test_seeds.py` 末尾新增：
+
+```python
+FIXED_KEEP = {
+    "Product Hunt AI", "Y Combinator Blog",
+    "VentureBeat AI", "TechCrunch", "INSIDE",
+}
+
+
+def test_broken_sources_are_fixed_once(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    seeds.load_if_empty(conn)
+
+    by_name = {s.name: s for s in db.get_sources(conn)}
+    assert by_name["Y Combinator Blog"].fetch_type == "rss"
+    assert by_name["Y Combinator Blog"].url.endswith("/blog/rss")
+    assert by_name["INSIDE"].fetch_type == "rss"
+    assert by_name["INSIDE"].url.endswith("/feed/rss")
+
+    theme = [t for t in db.get_themes(conn) if t.name == "AI 新創介紹"][0]
+    names = {
+        s.name for s in db.get_sources(conn) if s.id in set(theme.source_ids)
+    }
+    assert names == FIXED_KEEP
+    # a16z 只是解除綁定，不可從來源庫消失
+    assert "a16z" in by_name
+
+    # 使用者自己把 YC 改回 search 之後，再跑一次不可以又被改掉
+    yc = by_name["Y Combinator Blog"]
+    db.update_source(
+        conn,
+        Source(yc.id, yc.name, "https://www.ycombinator.com/blog", "search", True),
+    )
+    db.init_schema(conn)
+
+    again = {s.name: s for s in db.get_sources(conn)}
+    assert again["Y Combinator Blog"].fetch_type == "search"
+    conn.close()
+```
+
+（`Source` 從 `daibu.models` 匯入；`db.update_source` 的簽名以 `daibu/db.py:454`
+現況為準，若不同就改成實際的用法。）
+
+- [ ] **Step 2: 跑測試確認它失敗**
+
+Run: `.venv/bin/pytest tests/test_seeds.py::test_broken_sources_are_fixed_once -q`
+Expected: FAIL — `assert 'search' == 'rss'`
+
+- [ ] **Step 3: 最小實作**
+
+`daibu/seeds.py`：把 `DEFAULT_SOURCES` 裡 `Y Combinator Blog`、`INSIDE` 兩筆換成
+上表的網址與 `"rss"`，新增一筆 `VentureBeat AI`，並把「AI 新創介紹」清單裡的
+`"a16z"` 換成 `"VentureBeat AI"`。
+
+`daibu/db.py` 的 `init_schema`，在 Task 4 的收斂區塊之後加上：
+
+```python
+    already_fixed = conn.execute(
+        "SELECT 1 FROM config WHERE key = 'startup_sources_fixed'"
+    ).fetchone()
+    if not already_fixed and _table_exists(conn, "sources"):
+        conn.execute(
+            "UPDATE sources SET url = ?, fetch_type = 'rss' WHERE name = ?",
+            ("https://www.ycombinator.com/blog/rss", "Y Combinator Blog"),
+        )
+        conn.execute(
+            "UPDATE sources SET url = ?, fetch_type = 'rss' WHERE name = ?",
+            ("https://www.inside.com.tw/feed/rss", "INSIDE"),
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO sources (name, url, fetch_type, enabled)
+            VALUES ('VentureBeat AI',
+                    'https://venturebeat.com/category/ai/feed/', 'rss', 1)
+            """
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO theme_sources (theme_id, source_id)
+            SELECT t.id, s.id FROM themes t, sources s
+            WHERE t.name = 'AI 新創介紹' AND s.name = 'VentureBeat AI'
+            """
+        )
+        conn.execute(
+            """
+            DELETE FROM theme_sources
+            WHERE theme_id IN (SELECT id FROM themes WHERE name = 'AI 新創介紹')
+              AND source_id IN (SELECT id FROM sources WHERE name = 'a16z')
+            """
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+            ("startup_sources_fixed", "1"),
+        )
+```
+
+**注意兩件事**：這段必須在 Task 4 的收斂之後執行（否則新綁的 `VentureBeat AI`
+會被 Task 4 的 DELETE 掃掉）；而且 `INSERT OR IGNORE INTO sources` 只有在
+`sources.name` 有唯一索引時才擋得住重複——若沒有，改成先 `SELECT` 再決定要不要插入。
+
+- [ ] **Step 4: 跑測試確認它通過**
+
+Run: `.venv/bin/pytest tests/test_seeds.py -q`
+Expected: PASS
+
+- [ ] **Step 5: 寫契約測試（打真實網路）**
+
+**這一步不可以跳過。** 這一輪之所以有三個壞掉的來源沒被發現，就是因為既有測試
+全是假資料，從來沒有人驗過那些網址真的會回東西。
+
+在 `tests/test_rss.py` 末尾新增（照該檔既有的 `@pytest.mark.contract` 寫法）：
+
+```python
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://www.producthunt.com/feed",
+        "https://www.ycombinator.com/blog/rss",
+        "https://venturebeat.com/category/ai/feed/",
+        "https://techcrunch.com/feed/",
+        "https://www.inside.com.tw/feed/rss",
+    ],
+)
+def test_startup_theme_feeds_are_reachable(url):
+    """「AI 新創介紹」綁的 5 個來源必須真的抓得到，且真的是 RSS。"""
+    items = rss.fetch(url)
+
+    assert items, f"{url} 抓不到任何項目"
+```
+
+（`rss.fetch` 的實際函式名與回傳型別以 `daibu/fetch/rss.py` 現況為準；
+**`daibu/fetch/rss.py` 是紅線，只准讀不准改**。）
+
+- [ ] **Step 6: 跑契約測試**
+
+Run: `.venv/bin/pytest tests/test_rss.py -m contract -q`
+Expected: PASS（5 個網址全綠）
+
+若有任何一個紅燈，**不要改測試讓它過**——把失敗的網址與錯誤寫進
+`docs/open-questions.md`，其餘照常完成，回報時講清楚哪一個掛了。
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add daibu/seeds.py daibu/db.py tests/test_seeds.py tests/test_rss.py
+git commit -m "fix(sources): 修好 YC 與 INSIDE 的抓取方式並用 VentureBeat AI 換掉失效的 a16z"
+```
+
+---
+
 # 階段 B — 產輪播圖（Task 7–17）
+
+## 階段 B 分三輪做，一輪一場對話
+
+一場對話塞不下 11 個 Task。照下面切，每一輪結束就開新對話：
+
+| 輪次 | 範圍 | 這一輪結束時交付什麼 |
+|---|---|---|
+| **B1** | Task 6.5、7–11 | 來源修好；一則採用的候選能產出七格文字草稿並存進資料庫（還沒有畫面、還沒有圖） |
+| **B2** | Task 12–14 | 字型與吉祥物就位；一則草稿能真的輸出 7 張 PNG |
+| **B3** | Task 15–17 | 超長字不爆版、打包成 zip、選題頁上的「產貼圖」按鈕接上 |
 
 ## Task 7 — 七格結構的定義（純資料）
 
@@ -1400,6 +1597,85 @@ git add daibu/cards/draft.py tests/test_cards_draft.py
 git commit -m "feat(cards): 產生輪播草稿並存進資料庫"
 ```
 
+- [ ] **Step 6: 寫失敗的測試（引文太短要擋下來）**
+
+**為什麼要這道門**（階段 A 驗收 2026-07-29 的發現）：`build_carousel` 的第四個參數
+`source_excerpt` 是 AI 唯一能拿來當「有依據」的素材。實測抓到的品質差很多——
+TechCrunch 給的引文有 190～207 字的真實事實（募資金額、成立地點、產品內容），
+Product Hunt 給的卻是 `The AI Recruiting Coordinator Discussion | Link` 這種 47 字的
+網頁邊角料，完全沒有事實。引文是邊角料時，七格會幾乎全被標成 `model`（需查證），
+使用者等於每一格都要自己重查一次，那張圖就沒有省到力。
+
+**與其產完再讓人失望，不如一開始就不要產。**
+
+在 `tests/test_cards_draft.py` 末尾新增：
+
+```python
+def test_generate_rejects_too_short_excerpt(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn, Theme(id=None, name="AI 新創介紹", weekday=4,
+                    source_ids=[], n_ideas=3)
+    )
+    idea_id = db.add_idea(
+        conn, theme_id,
+        Idea(title="t", angle="a", source_url="https://example.com/a",
+             company="Vela",
+             source_excerpt="The AI Recruiting Coordinator Discussion | Link"),
+        status="採用",
+    )
+    idea = [i for i in db.get_ideas(conn) if i.id == idea_id][0]
+    called = []
+
+    try:
+        draft.generate(conn, idea, lambda text: called.append(text) or "[]")
+    except ValueError as error:
+        assert "引文" in str(error)
+    else:
+        raise AssertionError("引文太短應該要擋下來")
+
+    assert called == []
+    conn.close()
+```
+
+- [ ] **Step 7: 跑測試確認它失敗**
+
+Run: `.venv/bin/pytest tests/test_cards_draft.py::test_generate_rejects_too_short_excerpt -q`
+Expected: FAIL — `AssertionError: 引文太短應該要擋下來`
+
+- [ ] **Step 8: 最小實作**
+
+`daibu/cards/draft.py`，在公司名那道門之後加上：
+
+```python
+MIN_EXCERPT_CHARS = 60
+
+
+def generate(...):
+    if not idea.company.strip():
+        raise ValueError("這則題目沒有公司名，無法產生輪播草稿")
+    if len(idea.source_excerpt.strip()) < MIN_EXCERPT_CHARS:
+        raise ValueError(
+            f"來源引文只有 {len(idea.source_excerpt.strip())} 字，"
+            f"不足以當依據（至少要 {MIN_EXCERPT_CHARS} 字），"
+            "建議換一則候選，或先在微調裡補上引文"
+        )
+```
+
+`60` 這個數字**必須是 `draft` 模組的常數**，不可以在頁面那一層再寫死一次
+（Task 17 會直接引用它）。
+
+- [ ] **Step 9: 跑測試確認它通過並 commit**
+
+Run: `.venv/bin/pytest tests/test_cards_draft.py -q`
+Expected: PASS
+
+```bash
+git add daibu/cards/draft.py tests/test_cards_draft.py
+git commit -m "feat(cards): 來源引文不足時不產草稿"
+```
+
 ---
 
 ## Task 12 — 字型檔與七種吉祥物姿勢
@@ -2100,7 +2376,11 @@ def _adopted_idea_with_carousel(path):
         conn, theme_id,
         Idea(title="讓文字開口說話", angle="配音成本被改寫",
              source_url="https://example.com/a", company="ElevenLabs",
-             source_excerpt="2022 年於倫敦成立。"),
+             source_excerpt=(
+                 "ElevenLabs 於 2022 年在倫敦成立，提供語音合成服務，"
+                 "讓文字能以接近真人的語氣朗讀，客戶包含有聲書出版商"
+                 "與獨立遊戲團隊。"
+             )),
         status="採用",
     )
     return conn, idea_id
@@ -2140,6 +2420,9 @@ def test_existing_draft_is_rendered_with_grounding_warning(tmp_path, monkeypatch
     assert "需查證" in rendered
 ```
 
+**注意 `_adopted_idea_with_carousel` 的引文刻意寫超過 60 字**——Task 11 的門檻是
+`draft.MIN_EXCERPT_CHARS`，寫太短的話這兩個測試會被那道門擋掉。
+
 - [ ] **Step 2: 跑測試確認它失敗**
 
 Run: `.venv/bin/pytest tests/test_app_smoke.py::test_adopted_idea_offers_carousel_button -q`
@@ -2151,7 +2434,7 @@ Expected: FAIL — `assert any(...)` 為 False
 
 1. `db.get_carousel(conn, idea.id)` 是空的 → 顯示按鈕
    「產生輪播草稿」，旁註「會呼叫 AI，約 10 秒」。
-   `idea.company` 為空時按鈕 `disabled=True`，並說明原因。
+   （擋門的兩種狀態在 Step 5–8 分兩刀補上，這一步先只做「顯示按鈕」。）
 2. 有草稿 → 逐頁渲染，每頁：
    - `pages.label(page_type)` 當標籤
    - `heading` 與 `body` 各一個 `st.text_input` / `st.text_area`，
@@ -2169,12 +2452,91 @@ Expected: FAIL — `assert any(...)` 為 False
 Run: `.venv/bin/pytest tests/test_app_smoke.py -q`
 Expected: PASS
 
-- [ ] **Step 5: 跑全套**
+- [ ] **Step 5: 寫失敗的測試（沒有公司名就不給產圖）**
+
+**為什麼**（階段 A 驗收 2026-07-29 的決定）：使用者資料庫裡還留著 6 則舊的
+「沒有公司名的通用觀點文」，那正是新指令明文禁止的那種題目。輪播圖的七格是
+「介紹一家公司」的結構，沒有公司就無從產起。與其擺一顆按不動的灰按鈕讓人疑惑，
+**不如整個區塊不要出現**——這是雜訊，不是功能。
+
+在 `tests/test_app_smoke.py` 末尾新增：
+
+```python
+def test_adopted_idea_without_company_hides_carousel_section(tmp_path, monkeypatch):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn, Theme(id=None, name="AI 新創介紹", weekday=4,
+                    source_ids=[], n_ideas=3)
+    )
+    db.add_idea(
+        conn, theme_id,
+        Idea(title="舊題目", angle="舊切角", source_url=""),
+        status="採用",
+    )
+    conn.close()
+
+    app = AppTest.from_file("pages/1_選題.py").run()
+    labels = [button.label for button in app.button]
+
+    assert not any("產生輪播草稿" in label for label in labels)
+```
+
+- [ ] **Step 6: 跑測試確認它失敗 → 最小實作 → 綠**
+
+Run: `.venv/bin/pytest tests/test_app_smoke.py::test_adopted_idea_without_company_hides_carousel_section -q`
+Expected: FAIL → 在 `pages/1_選題.py` 把整段產貼圖區塊包在
+`if idea.company.strip():` 底下 → PASS
+
+- [ ] **Step 7: 寫失敗的測試（引文不足要停用並說原因）**
+
+引文不足時**要顯示區塊**（跟沒公司名不同），但按鈕停用並寫清楚為什麼，
+讓使用者知道下一步能做什麼——去微調裡補引文，或換一則候選。
+門檻直接引用 `draft.MIN_EXCERPT_CHARS`，**不可以在頁面層再寫死一次 60**。
+
+```python
+def test_short_excerpt_disables_carousel_button(tmp_path, monkeypatch):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn, Theme(id=None, name="AI 新創介紹", weekday=4,
+                    source_ids=[], n_ideas=3)
+    )
+    db.add_idea(
+        conn, theme_id,
+        Idea(title="t", angle="a", source_url="https://example.com/a",
+             company="Vela",
+             source_excerpt="The AI Recruiting Coordinator Discussion | Link"),
+        status="採用",
+    )
+    conn.close()
+
+    app = AppTest.from_file("pages/1_選題.py").run()
+    button = [b for b in app.button if "產生輪播草稿" in b.label][0]
+    rendered = " ".join(block.value for block in app.markdown)
+
+    assert button.disabled
+    assert "引文" in rendered
+```
+
+- [ ] **Step 8: 跑測試確認它失敗 → 最小實作 → 綠**
+
+Run: `.venv/bin/pytest tests/test_app_smoke.py::test_short_excerpt_disables_carousel_button -q`
+Expected: FAIL → 實作 → PASS
+
+（`button.disabled` 這個屬性以你裝的 Streamlit 版本為準；若 `AppTest` 沒有這個
+屬性，改成斷言畫面上出現提示文字即可，**但不要為了讓測試好寫就把停用拿掉**。）
+
+- [ ] **Step 9: 跑全套**
 
 Run: `.venv/bin/pytest -q`
-Expected: 通過數明顯高於 167，`0 failed`
+Expected: 通過數明顯高於 174，`0 failed`
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add pages/1_選題.py daibu/theme.py tests/test_app_smoke.py
