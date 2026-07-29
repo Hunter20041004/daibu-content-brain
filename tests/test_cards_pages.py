@@ -28,19 +28,19 @@ def test_every_page_type_maps_to_a_known_mascot_pose():
     assert set(pages.MASCOT_FOR.values()) <= set(pages.POSES)
 
 
-def test_character_limits_match_spec():
-    assert pages.LIMITS == {
-        "hook": 20,
-        "company": 16,
-        "heading": 14,
-        "body": 60,
+def test_inner_pages_have_a_narrative_density_target():
+    assert pages.LIMITS["inner_min"] == 140
+    assert pages.LIMITS["inner_max"] == 220
+    assert pages.AI_ROLE_KINDS == {
+        "ai-analyze",
+        "ai-generate",
+        "ai-predict",
+        "ai-automate",
+        "ai-infrastructure",
     }
 
 
-def test_label_returns_chinese_name():
-    assert pages.label("how-ai") == "他們怎麼運用 AI"
-
-
-def test_why_care_page_uses_the_brand_voice_name():
-    """沿用網站 PRD 週報的「呆一布這週怎麼看」，讓兩邊是同一個聲音。"""
-    assert pages.label("why-care") == "呆一布怎麼看"
+def test_page_labels_match_the_approved_reader_tasks():
+    assert pages.label("results") == "誰會用、怎麼用"
+    assert pages.label("why-care") == "接下來觀察什麼"
+    assert pages.label("cta") == "三件值得記住的事"

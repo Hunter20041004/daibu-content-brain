@@ -22,18 +22,48 @@ MASCOT_FOR = {
     "cta": "wave",
 }
 
-LIMITS = {"hook": 20, "company": 16, "heading": 14, "body": 60}
+REQUIRED_SECTIONS = {
+    "cover": {"一句話定位", "產業分類"},
+    "who": {"白話定位", "基本資料"},
+    "problem": {"誰受影響", "原本的代價"},
+    "how-ai": {"傳統做法", "AI 的角色", "人仍負責", "本頁要記住"},
+    "results": {"代表使用者", "使用前後", "購買關係"},
+    "why-care": {"觀察訊號 1", "觀察訊號 2", "證據限制"},
+    "cta": {"公司定位", "AI 的角色", "觀察重點", "互動邀請"},
+}
 
-_LABELS = {
+AI_ROLE_KINDS = {
+    "ai-analyze",
+    "ai-generate",
+    "ai-predict",
+    "ai-automate",
+    "ai-infrastructure",
+}
+DIAGRAM_FOR = {
+    "problem": {"problem-chain"},
+    "how-ai": AI_ROLE_KINDS,
+    "results": {"before-after"},
+    "why-care": {"signals"},
+}
+
+LIMITS = {
+    "hook": 26,
+    "company": 20,
+    "heading": 24,
+    "inner_min": 140,
+    "inner_max": 220,
+}
+
+LABELS = {
     "cover": "封面",
-    "who": "他們是誰",
-    "problem": "他們盯上什麼問題",
-    "how-ai": "他們怎麼運用 AI",
-    "results": "做出了什麼",
-    "why-care": "呆一布怎麼看",
-    "cta": "結尾",
+    "who": "公司身分卡",
+    "problem": "它解決什麼問題",
+    "how-ai": "AI 在裡面扮演什麼角色",
+    "results": "誰會用、怎麼用",
+    "why-care": "接下來觀察什麼",
+    "cta": "三件值得記住的事",
 }
 
 
 def label(page_type: str) -> str:
-    return _LABELS[page_type]
+    return LABELS[page_type]
