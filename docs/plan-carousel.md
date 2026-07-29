@@ -10,7 +10,10 @@
 「選題變好用了」，不是半個功能。
 
 **技術棧**：Python 3.11、Streamlit、SQLite、Playwright（本輪新增）、
-芫荽 Iansui 字型。
+LINE Seed TW 字型。
+
+**視覺一律以網站 PRD（DIVE AI 官網）為上游**——配色、字體、間距、吉祥物姿勢
+都對齊它，詳見設計規格 §11。
 
 ---
 
@@ -43,14 +46,24 @@
 
 - **貼文圖的顏色一律寫死**，不得使用會隨深淺模式變動的 CSS 變數或 `light-dark()`。
   貼文圖是要匯出的成品，不是介面。（規格 §6.3）
-- **配色只能用這幾個值**：外框 `#D5E6F4`、白卡 `#FFFFFF`、文字 `#2E5C9E`、
-  次級文字 `#8FA9C8`、重點底線 `#F6BCC8`、點綴 `#E8912D`、吉祥物機身 `#5B8FC9`。
+- **配色只能用這幾個值**（全部對齊網站 PRD）：外框 `#D5E6F4`、白卡 `#FBFCFE`、
+  文字 `#47819A`、次級文字 `#8F8FA2`、強調 `#F8C5A9`、吉祥物機身 `#8ACDD6`。
+  **強調色只有一個，且面積不得超過畫面 10%。**
+  主色 `#8ACDD6` **不可**當白底上的文字（對比不足），文字一律 `#47819A`。
 - **畫布尺寸固定 1080 × 1350**（4:5 直式）。
-- **字體只用芫荽（Iansui）**，中英文皆同。它**只有一個字重 400**，
-  層次只能靠字級大小與顏色深淺，不得使用 `font-weight: bold`。
+- **字體只用 LINE Seed TW**，中英文皆同，且**只用 400／700／800 三個字重**。
+  PRD 明文禁止 `font-weight: 500 / 600` 與斜體。
+- **白卡圓角 40px、陰影 `0 6px 36px rgba(38,38,65,.06)`、間距一律 4 的倍數。**
 - **不得呼叫任何圖片生成 API。**
 - 頁型 slug 固定為：`cover`、`who`、`problem`、`how-ai`、`results`、`why-care`、`cta`。
-- 吉祥物姿勢 slug 固定為：`wave`、`point`、`think`、`cheer`、`note`。
+- 吉祥物姿勢 slug 固定為：`wave`、`think`、`happy`、`point`、`note`、`confused`、`lost`
+  （七種，與網站共用；貼文只用到前五種）。
+
+### 語氣鐵律（來自網站 PRD，寫進 AI 指令）
+
+1. 講邏輯，不講工具
+2. **降低焦慮，不製造焦慮**——嚴禁「不懂就落伍」「不學就被取代」這類框架
+3. 知道下一步——CTA 要給具體去處，不是空喊追蹤
 
 ---
 
@@ -70,8 +83,8 @@
 | `daibu/cards/shoot.py` | HTML → PNG → zip（唯一碰 Playwright 的檔案） | 新增 |
 | `daibu/cards/templates/ai-startup.html` | 版面 | 新增 |
 | `daibu/cards/templates/ai-startup.css` | 配色、字體、pattern | 新增 |
-| `assets/fonts/Iansui-Regular.ttf` | 字型檔（出圖不依賴網路） | 新增 |
-| `assets/mascot/*.svg` | 五種姿勢 | 新增 |
+| `assets/fonts/LINESeedTW_OTF_*.otf` | 三個字重的字型檔（出圖不依賴網路） | 新增 |
+| `assets/mascot/*.svg` | 七種姿勢（與網站共用） | 新增 |
 | `pages/1_選題.py` | 候選卡片、產貼圖區塊 | 修改 |
 | `requirements.txt` | 加 `playwright` | 修改 |
 
@@ -659,9 +672,12 @@ def test_seven_page_types_in_order():
 
 
 def test_every_page_type_maps_to_a_known_mascot_pose():
-    poses = {"wave", "point", "think", "cheer", "note"}
+    """七種姿勢與網站 PRD 共用；貼文只會用到其中五種。"""
+    assert pages.POSES == (
+        "wave", "think", "happy", "point", "note", "confused", "lost",
+    )
     assert set(pages.MASCOT_FOR) == set(pages.PAGE_TYPES)
-    assert set(pages.MASCOT_FOR.values()) <= poses
+    assert set(pages.MASCOT_FOR.values()) <= set(pages.POSES)
 
 
 def test_character_limits_match_spec():
@@ -672,6 +688,11 @@ def test_character_limits_match_spec():
 
 def test_label_returns_chinese_name():
     assert pages.label("how-ai") == "他們怎麼運用 AI"
+
+
+def test_why_care_page_uses_the_brand_voice_name():
+    """沿用網站 PRD 週報的「呆一布這週怎麼看」，讓兩邊是同一個聲音。"""
+    assert pages.label("why-care") == "呆一布怎麼看"
 ```
 
 - [ ] **Step 2: 跑測試確認它失敗**
@@ -690,12 +711,16 @@ PAGE_TYPES = (
     "cover", "who", "problem", "how-ai", "results", "why-care", "cta",
 )
 
+# 七種姿勢與網站 PRD 共用同一組素材；貼文只用到前五種，
+# confused 與 lost 是網站的空狀態與 404 頁在用的。
+POSES = ("wave", "think", "happy", "point", "note", "confused", "lost")
+
 MASCOT_FOR = {
     "cover": "wave",
     "who": "point",
     "problem": "think",
     "how-ai": "point",
-    "results": "cheer",
+    "results": "happy",
     "why-care": "note",
     "cta": "wave",
 }
@@ -708,7 +733,7 @@ _LABELS = {
     "problem": "他們盯上什麼問題",
     "how-ai": "他們怎麼運用 AI",
     "results": "做出了什麼",
-    "why-care": "為什麼值得注意",
+    "why-care": "呆一布怎麼看",
     "cta": "結尾",
 }
 
@@ -1133,6 +1158,15 @@ def test_build_carousel_prompt_carries_limits_and_grounding_rule():
     for page_type in ("cover", "who", "problem", "how-ai", "results",
                       "why-care", "cta"):
         assert page_type in text
+
+
+def test_build_carousel_prompt_forbids_anxiety_framing():
+    """網站 PRD 第二條營運鐵律：降低焦慮，不製造焦慮。"""
+    text = prompt.build_carousel("ElevenLabs", "t", "a", "片段")
+
+    assert "焦慮" in text
+    assert "落伍" in text
+    assert "取代" in text
 ```
 
 - [ ] **Step 6: 跑測試確認它失敗**
@@ -1170,7 +1204,15 @@ def build_carousel(
 
 這則貼文是在介紹「一家公司如何運用 AI」，不是在教讀者怎麼使用工具。
 不要寫定價、不要寫操作步驟。第 4 頁 how-ai 是整份的核心，要寫得最具體。
-第 6 頁 why-care 要寫呆一布自己的觀點，不是複述新聞。
+第 6 頁 why-care 是「呆一布怎麼看」，要寫自己的觀點，不是複述新聞。
+
+呆一布的三條語氣鐵律，每一頁都適用：
+1. **講邏輯，不講工具**——寫「為什麼這樣做」，不是「又出了什麼新東西」。
+2. **降低焦慮，不製造焦慮**——嚴禁「不懂就落伍」「不學就被取代」
+   「再不跟上就來不及」這類寫法。第 6 頁最容易犯，因為「值得注意」
+   很容易被寫成威脅。正確做法是講清楚它改變了什麼，讓讀者自己判斷。
+3. **知道下一步**——第 7 頁 cta 要給具體去處與時間（例如這個系列每週幾更新），
+   不可只寫「追蹤我們」「留言告訴我」這種空話。
 
 字數上限（超過就自己縮短，不可截成半句）：
 - 第 1 頁的 heading（鉤子）最多 {limits["hook"]} 字，body 放公司名，最多 {limits["company"]} 字元
@@ -1360,31 +1402,37 @@ git commit -m "feat(cards): 產生輪播草稿並存進資料庫"
 
 ---
 
-## Task 12 — 字型檔與五種吉祥物姿勢
+## Task 12 — 字型檔與七種吉祥物姿勢
 
 **Files:**
-- Create: `assets/fonts/Iansui-Regular.ttf`
-- Create: `assets/mascot/wave.svg`、`point.svg`、`think.svg`、`cheer.svg`、`note.svg`
+- Create: `assets/fonts/LINESeedTW_OTF_Rg.otf`、`_Bd.otf`、`_XBd.otf`、`OFL.txt`
+- Create: `assets/mascot/wave.svg`、`think.svg`、`happy.svg`、`point.svg`、
+  `note.svg`、`confused.svg`、`lost.svg`
 - Test: `tests/test_cards_assets.py`
 
 **Interfaces:**
-- Produces：`assets/mascot/<pose>.svg` 五個檔案，每個是可獨立渲染的 SVG。
+- Produces：`assets/mascot/<pose>.svg` 七個檔案，每個是可獨立渲染的 SVG。
 
 **做法**：以 `assets/mascot.svg` 為底（它是幾何 SVG：長方形、圓形、path），
-改寫出五種姿勢。**不呼叫任何生圖 API。**
+改寫出七種姿勢。**不呼叫任何生圖 API。**
 
-各姿勢的差異（其餘部位維持原樣，確保是同一隻）：
+**七種是與網站 PRD 合併後的清單**（PRD 已定義揮手／困惑／開心／思考／迷路五種，
+本專案另需指引與筆記兩種）。貼文只用得到前五種，但一次畫齊比日後補畫更容易
+維持是同一隻，且網站可以共用同一組素材。
 
-| 姿勢 | 怎麼改 |
-|---|---|
-| `wave` | 右側加一條舉起的手臂 path，掌心朝外；嘴巴維持笑弧 |
-| `point` | 右側加一條水平伸出的手臂 path，末端一個小圓當手 |
-| `think` | 右側手臂彎起靠近臉頰；嘴巴改成一條短斜線；眼睛改成上弧 |
-| `cheer` | 兩側各一條舉高的手臂；眼睛改成 `^` 形（兩條短弧）；嘴巴弧度加大 |
-| `note` | 左側手臂前伸，前方加一個小圓角矩形當筆記本 |
+| 姿勢 | 怎麼改 | 誰在用 |
+|---|---|---|
+| `wave` | 右側加一條舉起的手臂 path，掌心朝外；嘴巴維持笑弧 | 貼文封面／結尾、網站 hero |
+| `think` | 右側手臂彎起靠近臉頰；嘴巴改成一條短斜線；眼睛改成上弧 | 貼文問題頁、網站載入中 |
+| `happy` | 兩側各一條舉高的手臂；眼睛改成 `^` 形（兩條短弧）；嘴巴弧度加大 | 貼文成果頁、網站成就卡 |
+| `point` | 右側加一條水平伸出的手臂 path，末端一個小圓當手 | 貼文的 who／how-ai |
+| `note` | 左側手臂前伸，前方加一個小圓角矩形當筆記本 | 貼文的呆一布怎麼看 |
+| `confused` | 頭部微傾；嘴巴改成波浪線；頭頂右上加一個問號 | 網站空狀態 |
+| `lost` | 兩隻手臂垂下攤開；眼睛改成兩個小點；嘴巴改成一條平線 | 網站 404 |
 
-**顏色一律寫死**（機身 `#5B8FC9`、臉板 `#FFFFFF`、墨 `#2E5C9E`、腮紅 `#F6BCC8`），
+**顏色一律寫死**（機身 `#8ACDD6`、臉板 `#FBFCFE`、墨 `#47819A`、強調 `#F8C5A9`），
 **不使用 CSS 變數**——這些 SVG 會被嵌進貼文圖，不是介面元素。
+注意這組顏色已對齊網站 PRD 的色票。
 
 - [ ] **Step 1: 寫失敗的測試**
 
@@ -1399,21 +1447,38 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 
 
 def test_every_mascot_pose_file_exists():
-    for pose in set(pages.MASCOT_FOR.values()):
+    """七種都要有——網站共用同一組素材。"""
+    for pose in pages.POSES:
         path = ASSETS / "mascot" / f"{pose}.svg"
         assert path.exists(), f"缺少姿勢素材：{path}"
 
 
 def test_mascot_svgs_do_not_use_css_variables():
     """貼文圖是匯出的成品，顏色不得跟著介面深淺變。"""
-    for pose in set(pages.MASCOT_FOR.values()):
+    for pose in pages.POSES:
         text = (ASSETS / "mascot" / f"{pose}.svg").read_text(encoding="utf-8")
         assert "var(--" not in text, f"{pose}.svg 不得使用 CSS 變數"
 
 
-def test_font_file_is_bundled():
+def test_mascot_svgs_use_the_prd_palette():
+    """機身必須是品牌主色，不得自創顏色。"""
+    for pose in pages.POSES:
+        text = (ASSETS / "mascot" / f"{pose}.svg").read_text(encoding="utf-8")
+        assert "#8ACDD6" in text, f"{pose}.svg 的機身色不是品牌主色"
+
+
+def test_three_font_weights_are_bundled():
     """出圖不得依賴網路字型，否則匯出的圖會跟預覽不一樣。"""
-    assert (ASSETS / "fonts" / "Iansui-Regular.ttf").exists()
+    for name in (
+        "LINESeedTW_OTF_Rg.otf",
+        "LINESeedTW_OTF_Bd.otf",
+        "LINESeedTW_OTF_XBd.otf",
+    ):
+        assert (ASSETS / "fonts" / name).exists(), f"缺少字重：{name}"
+
+
+def test_font_license_is_bundled():
+    assert (ASSETS / "fonts" / "OFL.txt").exists()
 ```
 
 - [ ] **Step 2: 跑測試確認它失敗**
@@ -1421,20 +1486,26 @@ def test_font_file_is_bundled():
 Run: `.venv/bin/pytest tests/test_cards_assets.py -q`
 Expected: FAIL — `缺少姿勢素材`
 
-- [ ] **Step 3: 下載字型、畫五個 SVG**
+- [ ] **Step 3: 下載字型、畫七個 SVG**
 
-字型（芫荽，SIL 開放字型授權，可商用）：
+字型是 **LINE Seed TW**（LINE 與華康合作，2025-08 發布，SIL 開放字型授權 1.1，
+免費商用，14,038 個字符）。**不在 Google Fonts 上**，從官網下載：
+
+<https://seed.line.me/index_tw.html>
+
+解壓後把 Regular／Bold／ExtraBold 三個字重放進 `assets/fonts/`，
+授權條款存成 `assets/fonts/OFL.txt`。
 
 ```bash
 mkdir -p assets/fonts
-curl -sL "$(curl -s 'https://fonts.googleapis.com/css2?family=Iansui&display=swap' -H 'User-Agent: Mozilla/5.0' | grep -o 'https://[^)]*\.ttf')" -o assets/fonts/Iansui-Regular.ttf
-ls -la assets/fonts/Iansui-Regular.ttf
+# 手動下載並解壓後確認：
+ls -la assets/fonts/
 ```
 
-確認檔案大小合理（數 MB，不是幾百 bytes）。授權條款一併存成
-`assets/fonts/OFL.txt`。
+確認每個字重的檔案大小合理（繁中字型通常數 MB 到十幾 MB，不是幾百 bytes）。
+**若官網改版導致檔名不同，以實際檔名為準，同步改掉測試裡的檔名。**
 
-五個姿勢 SVG 以 `assets/mascot.svg` 為底改寫，放進 `assets/mascot/`。
+七個姿勢 SVG 以 `assets/mascot.svg` 為底改寫，放進 `assets/mascot/`。
 
 - [ ] **Step 4: 跑測試確認它通過**
 
@@ -1443,18 +1514,19 @@ Expected: PASS
 
 - [ ] **Step 5: 目視檢查（不可跳過）**
 
-把五個 SVG 併排寫成一份暫時的 HTML，用瀏覽器打開截圖，確認：
-- 五隻看起來是同一隻角色（頭型、比例、配色一致）
+把七個 SVG 併排寫成一份暫時的 HTML，用瀏覽器打開截圖，確認：
+- 七隻看起來是同一隻角色（頭型、比例、配色一致）
 - 姿勢看得出差別
 - 沒有破圖、路徑沒有斷開
 
 **截圖附在回報裡給使用者挑。不滿意就退回重畫，這是使用者明確要參與的一步。**
+這組素材網站也會用，所以值得多花時間挑。
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add assets/fonts/ assets/mascot/ tests/test_cards_assets.py
-git commit -m "feat(assets): 芫荽字型與五種吉祥物姿勢 SVG"
+git commit -m "feat(assets): LINE Seed TW 字型與七種吉祥物姿勢 SVG"
 ```
 
 ---
@@ -1525,10 +1597,27 @@ def test_html_escapes_user_text():
     assert html_lib.escape("<script>x</script>") in out
 
 
-def test_font_is_loaded_from_a_local_file():
+def test_font_is_loaded_from_local_files():
     out = render.page_html(_row(), company="ElevenLabs")
-    assert "Iansui-Regular.ttf" in out
-    assert "fonts.googleapis.com" not in out
+    assert "LINESeedTW_OTF_Rg.otf" in out
+    assert "LINESeedTW_OTF_XBd.otf" in out
+    assert "http" not in out.split("</style>")[0].replace("file://", "")
+
+
+def test_only_permitted_font_weights_are_used():
+    """網站 PRD 明文禁止 500 / 600 與斜體。"""
+    out = render.page_html(_row(), company="ElevenLabs")
+    assert "font-weight: 500" not in out
+    assert "font-weight: 600" not in out
+    assert "font-style: italic" not in out
+
+
+def test_colors_match_the_brand_palette():
+    out = render.page_html(_row(), company="ElevenLabs")
+    assert "#D5E6F4" in out and "#FBFCFE" in out and "#47819A" in out
+    # 已作廢的舊色不得殘留
+    for retired in ("#2E5C9E", "#F6BCC8", "#E8912D", "#5B8FC9"):
+        assert retired not in out, f"{retired} 是改版前的舊色，不該出現"
 ```
 
 - [ ] **Step 2: 跑測試確認它失敗**
@@ -1542,14 +1631,23 @@ Expected: FAIL — `ImportError: cannot import name 'render'`
 
 ```css
 @font-face {
-  font-family: "Iansui";
-  src: url("__FONT_URL__") format("truetype");
-  font-weight: 400;
+  font-family: "LINE Seed TW"; font-weight: 400;
+  src: url("__FONT_RG__") format("opentype");
+}
+@font-face {
+  font-family: "LINE Seed TW"; font-weight: 700;
+  src: url("__FONT_BD__") format("opentype");
+}
+@font-face {
+  font-family: "LINE Seed TW"; font-weight: 800;
+  src: url("__FONT_XBD__") format("opentype");
 }
 html, body { margin: 0; padding: 0; }
 .canvas {
   width: 1080px; height: 1350px; position: relative; overflow: hidden;
-  background: #D5E6F4; font-family: "Iansui", sans-serif; color: #2E5C9E;
+  background: #D5E6F4;
+  font-family: "LINE Seed TW", sans-serif; color: #47819A;
+  font-weight: 400;
 }
 .stripes {
   position: absolute; left: 0; bottom: 0; width: 560px; height: 320px;
@@ -1564,23 +1662,35 @@ html, body { margin: 0; padding: 0; }
   -webkit-mask-image: linear-gradient(to bottom left, #000 14%, transparent 70%);
 }
 .card {
-  position: absolute; inset: 70px; border-radius: 60px; background: #FFFFFF;
-  box-shadow: 0 8px 34px rgba(46,92,158,.13);
+  position: absolute; inset: 70px; border-radius: 40px; background: #FBFCFE;
+  box-shadow: 0 6px 36px rgba(38,38,65,.06);
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 90px 70px; text-align: center;
+  justify-content: center; padding: 88px 72px; text-align: center;
 }
-.tag { font-size: 34px; letter-spacing: .34em; color: #8FA9C8; margin-bottom: 48px; }
-.heading { font-size: 76px; line-height: 1.6; letter-spacing: .05em; }
-.body { font-size: 46px; line-height: 1.75; margin-top: 44px; }
-.company { font-size: 112px; line-height: 1.15; margin-top: 50px; }
+.tag {
+  font-size: 32px; font-weight: 700; letter-spacing: .2em;
+  color: #8F8FA2; margin-bottom: 48px;
+}
+.heading {
+  font-size: 72px; font-weight: 800; line-height: 1.3; letter-spacing: .04em;
+}
+.mark {
+  background: linear-gradient(180deg, transparent 58%,
+              #F8C5A9 58%, #F8C5A9 96%, transparent 96%);
+  padding: 0 4px;
+}
+.body { font-size: 44px; font-weight: 400; line-height: 1.75; margin-top: 44px; }
+.company { font-size: 104px; font-weight: 800; line-height: 1.15; margin-top: 48px; }
 .mascot { width: 216px; margin-top: 48px; }
 .handle {
   position: absolute; right: 100px; bottom: 96px;
-  font-size: 33px; letter-spacing: .12em; color: #A9BDD6;
+  font-size: 32px; font-weight: 400; letter-spacing: .12em; color: #8F8FA2;
 }
 ```
 
-**不得出現 `font-weight: bold`**（芫荽只有 400），層次全靠 `font-size`。
+**字重只能用 400／700／800**（網站 PRD 明文禁止 500／600 與斜體）。
+層次靠字重與字級一起做——標題 800、標籤 700、內文 400。
+所有間距都是 4 的倍數。強調色 `#F8C5A9` 只用在 `.mark` 底線，面積遠低於 10%。
 
 `daibu/cards/render.py`：
 
@@ -1599,10 +1709,17 @@ def _mascot_svg(page_type: str) -> str:
     return (ASSETS / "mascot" / f"{pose}.svg").read_text(encoding="utf-8")
 
 
+FONT_FILES = {
+    "__FONT_RG__": "LINESeedTW_OTF_Rg.otf",
+    "__FONT_BD__": "LINESeedTW_OTF_Bd.otf",
+    "__FONT_XBD__": "LINESeedTW_OTF_XBd.otf",
+}
+
+
 def page_html(row: dict, company: str) -> str:
     css = (TEMPLATES / "ai-startup.css").read_text(encoding="utf-8")
-    font_url = (ASSETS / "fonts" / "Iansui-Regular.ttf").as_uri()
-    css = css.replace("__FONT_URL__", font_url)
+    for token, filename in FONT_FILES.items():
+        css = css.replace(token, (ASSETS / "fonts" / filename).as_uri())
 
     shell = (TEMPLATES / "ai-startup.html").read_text(encoding="utf-8")
     is_cover = row["page_type"] == "cover"
@@ -1721,8 +1838,8 @@ def test_frame_and_card_pixels_are_the_specified_colors():
 
     # 左上角 (20, 20) 在白卡外，應該是外框淡藍
     assert image.getpixel((20, 20)) == (0xD5, 0xE6, 0xF4)
-    # 畫布正中央在白卡內，應該是白的
-    assert image.getpixel((540, 300)) == (0xFF, 0xFF, 0xFF)
+    # 畫布正中央在白卡內，應該是 PRD 的卡片背景色
+    assert image.getpixel((540, 300)) == (0xFB, 0xFC, 0xFE)
 
 
 @pytest.mark.contract
@@ -2113,8 +2230,10 @@ DAIBU_DB_PATH=/tmp/daibu-carousel.db .venv/bin/streamlit run app.py --server.por
 | §5.6 Playwright | Task 14 |
 | §6.1 尺寸 | Task 13、14 |
 | §6.2–6.3 結構與配色 | Task 13 |
-| §6.4 字體本地化 | Task 12、13 |
-| §6.5 吉祥物 SVG | Task 12 |
+| §6.4 字體本地化（LINE Seed TW 三個字重） | Task 12、13 |
+| §6.5 吉祥物 SVG（七種，與網站共用） | Task 12 |
+| §5.3 三條語氣鐵律 | Task 10 |
+| §11 與網站 PRD 對齊 | Global Constraints、Task 7、10、12、13、14 |
 | §6.6 檔案位置 | 檔案結構表 |
 | §7.1 匯出與預覽一致 | Task 14（像素契約測試） |
 | §7.2 字太長爆版 | Task 15 |
