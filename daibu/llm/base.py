@@ -12,6 +12,8 @@ class Idea:
     title: str
     angle: str
     source_url: str
+    company: str = ""
+    source_excerpt: str = ""
 
 
 class LLMResponseError(ValueError):

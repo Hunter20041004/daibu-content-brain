@@ -495,15 +495,18 @@ def add_idea(
     cursor = conn.execute(
         """
         INSERT INTO ideas (
-            theme_id, title, angle, source_url, status, created_at
+            theme_id, title, angle, source_url, company, source_excerpt,
+            status, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             theme_id,
             idea.title,
             idea.angle,
             idea.source_url,
+            idea.company,
+            idea.source_excerpt,
             status,
             _now(),
         ),
@@ -535,6 +538,8 @@ def get_ideas(
             body=row["body"],
             created_at=row["created_at"],
             published_at=row["published_at"],
+            company=row["company"],
+            source_excerpt=row["source_excerpt"],
         )
         for row in rows
     ]

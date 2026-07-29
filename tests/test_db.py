@@ -184,6 +184,25 @@ def test_add_and_get_candidate_idea(tmp_path):
     assert ideas[0].status == "候選"
 
 
+def test_add_and_get_idea_keeps_company_and_excerpt(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea = Idea(
+        title="讓文字開口說話",
+        angle="語音合成的成本結構被改寫",
+        source_url="https://example.com/a",
+        company="ElevenLabs",
+        source_excerpt="ElevenLabs 於 2022 年在倫敦成立。",
+    )
+
+    idea_id = db.add_idea(conn, None, idea)
+    stored = [item for item in db.get_ideas(conn) if item.id == idea_id][0]
+
+    assert stored.company == "ElevenLabs"
+    assert stored.source_excerpt == "ElevenLabs 於 2022 年在倫敦成立。"
+    conn.close()
+
+
 def test_add_idea_records_local_created_time(monkeypatch, tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

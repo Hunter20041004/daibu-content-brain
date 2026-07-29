@@ -37,3 +37,5 @@ class StoredIdea:
     body: str
     created_at: str
     published_at: str | None
+    company: str = ""
+    source_excerpt: str = ""
