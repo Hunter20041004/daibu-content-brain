@@ -1219,3 +1219,65 @@ def test_performance_chart_axes_are_chinese(monkeypatch, tmp_path):
     assert spec["encoding"]["x"]["title"] == "主題"
     assert spec["encoding"]["x"]["axis"]["labelAngle"] == 0
     assert spec["encoding"]["y"]["title"] == "平均互動"
+
+
+def test_candidate_shows_company_name(tmp_path, monkeypatch):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            id=None,
+            name="AI 新創介紹",
+            weekday=4,
+            source_ids=[],
+            n_ideas=3,
+        ),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            title="讓文字開口說話",
+            angle="配音成本被改寫",
+            source_url="https://example.com/a",
+            company="ElevenLabs",
+            source_excerpt="2022 年於倫敦成立。",
+        ),
+    )
+    conn.close()
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    rendered = " ".join(block.value for block in app.markdown)
+
+    assert "ElevenLabs" in rendered
+
+
+def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            id=None,
+            name="AI 新創介紹",
+            weekday=4,
+            source_ids=[],
+            n_ideas=3,
+        ),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(title="舊題目", angle="舊切角", source_url=""),
+    )
+    conn.close()
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    rendered = " ".join(block.value for block in app.markdown)
+
+    assert "未指定公司" in rendered

@@ -435,6 +435,13 @@ with candidate_column:
                 if idea.id in st.session_state.get("new_candidate_ids", [])
                 else ""
             )
+            company_label = idea.company or "未指定公司"
+            st.markdown(
+                '<div class="idea-company">'
+                f"{html.escape(company_label)}"
+                "</div>",
+                unsafe_allow_html=True,
+            )
             st.markdown(
                 '<h3 class="candidate-card__title">'
                 f"{new_badge}"

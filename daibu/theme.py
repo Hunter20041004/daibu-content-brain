@@ -467,6 +467,15 @@ def css(mode: str | None = None) -> str:
         text-align: center;
     }}
 
+    .stApp .idea-company {{
+        color: var(--brand-secondary);
+        font-size: {TYPE_SCALE[5]};
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1.3;
+        margin-bottom: 0.25rem;
+    }}
+
     .stApp .candidate-card__title {{
         font-size: {TYPE_SCALE[3]};
         font-weight: {TYPE_WEIGHTS[3]};
