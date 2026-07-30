@@ -11,6 +11,100 @@ from daibu.cards.schema import BrandAsset
 
 
 _URL_REFERENCE = re.compile(r"""url\(\s*(['"]?)(.*?)\1\s*\)""", re.IGNORECASE)
+_ALLOWED_SVG_TAGS = {
+    "svg",
+    "g",
+    "defs",
+    "path",
+    "rect",
+    "circle",
+    "ellipse",
+    "line",
+    "polyline",
+    "polygon",
+    "lineargradient",
+    "radialgradient",
+    "stop",
+    "clippath",
+    "mask",
+    "pattern",
+    "marker",
+    "symbol",
+    "use",
+    "title",
+    "desc",
+    "text",
+    "tspan",
+}
+_ALLOWED_SVG_ATTRIBUTES = {
+    "id",
+    "class",
+    "version",
+    "x",
+    "y",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "cx",
+    "cy",
+    "r",
+    "rx",
+    "ry",
+    "width",
+    "height",
+    "viewbox",
+    "preserveaspectratio",
+    "d",
+    "points",
+    "transform",
+    "fill",
+    "fill-opacity",
+    "fill-rule",
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "stroke-opacity",
+    "opacity",
+    "offset",
+    "stop-color",
+    "stop-opacity",
+    "gradientunits",
+    "gradienttransform",
+    "spreadmethod",
+    "clip-path",
+    "clip-rule",
+    "mask",
+    "maskunits",
+    "maskcontentunits",
+    "patternunits",
+    "patterncontentunits",
+    "patterntransform",
+    "marker-start",
+    "marker-mid",
+    "marker-end",
+    "markerwidth",
+    "markerheight",
+    "refx",
+    "refy",
+    "orient",
+    "href",
+    "role",
+    "aria-label",
+    "aria-hidden",
+    "focusable",
+    "vector-effect",
+    "font-family",
+    "font-size",
+    "font-weight",
+    "letter-spacing",
+    "text-anchor",
+    "dominant-baseline",
+}
 
 
 class BrandAssetRequired(ValueError):
@@ -26,31 +120,28 @@ def _local_name(value: str) -> str:
 
 
 def _validate_svg(data: bytes) -> None:
+    if b"<!doctype" in data.lower() or b"<!entity" in data.lower():
+        raise InvalidBrandAsset("SVG Logo 含不安全宣告")
     try:
+        if next(
+            ElementTree.iterparse(BytesIO(data), events=("pi",)),
+            None,
+        ):
+            raise InvalidBrandAsset("SVG Logo 含不安全處理指令")
         root = ElementTree.fromstring(data)
     except ElementTree.ParseError as error:
         raise InvalidBrandAsset("SVG Logo 無法解析") from error
     if _local_name(root.tag) != "svg":
         raise InvalidBrandAsset("SVG Logo 根節點必須是 svg")
 
-    blocked_tags = {
-        "script",
-        "style",
-        "foreignobject",
-        "iframe",
-        "object",
-        "embed",
-    }
     for element in root.iter():
-        if _local_name(element.tag) in blocked_tags:
+        if _local_name(element.tag) not in _ALLOWED_SVG_TAGS:
             raise InvalidBrandAsset("SVG Logo 含不安全內容")
         for name, value in element.attrib.items():
             local_name = _local_name(name)
             normalized = value.strip().casefold()
-            if local_name.startswith("on"):
-                raise InvalidBrandAsset("SVG Logo 含不安全事件")
-            if local_name == "style":
-                raise InvalidBrandAsset("SVG Logo 含不安全樣式")
+            if local_name not in _ALLOWED_SVG_ATTRIBUTES:
+                raise InvalidBrandAsset("SVG Logo 含不安全屬性")
             if local_name in {"href", "src"} and not normalized.startswith("#"):
                 raise InvalidBrandAsset("SVG Logo 不可載入外部資源")
             references = _URL_REFERENCE.findall(normalized)

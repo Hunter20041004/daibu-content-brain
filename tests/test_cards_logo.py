@@ -60,6 +60,13 @@ def test_logo_rejects_png_without_transparency_channel(tmp_path):
         '<path style="fill:url(https://evil.example/image.svg)"/></svg>',
         '<svg xmlns="http://www.w3.org/2000/svg">'
         '<path fill="url(https://evil.example/image.svg)"/></svg>',
+        '<?xml-stylesheet type="text/css" href="https://evil.example/x.css"?>'
+        '<svg xmlns="http://www.w3.org/2000/svg"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg">'
+        '<animate attributeName="href" values="#safe;https://evil.example/x"/>'
+        "</svg>",
+        '<svg xmlns="http://www.w3.org/2000/svg">'
+        '<set attributeName="href" to="https://evil.example/x"/></svg>',
     ),
 )
 def test_logo_rejects_svg_external_resource_bypasses(tmp_path, svg):
