@@ -760,6 +760,18 @@ def update_idea_content(
     conn.commit()
 
 
+def set_idea_company(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    company: str,
+) -> None:
+    conn.execute(
+        "UPDATE ideas SET company = ? WHERE id = ?",
+        (company.strip(), idea_id),
+    )
+    conn.commit()
+
+
 def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
     conn.execute("DELETE FROM carousel_pages WHERE idea_id = ?", (idea_id,))
     conn.execute("DELETE FROM carousel_sources WHERE idea_id = ?", (idea_id,))

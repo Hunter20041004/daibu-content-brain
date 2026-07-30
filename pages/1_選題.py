@@ -5,6 +5,9 @@ from urllib.parse import urlparse
 import streamlit as st
 
 from daibu import clock, db, pipeline, selection
+from daibu.cards import sources as card_sources
+from daibu.cards import workbench as carousel_workbench
+from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.models import Source, Theme
 from daibu.ui import (
@@ -34,6 +37,24 @@ conn = connect_app_db()
 def save_body_draft(idea_id: int, body_key: str) -> None:
     pipeline.update_body(conn, idea_id, st.session_state[body_key])
     st.session_state[f"body-saved-at-{idea_id}"] = clock.now()[11:16]
+
+
+def fetch_source_suggestion(
+    url_key: str,
+    publisher_key: str,
+    date_key: str,
+    excerpt_key: str,
+    error_key: str,
+) -> None:
+    try:
+        suggestion = page_fetch.fetch_suggestion(st.session_state[url_key])
+    except ValueError as error:
+        st.session_state[error_key] = str(error)
+        return
+    st.session_state[publisher_key] = suggestion.publisher
+    st.session_state[date_key] = suggestion.published_at
+    st.session_state[excerpt_key] = suggestion.excerpt
+    st.session_state.pop(error_key, None)
 
 
 themes = db.get_themes(conn)
@@ -546,6 +567,175 @@ with candidate_column:
             saved_at = st.session_state.get(f"body-saved-at-{idea.id}")
             if saved_at:
                 st.caption(f"已自動儲存於 {saved_at}")
+            with st.expander("輪播圖"):
+                source_pack = db.get_idea_sources(conn, idea.id)
+                brand_asset = (
+                    db.get_brand_asset(conn, idea.company)
+                    if idea.company.strip()
+                    else None
+                )
+                missing = carousel_workbench.missing_requirements(
+                    idea,
+                    source_pack,
+                    brand_asset,
+                )
+                if missing:
+                    st.markdown(
+                        '<div class="carousel-status carousel-status--missing">'
+                        "<strong>資料還沒齊</strong>"
+                        + "".join(
+                            f"<p>{html.escape(message)}</p>"
+                            for message in missing
+                        )
+                        + "</div>",
+                        unsafe_allow_html=True,
+                    )
+                if not idea.company.strip():
+                    with st.form(f"carousel-company-{idea.id}"):
+                        company_name = st.text_input(
+                            "公司名稱",
+                            key=f"carousel-company-name-{idea.id}",
+                            help="會用在輪播封面、Logo 對應與 ZIP 檔名。",
+                        )
+                        if st.form_submit_button("儲存公司名"):
+                            if not company_name.strip():
+                                st.error("請填公司名稱。")
+                            else:
+                                db.set_idea_company(
+                                    conn,
+                                    idea.id,
+                                    company_name,
+                                )
+                                queue_toast(
+                                    st.session_state,
+                                    "公司名稱已儲存。",
+                                )
+                                st.rerun()
+                st.markdown("#### 已查證來源")
+                st.caption(
+                    "每則題目可存 1–8 筆；加入前請確認出版方、日期與引文。"
+                )
+                source_url_key = f"carousel-source-url-{idea.id}"
+                source_publisher_key = (
+                    f"carousel-source-publisher-{idea.id}"
+                )
+                source_date_key = f"carousel-source-date-{idea.id}"
+                source_excerpt_key = (
+                    f"carousel-source-excerpt-{idea.id}"
+                )
+                source_fetch_error_key = (
+                    f"carousel-source-fetch-error-{idea.id}"
+                )
+                with st.form(f"carousel-source-{idea.id}"):
+                    source_url = st.text_input(
+                        "來源網址",
+                        value=(
+                            idea.source_url
+                            if not source_pack
+                            else ""
+                        ),
+                        key=source_url_key,
+                        help="只接受公開可讀的 https 網址。",
+                    )
+                    source_publisher = st.text_input(
+                        "出版方",
+                        key=source_publisher_key,
+                    )
+                    source_date = st.text_input(
+                        "發布日期",
+                        key=source_date_key,
+                        placeholder="YYYY-MM-DD",
+                    )
+                    source_excerpt = st.text_area(
+                        "查證引文",
+                        value=(
+                            idea.source_excerpt
+                            if not source_pack
+                            else ""
+                        ),
+                        key=source_excerpt_key,
+                        height=120,
+                    )
+                    fetch_column, add_column = st.columns(2)
+                    fetch_column.form_submit_button(
+                        "抓取內容",
+                        on_click=fetch_source_suggestion,
+                        args=(
+                            source_url_key,
+                            source_publisher_key,
+                            source_date_key,
+                            source_excerpt_key,
+                            source_fetch_error_key,
+                        ),
+                        width="stretch",
+                    )
+                    if add_column.form_submit_button(
+                        "加入來源",
+                        width="stretch",
+                    ):
+                        try:
+                            updated_pack = card_sources.add(
+                                source_pack,
+                                source_publisher,
+                                source_date,
+                                source_url,
+                                source_excerpt,
+                            )
+                            db.save_idea_sources(
+                                conn,
+                                idea.id,
+                                updated_pack,
+                            )
+                            queue_toast(
+                                st.session_state,
+                                "已加入查證來源。",
+                            )
+                            st.rerun()
+                        except ValueError as error:
+                            st.error(str(error))
+                    source_fetch_error = st.session_state.get(
+                        source_fetch_error_key
+                    )
+                    if source_fetch_error:
+                        st.error(source_fetch_error)
+                for verified_source in source_pack:
+                    st.markdown(
+                        '<div class="verified-source">'
+                        f"<strong>{html.escape(verified_source.source_id)} · "
+                        f"{html.escape(verified_source.publisher)}</strong>"
+                        f"<span>{html.escape(verified_source.published_at)}</span>"
+                        "</div>",
+                        unsafe_allow_html=True,
+                    )
+                    st.link_button(
+                        "開啟來源",
+                        verified_source.url,
+                        key=(
+                            f"open-carousel-source-{idea.id}-"
+                            f"{verified_source.source_id}"
+                        ),
+                    )
+                    if st.button(
+                        f"刪除 {verified_source.source_id}",
+                        key=(
+                            f"delete-carousel-source-{idea.id}-"
+                            f"{verified_source.source_id}"
+                        ),
+                    ):
+                        updated_pack = card_sources.remove(
+                            source_pack,
+                            verified_source.source_id,
+                        )
+                        db.save_idea_sources(
+                            conn,
+                            idea.id,
+                            updated_pack,
+                        )
+                        queue_toast(
+                            st.session_state,
+                            f"已刪除來源 {verified_source.source_id}。",
+                        )
+                        st.rerun()
             save_column, return_column, publish_column = st.columns(3)
             if save_column.button(
                 "儲存正文",

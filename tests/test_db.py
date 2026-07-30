@@ -203,6 +203,28 @@ def test_add_and_get_idea_keeps_company_and_excerpt(tmp_path):
     conn.close()
 
 
+def test_set_idea_company_updates_only_company(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(
+            "保留標題",
+            "保留角度",
+            "https://example.com/source",
+            source_excerpt="保留引文",
+        ),
+    )
+
+    db.set_idea_company(conn, idea_id, " ElevenLabs ")
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert stored.company == "ElevenLabs"
+    assert stored.title == "保留標題"
+    assert stored.source_excerpt == "保留引文"
+
+
 def test_idea_source_pack_round_trip_and_cascade_delete(tmp_path):
     from tests.card_fixtures import verified_sources
 

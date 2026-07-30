@@ -6,9 +6,10 @@ from pathlib import Path
 from streamlit.testing.v1 import AppTest
 
 from daibu import db, performance, pipeline, seeds, selection
+from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.llm.base import Idea
-from daibu.models import Source, Theme
+from daibu.models import Source, SourceSuggestion, Theme
 
 PROJECT_ROOT = Path(__file__).parents[1]
 
@@ -1296,3 +1297,261 @@ def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
     rendered = " ".join(block.value for block in app.markdown)
 
     assert "未指定公司" in rendered
+
+
+def test_adopted_idea_carousel_reports_missing_company(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea("待補公司", "採用角度", ""),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    rendered = " ".join(block.value for block in app.markdown)
+
+    assert not app.exception
+    assert "這則題目還沒有公司名" in rendered
+
+
+def test_adopted_idea_carousel_can_save_company_name(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("待補公司", "採用角度", ""),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        field for field in app.text_input
+        if field.label == "公司名稱"
+    ).set_value("ElevenLabs")
+    next(
+        button for button in app.button
+        if button.label == "儲存公司名"
+    ).click().run()
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert stored.company == "ElevenLabs"
+
+
+def test_adopted_idea_carousel_can_add_a_verified_source(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "來源測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        field for field in app.text_input
+        if field.label == "來源網址"
+    ).set_value("https://elevenlabs.io/about")
+    next(
+        field for field in app.text_input
+        if field.label == "出版方"
+    ).set_value("ElevenLabs")
+    next(
+        field for field in app.text_input
+        if field.label == "發布日期"
+    ).set_value("2026-07-30")
+    next(
+        field for field in app.text_area
+        if field.label == "查證引文"
+    ).set_value("官方說明公司提供生成式語音與內容製作工具。")
+    next(
+        button for button in app.button
+        if button.label == "加入來源"
+    ).click().run()
+
+    stored = db.get_idea_sources(conn, idea_id)
+    assert len(stored) == 1
+    assert stored[0].source_id == "S1"
+    assert stored[0].publisher == "ElevenLabs"
+
+
+def test_adopted_idea_carousel_can_prefill_source_from_url(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "抓取測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    monkeypatch.setattr(
+        page_fetch,
+        "fetch_suggestion",
+        lambda url: SourceSuggestion(
+            "Example News",
+            "2026-07-20",
+            url,
+            "官方說明這個模型能保留語氣與節奏，並提供內容製作工具。",
+        ),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        field for field in app.text_input
+        if field.label == "來源網址"
+    ).set_value("https://news.example/story")
+    next(
+        button for button in app.button
+        if button.label == "抓取內容"
+    ).click().run()
+
+    assert next(
+        field.value for field in app.text_input
+        if field.label == "出版方"
+    ) == "Example News"
+    assert next(
+        field.value for field in app.text_input
+        if field.label == "發布日期"
+    ) == "2026-07-20"
+    assert next(
+        field.value for field in app.text_area
+        if field.label == "查證引文"
+    ).startswith("官方說明")
+
+
+def test_source_fetch_error_keeps_existing_form_values(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "抓取失敗測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+
+    def fail(_url):
+        raise ValueError("抓不到這個網址，請直接手動填寫。")
+
+    monkeypatch.setattr(page_fetch, "fetch_suggestion", fail)
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        field for field in app.text_input
+        if field.label == "來源網址"
+    ).set_value("https://news.example/private")
+    next(
+        field for field in app.text_input
+        if field.label == "出版方"
+    ).set_value("我已填的出版方")
+    next(
+        button for button in app.button
+        if button.label == "抓取內容"
+    ).click().run()
+
+    assert not app.exception
+    assert any("抓不到這個網址" in error.value for error in app.error)
+    assert next(
+        field.value for field in app.text_input
+        if field.label == "出版方"
+    ) == "我已填的出版方"
+
+
+def test_adopted_idea_carousel_can_remove_a_source(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import verified_sources
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "刪來源測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    db.save_idea_sources(conn, idea_id, verified_sources())
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "刪除 S2"
+    ).click().run()
+
+    assert [
+        source.source_id
+        for source in db.get_idea_sources(conn, idea_id)
+    ] == ["S1", "S3"]
