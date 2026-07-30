@@ -2,7 +2,7 @@
 
 > 於 2026-07-30 更新。
 > 一句話現況：**輪播重設 Phase C（Task 6–8）功能與本機視覺驗收完成；
-> 真實免費 LLM 契約失敗，尚未合併 main／push。**
+> 免費 LLM 已改用 Gemini 3.1 Flash-Lite，兩條真實契約均已通過。**
 
 ## 本輪目標與驗收
 
@@ -21,10 +21,18 @@
   - `.screenshots/carousel-redesign/round2/desktop.png`
   - `.screenshots/carousel-redesign/round2/mobile.png`
 - 本機全套：`304 passed, 9 deselected`；高於 Phase B 的 303。
-- 真實契約阻擋：
-  - `test_real_llm_returns_parsable_ideas`：免費 provider 回傳 0 個 Idea；
-  - `test_real_llm_returns_valid_sourced_carousel`：超過 30 秒未完成；
-  - 本輪未修改 LLM，沒有放寬 parser 或 mock。
+- 2026-07-30 免費 LLM 契約修正與換模（尚未 commit）：
+  - Idea 真實 fixture 改成含具名公司；真實契約 `1 passed in 6.58s`。
+  - `LLMProvider` 新增輪播專用入口；Gemini 使用 JSON Schema 鎖七頁、必要欄位、
+    section `source_ids`，Groq 保留既有文字生成備援。
+  - 原 `gemini-2.5-flash` 每日 20 次額度用盡；2.5 Flash-Lite 對新使用者已 404。
+    即時 `models.list` 確認後改用 stable `gemini-3.1-flash-lite`。
+  - Gemini 3.1 使用 `thinking_level=medium`、45 秒單次 timeout；輪播真實契約
+    `1 passed in 29.57s`，Idea 同模型亦通過，既有 validator 與修稿均未放寬。
+  - transport timeout、504 deadline 與 429 quota 都轉成可理解的產品錯誤。
+  - provider／設定頁預設與本機 SQLite `llm_model` 均已切到 3.1 Flash-Lite。
+  - LLM 單元 `43 passed`；分支全套 `312 passed, 9 deselected in 18.56s`。
+  - `.DS_Store`、`.claude/` 保持原有未追蹤狀態，未碰觸。
 
 ## 產品理解檢查點
 
@@ -34,15 +42,14 @@
 4. **資料流程**：來源包 → 草稿 → 驗證 → 儲存 → Logo → HTML → PNG。
 5. **設計理由**：固定讀者任務、彈性 AI 角色、自然垂直敘事。
 6. **替代方案**：一次接完整 UI 較快，但故障難定位；本輪分層完成出圖核心。
-7. **安全與成本**：Logo metadata／SVG 白名單／HTML 跳脫；零圖片生成費。
-8. **測試證據**：局部、全套、像素／DOM 契約與兩輪截圖均通過。
-9. **剩餘限制**：免費 LLM 契約阻擋整合；來源蒐集、Logo 上傳、ZIP、
-   選題頁接線尚未做。
+7. **安全與成本**：API key 仍只走環境變數；只用免費 provider，修稿最多兩次呼叫。
+8. **測試證據**：3.1 Flash-Lite 的 Idea 與輪播真實契約均通過。
+9. **剩餘限制**：Groq 無 key 未跑真實契約；Google 免費額度仍可能調整。
 
 ## 下一步
 
-另開新對話先診斷免費 LLM 契約；通過後才合併本分支。再規劃來源蒐集＋Logo
-上傳＋ZIP＋選題頁接線。
+本輪 commit、合併本分支、在 main 重跑全套並 push。下一輪再規劃來源蒐集＋
+Logo 上傳＋ZIP＋選題頁接線。
 
 ## 最容易踩的坑
 

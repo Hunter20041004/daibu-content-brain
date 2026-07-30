@@ -44,7 +44,7 @@
 
 - **語言/框架**：Python 3.11+、**Streamlit**（UI）、**SQLite**（本機單檔資料庫）、**pytest**（測試）。
 - **LLM：可切換 provider（adapter 模式，見 §8）。**
-  - 預設：**Google AI Studio（Gemini Flash 免費層）**，例如 `gemini-2.5-flash`／`gemini-2.0-flash`（以當下免費可用者為準）。
+  - 預設：**Google AI Studio（Gemini Flash 免費層）**，目前使用 `gemini-3.1-flash-lite`（以當下免費可用者為準）。
   - 備援：**Groq**（開源模型如 `llama-3.3-70b-versatile`，OpenAI 相容 API，免費層）。
   - ⛔ **不要用 Claude 或任何付費模型**（使用者要求免費）。
 - **取材**：

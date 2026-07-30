@@ -21,9 +21,9 @@ def test_real_llm_returns_parsable_ideas():
         "AI 近期大事",
         [
             Material(
-                "AI 實驗室發表新模型",
+                "ElevenLabs 發表新版語音模型",
                 "https://example.com/public-ai-update",
-                "公開資料摘要",
+                "ElevenLabs 公開新版語音模型，支援內容製作者調整語氣。",
             )
         ],
         n=2,
@@ -64,7 +64,7 @@ def test_real_llm_returns_valid_sourced_carousel(tmp_path):
         conn,
         idea,
         sources,
-        provider.generate_text,
+        provider.generate_carousel_text,
     )
 
     assert len(result.pages) == 7

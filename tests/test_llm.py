@@ -1,4 +1,6 @@
+import httpx
 import pytest
+from google.genai import errors
 
 from daibu.llm import base, prompt
 from daibu.llm.gemini import GeminiProvider
@@ -158,10 +160,146 @@ def test_get_provider_selects_configured_adapter():
     assert provider.model == "test-model"
 
 
+def test_gemini_provider_defaults_to_current_flash_lite():
+    provider = base.get_provider(
+        {
+            "LLM_PROVIDER": "gemini",
+            "GEMINI_API_KEY": "fake",
+        }
+    )
+
+    assert provider.model == "gemini-3.1-flash-lite"
+
+
 def test_provider_exposes_public_text_generation_for_carousel_copy():
     provider = GeminiProvider(api_key="fake")
 
     assert callable(provider.generate_text)
+
+
+def test_each_provider_exposes_carousel_generation():
+    assert "generate_carousel_text" in base.LLMProvider.__dict__
+    assert callable(GeminiProvider(api_key="fake").generate_carousel_text)
+    assert callable(GroqProvider(api_key="fake").generate_carousel_text)
+
+
+def test_gemini_carousel_generation_requests_json_schema(monkeypatch):
+    calls = []
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            calls.append(kwargs)
+            return type("Response", (), {"text": "[]"})()
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    provider = GeminiProvider(api_key="fake")
+    provider.generate_carousel_text("輪播 prompt")
+
+    config = calls[0]["config"]
+    schema = config["response_json_schema"]
+    assert config["response_mime_type"] == "application/json"
+    assert config["thinking_config"] == {"thinking_level": "medium"}
+    assert schema["minItems"] == schema["maxItems"] == 7
+    assert {"page_no", "page_type", "heading", "sections", "diagram"} == set(
+        schema["items"]["required"]
+    )
+    assert {
+        "label",
+        "text",
+        "source_ids",
+    } == set(schema["items"]["properties"]["sections"]["items"]["required"])
+
+
+def test_gemini_carousel_generation_uses_configured_timeout(monkeypatch):
+    client_calls = []
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            return type("Response", (), {"text": "[]"})()
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            client_calls.append(kwargs)
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    provider = GeminiProvider(api_key="fake", timeout_ms=12_345)
+    provider.generate_carousel_text("輪播 prompt")
+
+    assert client_calls[0]["http_options"]["timeout"] == 12_345
+
+
+def test_gemini_carousel_timeout_has_a_product_error(monkeypatch):
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            raise httpx.ReadTimeout("transport detail")
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    provider = GeminiProvider(api_key="fake")
+
+    with pytest.raises(base.LLMTimeoutError, match="Gemini 回應超時"):
+        provider.generate_carousel_text("輪播 prompt")
+
+
+def test_gemini_deadline_exceeded_has_a_product_error(monkeypatch):
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            raise errors.ServerError(
+                504,
+                {
+                    "error": {
+                        "status": "DEADLINE_EXCEEDED",
+                        "message": "The request timed out.",
+                    }
+                },
+            )
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    provider = GeminiProvider(api_key="fake")
+
+    with pytest.raises(base.LLMTimeoutError, match="Gemini 回應超時"):
+        provider.generate_carousel_text("輪播 prompt")
+
+
+def test_gemini_free_quota_exhaustion_has_a_product_error(monkeypatch):
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            raise errors.ClientError(
+                429,
+                {
+                    "error": {
+                        "status": "RESOURCE_EXHAUSTED",
+                        "message": "Quota exceeded.",
+                    }
+                },
+            )
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    provider = GeminiProvider(api_key="fake")
+
+    with pytest.raises(base.LLMQuotaError, match="免費額度已用完"):
+        provider.generate_carousel_text("輪播 prompt")
 
 
 def test_provider_retries_once_after_unparseable_response(monkeypatch):

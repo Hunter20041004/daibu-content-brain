@@ -63,10 +63,10 @@
     驗收證據：`docs/history/HANDOFF-2026-07-29-carousel-b1.md`
   - **B2 Task 12–14 已完成（2026-07-29）**：字型與吉祥物就位，七格草稿可渲染成
     固定 1080×1350 品牌 HTML，再由 Playwright 輸出為 7 張 PNG。
-  - **資訊與視覺重設 Phase A–C 已完成（2026-07-30）**：
+- **資訊與視覺重設 Phase A–C 已完成（2026-07-30）**：
     `docs/plan-carousel-redesign.md` 的 Task 1–8 已完成。七頁來源草稿、官方 Logo
-    驗證、固定圖解、滿版 HTML、七張 PNG 與兩輪視覺驗收均通過；真實免費 LLM
-    契約仍失敗，因此 Phase C 分支尚未合併／push。
+    驗證、固定圖解、滿版 HTML、七張 PNG 與兩輪視覺驗收均通過；免費 LLM 已改用
+    `gemini-3.1-flash-lite`，Idea 與輪播真實契約均通過。
 
 ## 測試基線
 
@@ -84,8 +84,8 @@
 **B2 Task 13 完成後為 216 passed、8 deselected**；**Task 14 完成後為
 220 passed、8 deselected**，新增的瀏覽器與像素契約測試預設會執行。
 
-**輪播重設 Phase C 完成後為 304 passed、9 deselected**。真實契約另跑時，
-一般 Idea 契約回傳空陣列，輪播契約超過 30 秒未完成；兩者都使用免費外部 provider。
+**免費 LLM 契約修正與換模後為 312 passed、9 deselected**。真實 Idea 契約與
+輪播契約均以 `gemini-3.1-flash-lite` 通過；輪播為 `1 passed in 29.57s`。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
 加入 `pythonpath = .` 解決。）
@@ -109,10 +109,9 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. 另開對話診斷免費 LLM 契約，通過後才合併／push Phase C。
-2. 規劃來源蒐集、Logo 上傳、ZIP 與選題頁接線。
-3. 決定 `codex/ia-topic-first` 如何整合回 `main`。
-4. 更遠的一輪：分平台產文字（Threads／IG／LinkedIn）——本輪明確不做，
+1. 規劃來源蒐集、Logo 上傳、ZIP 與選題頁接線。
+2. 決定 `codex/ia-topic-first` 如何整合回 `main`。
+3. 更遠的一輪：分平台產文字（Threads／IG／LinkedIn）——本輪明確不做，
    見 `docs/open-questions.md`
 
 ## 分支現況

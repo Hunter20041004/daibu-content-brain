@@ -4,6 +4,7 @@ feedparser
 tavily-python
 google-genai
 groq
+httpx
 python-dotenv
 pytest
 playwright

@@ -28,7 +28,7 @@ with settings_panel.form("system-config"):
         else 0,
     )
     default_model = (
-        "gemini-2.5-flash"
+        "gemini-3.1-flash-lite"
         if provider == "gemini"
         else "llama-3.3-70b-versatile"
     )

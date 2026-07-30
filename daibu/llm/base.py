@@ -22,8 +22,18 @@ class LLMResponseError(ValueError):
         self.raw_response = raw_response
 
 
+class LLMTimeoutError(RuntimeError):
+    pass
+
+
+class LLMQuotaError(RuntimeError):
+    pass
+
+
 class LLMProvider(Protocol):
     def generate_text(self, prompt_text: str) -> str: ...
+
+    def generate_carousel_text(self, prompt_text: str) -> str: ...
 
     def generate_ideas(
         self,
@@ -67,7 +77,7 @@ def get_provider(config: Mapping[str, str]) -> LLMProvider:
             )
         return GeminiProvider(
             api_key=api_key,
-            model=model or "gemini-2.5-flash",
+            model=model or "gemini-3.1-flash-lite",
         )
 
     if provider_name == "groq":

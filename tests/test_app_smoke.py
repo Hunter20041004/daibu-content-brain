@@ -951,6 +951,21 @@ def test_settings_page_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_settings_defaults_to_current_gemini_flash_lite(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
+    app.run()
+
+    model_field = next(
+        field for field in app.text_input if field.label == "模型"
+    )
+    assert model_field.value == "gemini-3.1-flash-lite"
+
+
 def test_settings_page_only_keeps_system_settings(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 

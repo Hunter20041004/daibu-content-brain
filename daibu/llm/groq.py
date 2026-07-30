@@ -22,6 +22,9 @@ class GroqProvider:
         )
         return completion.choices[0].message.content or ""
 
+    def generate_carousel_text(self, text: str) -> str:
+        return self.generate_text(text)
+
     def generate_ideas(
         self,
         theme_name: str,
