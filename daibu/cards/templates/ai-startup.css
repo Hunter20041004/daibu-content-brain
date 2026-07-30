@@ -82,7 +82,7 @@ body { background: #D5E6F4; }
 .company-logo { display: block; object-fit: contain; }
 .company-logo--small { width: 132px; height: 52px; object-position: right center; }
 .company-logo--cover { width: 300px; height: 168px; margin-bottom: 36px; }
-.content-stack { display: flex; flex-direction: column; gap: 24px; padding-top: 28px; }
+.content-stack { display: flex; flex-direction: column; gap: 18px; padding-top: 28px; }
 h1 {
   margin: 0;
   color: #47819A;
@@ -202,6 +202,57 @@ h1 {
   font-size: 46px;
   line-height: 1.45;
 }
-.page--who .content-block { padding-top: 24px; padding-bottom: 26px; }
+.page--who .content-stack { gap: 32px; }
+.page--who .content-block { padding-top: 34px; padding-bottom: 36px; }
+.page--how-ai .content-stack {
+  gap: 12px;
+  padding-top: 20px;
+}
+.page--how-ai h1 { font-size: 48px; }
+.page--how-ai .section-list { gap: 8px; }
+.page--how-ai .content-block { padding: 8px 18px 10px; }
+.page--how-ai .content-label {
+  margin-bottom: 3px;
+  font-size: 21px;
+}
+.page--how-ai .content-block p {
+  font-size: 23px;
+  line-height: 1.3;
+}
+.page--how-ai .diagram--steps { gap: 8px; }
+.page--how-ai .step-row {
+  grid-template-columns: 70px 1fr;
+  gap: 12px;
+}
+.page--how-ai .step-card {
+  min-height: 76px;
+  padding: 8px 16px;
+}
+.page--how-ai .q-head {
+  width: 70px;
+  height: 66px;
+  flex-basis: 70px;
+}
+.page--how-ai .diagram-copy strong { font-size: 27px; }
+.page--how-ai .diagram-copy span {
+  font-size: 22px;
+  line-height: 1.25;
+}
+.page--why-care .content-stack { gap: 12px; }
+.page--why-care h1 { font-size: 50px; }
+.page--why-care .section-list { gap: 10px; }
+.page--why-care .content-block { padding: 10px 20px 12px; }
+.page--why-care .content-label {
+  margin-bottom: 4px;
+  font-size: 22px;
+}
+.page--why-care .content-block p {
+  font-size: 25px;
+  line-height: 1.34;
+}
+.page--why-care .diagram { padding: 16px; }
+.page--why-care .diagram--signals .metric-card { min-height: 156px; }
+.page--why-care .diagram--signals .diagram-copy strong { font-size: 25px; }
+.page--why-care .diagram--signals .diagram-copy span { font-size: 21px; }
 .page--cta .section-list { grid-template-columns: 1fr; }
 .page--cta .content-block { padding: 22px 28px; }
