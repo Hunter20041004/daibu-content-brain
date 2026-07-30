@@ -23,7 +23,9 @@
   - SVG 阻擋 protocol-relative、data URI、CSS `@import`、style 與外部 `url()`，
     仍允許本機 `#fragment` gradient／symbol；
   - 補八種 layout 路由、箭頭數與 HTML 跳脫測試。
-- 最新全套：`299 passed, 9 deselected`。
+- 安全複審修正 `fd0fb61`：SVG 改採靜態元素／屬性允許清單，阻擋 XML stylesheet、
+  SMIL 動畫、DOCTYPE 與未知可執行元素。
+- 最新全套：`302 passed, 9 deselected`。
 - `9 deselected` 是既有真實 LLM／RSS 契約測試；Phase B 沒有新增網路邊界。
 - 本輪只做底層視覺零件，尚無完整畫面，因此未進前端截圖迴圈；Phase C 接成
   1080×1350 畫布後必須做兩輪視覺自檢。

@@ -10,7 +10,24 @@ from PIL import Image
 from daibu.cards.schema import BrandAsset
 
 
-_URL_REFERENCE = re.compile(r"""url\(\s*(['"]?)(.*?)\1\s*\)""", re.IGNORECASE)
+_LOCAL_FRAGMENT = re.compile(r"#[A-Za-z0-9_.:-]+")
+_LOCAL_URL_REFERENCE = re.compile(
+    r"""url\(\s*(['"]?)#[A-Za-z0-9_.:-]+\1\s*\)""",
+    re.IGNORECASE,
+)
+_SAFE_COLOR_FUNCTION = re.compile(
+    r"(?:rgb|rgba|hsl|hsla)\([0-9.,%\s+-]+\)",
+    re.IGNORECASE,
+)
+_URL_CAPABLE_ATTRIBUTES = {
+    "fill",
+    "stroke",
+    "clip-path",
+    "mask",
+    "marker-start",
+    "marker-mid",
+    "marker-end",
+}
 _ALLOWED_SVG_TAGS = {
     "svg",
     "g",
@@ -142,14 +159,24 @@ def _validate_svg(data: bytes) -> None:
             normalized = value.strip().casefold()
             if local_name not in _ALLOWED_SVG_ATTRIBUTES:
                 raise InvalidBrandAsset("SVG Logo 含不安全屬性")
-            if local_name in {"href", "src"} and not normalized.startswith("#"):
+            if "\\" in normalized or "/*" in normalized or "*/" in normalized:
+                raise InvalidBrandAsset("SVG Logo 含不安全編碼")
+            if local_name == "href" and not _LOCAL_FRAGMENT.fullmatch(normalized):
                 raise InvalidBrandAsset("SVG Logo 不可載入外部資源")
-            references = _URL_REFERENCE.findall(normalized)
-            if "url(" in normalized and (
-                not references
-                or any(not target.strip().startswith("#") for _, target in references)
+            if "url" in normalized and not _LOCAL_URL_REFERENCE.fullmatch(
+                normalized
             ):
                 raise InvalidBrandAsset("SVG Logo 不可載入外部資源")
+            if (
+                local_name in _URL_CAPABLE_ATTRIBUTES
+                and ("(" in normalized or ")" in normalized)
+                and not _LOCAL_URL_REFERENCE.fullmatch(normalized)
+                and not (
+                    local_name in {"fill", "stroke"}
+                    and _SAFE_COLOR_FUNCTION.fullmatch(normalized)
+                )
+            ):
+                raise InvalidBrandAsset("SVG Logo 含不安全屬性值")
 
 
 def _validate_png(data: bytes) -> None:

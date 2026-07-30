@@ -67,6 +67,8 @@ def test_logo_rejects_png_without_transparency_channel(tmp_path):
         "</svg>",
         '<svg xmlns="http://www.w3.org/2000/svg">'
         '<set attributeName="href" to="https://evil.example/x"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg">'
+        '<path fill="u\\72l(https://evil.example/paint.svg#x)"/></svg>',
     ),
 )
 def test_logo_rejects_svg_external_resource_bypasses(tmp_path, svg):
