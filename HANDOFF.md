@@ -25,7 +25,9 @@
   - 補八種 layout 路由、箭頭數與 HTML 跳脫測試。
 - 安全複審修正 `fd0fb61`：SVG 改採靜態元素／屬性允許清單，阻擋 XML stylesheet、
   SMIL 動畫、DOCTYPE 與未知可執行元素。
-- 最新全套：`302 passed, 9 deselected`。
+- 最終安全修正 `c13f7ea`：資源型屬性採值級允許清單，阻擋 CSS escape／comment
+  偽裝的外部 `url()`，只接受本機 `url(#id)`。
+- 最新全套：`303 passed, 9 deselected`。
 - `9 deselected` 是既有真實 LLM／RSS 契約測試；Phase B 沒有新增網路邊界。
 - 本輪只做底層視覺零件，尚無完整畫面，因此未進前端截圖迴圈；Phase C 接成
   1080×1350 畫布後必須做兩輪視覺自檢。
