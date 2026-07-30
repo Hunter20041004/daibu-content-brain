@@ -1,7 +1,8 @@
 import html
 from pathlib import Path
 
-from daibu.cards import pages
+from daibu.cards import diagrams, logo, pages
+from daibu.cards.schema import BrandAsset, CarouselPage, ContentSection
 
 ASSETS = Path(__file__).resolve().parent.parent.parent / "assets"
 TEMPLATES = Path(__file__).resolve().parent / "templates"
@@ -13,28 +14,73 @@ FONT_FILES = {
 }
 
 
-def _mascot_svg(page_type: str) -> str:
-    pose = pages.MASCOT_FOR[page_type]
-    return (ASSETS / "mascot" / f"{pose}.svg").read_text(encoding="utf-8")
+def _section_html(section: ContentSection) -> str:
+    return (
+        '<section class="content-block">'
+        f'<div class="content-label">{html.escape(section.label)}</div>'
+        f"<p>{html.escape(section.text)}</p>"
+        "</section>"
+    )
 
 
-def page_html(row: dict, company: str) -> str:
+def _header(page: CarouselPage, company: str, logo_uri: str) -> str:
+    return (
+        '<header class="page-header">'
+        f'<div class="page-tag">{page.page_no:02d}｜'
+        f"{html.escape(pages.label(page.page_type))}</div>"
+        f'<img class="company-logo company-logo--small" '
+        f'src="{logo_uri}" alt="{html.escape(company)} Logo">'
+        "</header>"
+    )
+
+
+def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
+    by_label = {section.label: section for section in page.sections}
+    return (
+        '<div class="cover-content">'
+        f'<img class="company-logo company-logo--cover" '
+        f'src="{logo_uri}" alt="{html.escape(company)} Logo">'
+        '<div class="industry-tag">'
+        f'{html.escape(by_label["產業分類"].text)}</div>'
+        f"<h1>{html.escape(company)}</h1>"
+        '<p class="cover-summary">'
+        f'{html.escape(by_label["一句話定位"].text)}</p>'
+        "</div>"
+    )
+
+
+def _inner(page: CarouselPage, company: str, logo_uri: str) -> str:
+    sections = "".join(_section_html(section) for section in page.sections)
+    diagram = diagrams.diagram_html(page.diagram) if page.diagram else ""
+    return (
+        f"{_header(page, company, logo_uri)}"
+        '<main class="content-stack">'
+        f"<h1>{html.escape(page.heading)}</h1>"
+        f'<div class="section-list">{sections}</div>'
+        f"{diagram}"
+        f'<div class="source-label">{html.escape(page.source_label)}</div>'
+        "</main>"
+    )
+
+
+def page_html(
+    page: CarouselPage,
+    company: str,
+    brand_asset: BrandAsset | None,
+) -> str:
     css = (TEMPLATES / "ai-startup.css").read_text(encoding="utf-8")
     for token, filename in FONT_FILES.items():
         css = css.replace(token, (ASSETS / "fonts" / filename).as_uri())
-
-    shell = (TEMPLATES / "ai-startup.html").read_text(encoding="utf-8")
-    is_cover = row["page_type"] == "cover"
-    main = (
-        f'<div class="heading">{html.escape(row["heading"])}</div>'
-        f'<div class="company">{html.escape(company)}</div>'
-        if is_cover
-        else f'<div class="heading">{html.escape(row["heading"])}</div>'
-        f'<div class="body">{html.escape(row["body"])}</div>'
+    logo_uri = logo.logo_data_uri(brand_asset, company)
+    content = (
+        _cover(page, company, logo_uri)
+        if page.page_type == "cover"
+        else _inner(page, company, logo_uri)
     )
     return (
-        shell.replace("__CSS__", css)
-        .replace("__TAG__", html.escape(pages.label(row["page_type"])))
-        .replace("__MAIN__", main)
-        .replace("__MASCOT__", _mascot_svg(row["page_type"]))
+        (TEMPLATES / "ai-startup.html")
+        .read_text(encoding="utf-8")
+        .replace("__CSS__", css)
+        .replace("__PAGE_TYPE__", html.escape(page.page_type))
+        .replace("__CONTENT__", content)
     )

@@ -1,81 +1,78 @@
 import html as html_lib
+from dataclasses import replace
+from pathlib import Path
 
-from daibu.cards import pages, render
+from PIL import Image
 
-
-def _row(page_type="cover", heading="讓文字開口說話", body="ElevenLabs"):
-    return {
-        "page_no": pages.PAGE_TYPES.index(page_type) + 1,
-        "page_type": page_type,
-        "heading": heading,
-        "body": body,
-        "grounding": "model",
-        "source_quote": "",
-    }
+from daibu.cards import render
+from tests.card_fixtures import brand_asset, carousel_draft
 
 
-def test_html_contains_the_text():
-    out = render.page_html(_row(), company="ElevenLabs")
-
-    assert "讓文字開口說話" in out
-    assert "ElevenLabs" in out
-
-
-def test_html_escapes_user_text():
-    out = render.page_html(_row(heading="<script>x</script>"), company="A")
-
-    assert "<script>x</script>" not in out
-    assert html_lib.escape("<script>x</script>") in out
+def _logo(tmp_path: Path) -> Path:
+    path = tmp_path / "logo.png"
+    Image.new("RGBA", (120, 60), (71, 129, 154, 255)).save(path)
+    return path
 
 
-def test_html_escapes_company_and_body_text():
-    company = 'A<script>company</script>"'
-    body = 'B<script>body</script>"'
-
-    cover = render.page_html(_row(), company=company)
-    inside = render.page_html(_row("problem", body=body), company="A")
-
-    assert company not in cover
-    assert html_lib.escape(company) in cover
-    assert body not in inside
-    assert html_lib.escape(body) in inside
-
-
-def test_html_declares_the_exact_canvas_size():
-    out = render.page_html(_row(), company="ElevenLabs")
-
-    assert ".canvas {" in out
-    assert "width: 1080px" in out
-    assert "height: 1350px" in out
-
-
-def test_html_embeds_the_matching_mascot_pose():
-    out = render.page_html(_row("problem"), company="ElevenLabs")
-    think_svg = (render.ASSETS / "mascot" / "think.svg").read_text(
-        encoding="utf-8"
+def _render(tmp_path: Path, page_index: int = 0) -> str:
+    return render.page_html(
+        carousel_draft().pages[page_index],
+        "ElevenLabs",
+        brand_asset(_logo(tmp_path)),
     )
 
-    assert think_svg.split(">", 1)[1][:60] in out
 
+def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
+    asset = brand_asset(_logo(tmp_path))
+    outputs = [
+        render.page_html(page, "ElevenLabs", asset)
+        for page in carousel_draft().pages
+    ]
 
-def test_non_cover_page_contains_its_body():
-    out = render.page_html(
-        _row("problem", body="聲音模型訓練成本很高"),
-        company="ElevenLabs",
+    assert all('class="company-logo' in output for output in outputs)
+    assert 'company-logo company-logo--cover' in outputs[0]
+    assert all('company-logo company-logo--small' in output for output in outputs[1:])
+    assert "原本的代價" in outputs[2]
+    assert 'data-diagram-kind="ai-generate"' in outputs[3]
+    assert "來源：ElevenLabs" in outputs[4]
+    assert "margin-top: auto" not in outputs[4]
+    unsafe_company = "<script>alert(1)</script>"
+    assert "<script" not in render.page_html(
+        carousel_draft().pages[1],
+        unsafe_company,
+        replace(asset, company=unsafe_company),
     )
 
-    assert "聲音模型訓練成本很高" in out
+
+def test_html_escapes_heading_section_and_company_text(tmp_path):
+    unsafe = '<script>alert("x")</script>'
+    page = carousel_draft().pages[1]
+    unsafe_section = replace(page.sections[0], label=unsafe, text=unsafe)
+    unsafe_page = replace(page, heading=unsafe, sections=(unsafe_section,))
+    asset = replace(brand_asset(_logo(tmp_path)), company=unsafe)
+
+    output = render.page_html(unsafe_page, unsafe, asset)
+
+    assert unsafe not in output
+    assert html_lib.escape(unsafe) in output
 
 
-def test_html_contains_the_page_type_label():
-    out = render.page_html(_row("how-ai"), company="ElevenLabs")
+def test_html_declares_exact_canvas_and_approved_geometry(tmp_path):
+    output = _render(tmp_path)
 
-    assert "AI 在裡面扮演什麼角色" in out
+    for declaration in (
+        "width: 1080px",
+        "height: 1350px",
+        "inset: 48px 48px 64px",
+        "border-radius: 40px",
+        "0 6px 36px rgba(38,38,65,.06)",
+    ):
+        assert declaration in output
 
 
-def test_font_is_loaded_from_local_files():
-    out = render.page_html(_row(), company="ElevenLabs")
-    style = out.split("</style>", 1)[0]
+def test_font_is_loaded_from_local_files(tmp_path):
+    output = _render(tmp_path)
+    style = output.split("</style>", 1)[0]
 
     assert "LINESeedTW_OTF_Rg.otf" in style
     assert "LINESeedTW_OTF_Bd.otf" in style
@@ -83,74 +80,47 @@ def test_font_is_loaded_from_local_files():
     assert "http" not in style.replace("file://", "")
 
 
-def test_colors_match_the_brand_palette():
-    out = render.page_html(_row(), company="ElevenLabs")
+def test_colors_match_the_brand_palette(tmp_path):
+    output = _render(tmp_path)
 
-    assert "#D5E6F4" in out
-    assert "#FBFCFE" in out
-    assert "#47819A" in out
+    assert "#D5E6F4" in output
+    assert "#FBFCFE" in output
+    assert "#47819A" in output
     for retired in ("#2E5C9E", "#F6BCC8", "#E8912D", "#5B8FC9"):
-        assert retired not in out, f"{retired} 是改版前的舊色，不該出現"
+        assert retired not in output, f"{retired} 是改版前的舊色，不該出現"
 
 
-def test_card_uses_the_approved_geometry():
-    out = render.page_html(_row(), company="ElevenLabs")
-
-    assert "inset: 70px" in out
-    assert "border-radius: 40px" in out
-    assert "0 6px 36px rgba(38,38,65,.06)" in out
-
-
-def test_type_hierarchy_uses_approved_sizes_and_weights():
-    out = render.page_html(_row(), company="ElevenLabs")
+def test_type_hierarchy_uses_approved_sizes_and_weights(tmp_path):
+    output = _render(tmp_path)
 
     for declaration in (
-        "font-size: 32px",
-        "font-size: 44px",
-        "font-size: 72px",
-        "font-size: 104px",
+        "font-size: 21px",
+        "font-size: 29px",
+        "font-size: 56px",
+        "font-size: 96px",
         "font-weight: 400",
         "font-weight: 700",
         "font-weight: 800",
     ):
-        assert declaration in out
+        assert declaration in output
 
 
-def test_html_includes_the_approved_frame_decorations():
-    out = render.page_html(_row(), company="ElevenLabs")
+def test_html_includes_approved_frame_decorations(tmp_path):
+    output = _render(tmp_path)
 
-    assert 'class="stripes"' in out
-    assert 'class="dots"' in out
-    assert 'class="handle"' in out
-    assert "@呆一布" in out
-
-
-def test_handle_sits_in_the_frame_below_the_card():
-    out = render.page_html(_row(), company="ElevenLabs")
-
-    assert "bottom: 16px" in out
+    assert 'class="frame-pattern frame-pattern--stripes"' in output
+    assert 'class="frame-pattern frame-pattern--dots"' in output
+    assert 'class="handle"' in output
+    assert "@呆一布" in output
+    assert "bottom: 16px" in output
 
 
-def test_html_has_no_theme_dependent_colors():
-    """貼文圖的顏色必須寫死。"""
-    out = render.page_html(_row(), company="ElevenLabs")
+def test_html_has_no_theme_dependent_colors_or_unapproved_weights(tmp_path):
+    output = _render(tmp_path)
 
-    assert "var(--" not in out
-    assert "light-dark(" not in out
-    assert "prefers-color-scheme" not in out
-
-
-def test_only_permitted_font_weights_are_used():
-    """網站 PRD 明文禁止 500 / 600 與斜體。"""
-    out = render.page_html(_row(), company="ElevenLabs")
-
-    assert "font-weight: 500" not in out
-    assert "font-weight: 600" not in out
-    assert "font-style: italic" not in out
-
-
-def test_embedded_mascot_scales_to_the_approved_container():
-    out = render.page_html(_row(), company="ElevenLabs")
-
-    assert ".mascot svg" in out
-    assert "width: 100%" in out
+    assert "var(--" not in output
+    assert "light-dark(" not in output
+    assert "prefers-color-scheme" not in output
+    assert "font-weight: 500" not in output
+    assert "font-weight: 600" not in output
+    assert "font-style: italic" not in output
