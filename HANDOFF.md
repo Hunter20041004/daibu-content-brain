@@ -1,8 +1,8 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 於 2026-07-30 更新。
-> 一句話現況：**輪播重設 Phase C（Task 6–8）功能與本機視覺驗收完成；
-> 免費 LLM 已改用 Gemini 3.1 Flash-Lite，兩條真實契約均已通過。**
+> 一句話現況：**輪播重設 Phase C 與免費 LLM 換模已合併本機 main；
+> 全測與真實契約通過，但 repository 沒有 remote，尚未 push。**
 
 ## 本輪目標與驗收
 
@@ -21,7 +21,7 @@
   - `.screenshots/carousel-redesign/round2/desktop.png`
   - `.screenshots/carousel-redesign/round2/mobile.png`
 - 本機全套：`304 passed, 9 deselected`；高於 Phase B 的 303。
-- 2026-07-30 免費 LLM 契約修正與換模（尚未 commit）：
+- 2026-07-30 免費 LLM 契約修正與換模：
   - Idea 真實 fixture 改成含具名公司；真實契約 `1 passed in 6.58s`。
   - `LLMProvider` 新增輪播專用入口；Gemini 使用 JSON Schema 鎖七頁、必要欄位、
     section `source_ids`，Groq 保留既有文字生成備援。
@@ -31,7 +31,9 @@
     `1 passed in 29.57s`，Idea 同模型亦通過，既有 validator 與修稿均未放寬。
   - transport timeout、504 deadline 與 429 quota 都轉成可理解的產品錯誤。
   - provider／設定頁預設與本機 SQLite `llm_model` 均已切到 3.1 Flash-Lite。
-  - LLM 單元 `43 passed`；分支全套 `312 passed, 9 deselected in 18.56s`。
+  - commit `38bce29` 已 fast-forward 合併本機 `main`；main 全套
+    `312 passed, 9 deselected in 18.44s`。
+  - `git remote -v` 為空，無法 push；專案目前也沒有正式部署流程。
   - `.DS_Store`、`.claude/` 保持原有未追蹤狀態，未碰觸。
 
 ## 產品理解檢查點
@@ -48,8 +50,8 @@
 
 ## 下一步
 
-本輪 commit、合併本分支、在 main 重跑全套並 push。下一輪再規劃來源蒐集＋
-Logo 上傳＋ZIP＋選題頁接線。
+先提供／設定既有 Git remote，再 push 本機 main。下一輪再規劃來源蒐集＋Logo
+上傳＋ZIP＋選題頁接線。
 
 ## 最容易踩的坑
 
