@@ -1871,3 +1871,128 @@ def test_rejected_carousel_logo_upload_keeps_page_running(
     assert any("超過 4096 px" in error.value for error in app.error)
     assert db.get_brand_asset(conn, "ElevenLabs") is None
     assert not (tmp_path / "logos").exists()
+
+
+def test_complete_carousel_can_render_and_download_seven_pngs(
+    tmp_path,
+    monkeypatch,
+):
+    import zipfile
+    from io import BytesIO
+
+    from daibu.cards import assets, bundle, workbench
+    from tests.card_fixtures import carousel_draft, solid_png
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    monkeypatch.setenv("DAIBU_LOGO_DIR", str(tmp_path / "logos"))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "完整出圖測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    draft = carousel_draft()
+    db.save_idea_sources(conn, idea_id, draft.sources)
+    db.save_carousel_draft(conn, idea_id, draft)
+    assets.store_logo(
+        conn,
+        "ElevenLabs",
+        "official.png",
+        solid_png(240, 80),
+        "https://elevenlabs.io/about",
+        "2026-07-30",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "產生七張圖"
+    ).click().run(timeout=20)
+
+    pngs = workbench.cached_pngs(
+        app.session_state,
+        idea_id,
+        draft,
+    )
+    archive = bundle.carousel_zip(pngs)
+    with zipfile.ZipFile(BytesIO(archive)) as packaged:
+        assert packaged.namelist() == list(bundle.PAGE_FILENAMES)
+        assert all(
+            packaged.read(filename).startswith(b"\x89PNG")
+            for filename in bundle.PAGE_FILENAMES
+        )
+    assert not app.exception
+    assert pngs is not None
+    assert len(app.download_button) == 1
+
+
+def test_saving_carousel_edits_invalidates_the_old_download(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import assets
+    from tests.card_fixtures import carousel_draft, solid_png
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    monkeypatch.setenv("DAIBU_LOGO_DIR", str(tmp_path / "logos"))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "快取失效測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    draft = carousel_draft()
+    db.save_idea_sources(conn, idea_id, draft.sources)
+    db.save_carousel_draft(conn, idea_id, draft)
+    assets.store_logo(
+        conn,
+        "ElevenLabs",
+        "official.png",
+        solid_png(240, 80),
+        "https://elevenlabs.io/about",
+        "2026-07-30",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "產生七張圖"
+    ).click().run(timeout=20)
+    assert len(app.download_button) == 1
+
+    field = next(
+        text_area for text_area in app.text_area
+        if text_area.label == "白話定位"
+    )
+    field.set_value(field.value + "補")
+    next(
+        button for button in app.button
+        if button.label == "儲存草稿"
+    ).click().run()
+
+    assert not app.exception
+    assert len(app.download_button) == 0

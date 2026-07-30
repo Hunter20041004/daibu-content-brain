@@ -1,9 +1,10 @@
 from types import SimpleNamespace
 from pathlib import Path
+from dataclasses import replace
 
 from daibu.cards import workbench
 from daibu.cards.schema import BrandAsset
-from tests.card_fixtures import verified_sources
+from tests.card_fixtures import carousel_draft, verified_sources
 
 
 def test_missing_requirements_reports_company_and_source_gaps():
@@ -38,3 +39,34 @@ def test_rendering_requires_complete_inputs_and_a_logo():
     assert not workbench.can_render(named, pack, None)
     assert not workbench.can_render(unnamed, pack, asset)
     assert workbench.can_render(named, pack, asset)
+
+
+def test_cached_pngs_are_invalidated_when_draft_content_changes():
+    draft = carousel_draft()
+    assert workbench.draft_fingerprint(draft) == (
+        workbench.draft_fingerprint(draft)
+    )
+    changed_section = replace(
+        draft.pages[1].sections[0],
+        text=draft.pages[1].sections[0].text + "改",
+    )
+    changed_page = replace(
+        draft.pages[1],
+        sections=(changed_section,) + draft.pages[1].sections[1:],
+    )
+    changed = replace(
+        draft,
+        pages=(draft.pages[0], changed_page) + draft.pages[2:],
+    )
+    assert workbench.draft_fingerprint(changed) != (
+        workbench.draft_fingerprint(draft)
+    )
+
+    state = {
+        "carousel-png-42": (
+            workbench.draft_fingerprint(draft),
+            [b"png"] * 7,
+        )
+    }
+    assert workbench.cached_pngs(state, 42, draft) == [b"png"] * 7
+    assert workbench.cached_pngs(state, 42, changed) is None

@@ -8,9 +8,11 @@ import streamlit as st
 
 from daibu import clock, db, pipeline, selection
 from daibu.cards import assets as carousel_assets
+from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
 from daibu.cards import logo as carousel_logo
 from daibu.cards import pages as carousel_pages
+from daibu.cards import shoot as carousel_shoot
 from daibu.cards import sources as card_sources
 from daibu.cards import workbench as carousel_workbench
 from daibu.cards.schema import validate_draft
@@ -1030,19 +1032,79 @@ with candidate_column:
                                     "重新產生失敗，原本草稿仍保留。"
                                     f"請稍後重試；原因：{error}"
                                 )
-                st.button(
+                render_disabled = (
+                    stored_draft is None
+                    or not carousel_workbench.can_render(
+                        idea,
+                        source_pack,
+                        brand_asset,
+                    )
+                )
+                if st.button(
                     "產生七張圖",
                     key=f"render-carousel-{idea.id}",
-                    disabled=(
-                        stored_draft is None
-                        or not carousel_workbench.can_render(
-                            idea,
-                            source_pack,
-                            brand_asset,
-                        )
-                    ),
+                    disabled=render_disabled,
                     width="stretch",
-                )
+                ):
+                    try:
+                        with st.spinner("正在出圖，約 10 秒…"):
+                            rendered_pngs = carousel_shoot.carousel_pngs(
+                                stored_draft,
+                                idea.company,
+                                brand_asset,
+                            )
+                    except (
+                        RuntimeError,
+                        carousel_logo.BrandAssetRequired,
+                        carousel_logo.InvalidBrandAsset,
+                    ) as error:
+                        st.error(
+                            "七張圖產生失敗，草稿與 Logo 都沒有被改動。"
+                            f"請依訊息修正後再試；原因：{error}"
+                        )
+                    else:
+                        st.session_state[
+                            f"carousel-png-{idea.id}"
+                        ] = (
+                            carousel_workbench.draft_fingerprint(
+                                stored_draft
+                            ),
+                            rendered_pngs,
+                        )
+                if stored_draft is not None:
+                    cached_pngs = carousel_workbench.cached_pngs(
+                        st.session_state,
+                        idea.id,
+                        stored_draft,
+                    )
+                else:
+                    cached_pngs = None
+                if cached_pngs is not None:
+                    st.markdown("#### 七張圖預覽")
+                    preview_columns = st.columns(2)
+                    for index, png in enumerate(cached_pngs):
+                        page_type = carousel_pages.PAGE_TYPES[index]
+                        preview_columns[index % 2].image(
+                            png,
+                            caption=(
+                                f"{index + 1:02d} · "
+                                f"{carousel_pages.label(page_type)}"
+                            ),
+                            width="stretch",
+                        )
+                    archive = carousel_bundle.carousel_zip(cached_pngs)
+                    st.download_button(
+                        "下載全部（ZIP）",
+                        data=archive,
+                        file_name=carousel_bundle.zip_name(
+                            idea.company,
+                            date.today(),
+                        ),
+                        mime="application/zip",
+                        key=f"download-carousel-{idea.id}",
+                        type="primary",
+                        width="stretch",
+                    )
             save_column, return_column, publish_column = st.columns(3)
             if save_column.button(
                 "儲存正文",
