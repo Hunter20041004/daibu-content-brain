@@ -128,9 +128,13 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 分支現況
 
-- `main` — 目前的可用版本，含來源蒐集與出圖接線 Phase A–D
-- `codex/frontend-brand-refactor` — 前端品牌重構，待整合
-- `codex/ia-topic-first` — 資訊架構重整與操作驗收修正 Task 1–24
-  已實作並完成整體驗收
-- `refactor/ia-topic-first` — ⚠️ Claude 越權寫的探路稿（commit `b6b66bc`），
-  大致等價於新計畫的 Task 1–3，**可參考、不要直接 merge**
+（2026-07-30 核對過實際 `git branch -a`。）
+
+- `main` — 目前的可用版本，含來源蒐集與出圖接線 Phase A–D，與 `origin/main` 同步
+- `codex/carousel-redesign-phase-c`（`38bce29`）— **已完全併入 `main`**，可刪
+- `codex/ia-topic-first`（`bda3e2a`）— **已完全併入 `main`**，可刪
+- `refactor/ia-topic-first`（`b6b66bc`）— ⚠️ Claude 越權寫的探路稿，未併入，
+  內容早已被 `main` 取代，**不要 merge**，確認不需要留存就可刪
+- `codex/frontend-brand-refactor` — **已不存在**（前端品牌重構的內容早已進 `main`）
+
+刪分支是不可逆的，要刪請自己下手或明確交代，Claude 不主動刪。
