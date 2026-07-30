@@ -1,9 +1,16 @@
 import base64
 from datetime import date
+from io import BytesIO
+import re
 from urllib.parse import urlparse
 from xml.etree import ElementTree
 
+from PIL import Image
+
 from daibu.cards.schema import BrandAsset
+
+
+_URL_REFERENCE = re.compile(r"""url\(\s*(['"]?)(.*?)\1\s*\)""", re.IGNORECASE)
 
 
 class BrandAssetRequired(ValueError):
@@ -26,18 +33,47 @@ def _validate_svg(data: bytes) -> None:
     if _local_name(root.tag) != "svg":
         raise InvalidBrandAsset("SVG Logo 根節點必須是 svg")
 
-    blocked_tags = {"script", "foreignobject", "iframe", "object", "embed"}
+    blocked_tags = {
+        "script",
+        "style",
+        "foreignobject",
+        "iframe",
+        "object",
+        "embed",
+    }
     for element in root.iter():
         if _local_name(element.tag) in blocked_tags:
             raise InvalidBrandAsset("SVG Logo 含不安全內容")
         for name, value in element.attrib.items():
             local_name = _local_name(name)
+            normalized = value.strip().casefold()
             if local_name.startswith("on"):
                 raise InvalidBrandAsset("SVG Logo 含不安全事件")
-            if local_name in {"href", "src"} and (
-                value.startswith("http:") or value.startswith("https:")
+            if local_name == "style":
+                raise InvalidBrandAsset("SVG Logo 含不安全樣式")
+            if local_name in {"href", "src"} and not normalized.startswith("#"):
+                raise InvalidBrandAsset("SVG Logo 不可載入外部資源")
+            references = _URL_REFERENCE.findall(normalized)
+            if "url(" in normalized and (
+                not references
+                or any(not target.strip().startswith("#") for _, target in references)
             ):
                 raise InvalidBrandAsset("SVG Logo 不可載入外部資源")
+
+
+def _validate_png(data: bytes) -> None:
+    try:
+        with Image.open(BytesIO(data)) as image:
+            if image.format != "PNG":
+                raise InvalidBrandAsset("PNG Logo 檔案格式不正確")
+            has_transparency = (
+                "A" in image.getbands() or "transparency" in image.info
+            )
+            image.verify()
+    except (OSError, SyntaxError, ValueError) as error:
+        raise InvalidBrandAsset("PNG Logo 檔案格式不正確") from error
+    if not has_transparency:
+        raise InvalidBrandAsset("PNG Logo 必須保留透明色版")
 
 
 def _validate_metadata(asset: BrandAsset, company: str) -> None:
@@ -64,8 +100,7 @@ def logo_data_uri(
     suffix = asset.local_path.suffix.lower()
     data = asset.local_path.read_bytes()
     if suffix == ".png":
-        if not data.startswith(b"\x89PNG\r\n\x1a\n"):
-            raise InvalidBrandAsset("PNG Logo 檔案格式不正確")
+        _validate_png(data)
         mime = "image/png"
     elif suffix == ".svg":
         _validate_svg(data)
