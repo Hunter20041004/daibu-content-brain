@@ -268,15 +268,22 @@ def _validate_png(data: bytes) -> None:
 def _validate_metadata(asset: BrandAsset, company: str) -> None:
     if asset.company.strip().casefold() != company.strip().casefold():
         raise InvalidBrandAsset("Logo 公司名稱與輪播公司不符")
-    source = urlparse(asset.official_source_url)
+    validate_source_metadata(asset.official_source_url, asset.verified_at)
+    if not asset.local_path.is_file():
+        raise InvalidBrandAsset("找不到已確認的 Logo 檔案")
+
+
+def validate_source_metadata(
+    official_source_url: str,
+    verified_at: str,
+) -> None:
+    source = urlparse(official_source_url)
     if source.scheme != "https" or not source.netloc:
         raise InvalidBrandAsset("Logo 必須保留官方 https 來源網址")
     try:
-        date.fromisoformat(asset.verified_at)
+        date.fromisoformat(verified_at)
     except ValueError as error:
         raise InvalidBrandAsset("Logo 確認日期必須是 YYYY-MM-DD") from error
-    if not asset.local_path.is_file():
-        raise InvalidBrandAsset("找不到已確認的 Logo 檔案")
 
 
 def logo_data_uri(

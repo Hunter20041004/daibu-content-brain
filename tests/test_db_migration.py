@@ -411,3 +411,25 @@ def test_migration_adds_idea_source_pack_idempotently(tmp_path):
         "url",
         "excerpt",
     } <= columns
+
+
+def test_migration_adds_brand_assets_idempotently(tmp_path):
+    path = tmp_path / "brand-assets.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    conn.execute("DROP TABLE IF EXISTS brand_assets")
+    conn.commit()
+
+    db.init_schema(conn)
+    db.init_schema(conn)
+
+    columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(brand_assets)")
+    }
+    assert {
+        "company_key",
+        "company",
+        "local_path",
+        "official_source_url",
+        "verified_at",
+    } <= columns

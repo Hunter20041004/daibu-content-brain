@@ -1,8 +1,10 @@
 import json
 import sqlite3
 from dataclasses import asdict
+from pathlib import Path
 
 from daibu.cards.schema import (
+    BrandAsset,
     CarouselDraft,
     CarouselPage,
     ContentSection,
@@ -292,6 +294,14 @@ def init_schema(conn: sqlite3.Connection) -> None:
             excerpt TEXT NOT NULL,
             PRIMARY KEY (idea_id, source_key),
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS brand_assets (
+            company_key TEXT PRIMARY KEY,
+            company TEXT NOT NULL,
+            local_path TEXT NOT NULL,
+            official_source_url TEXT NOT NULL,
+            verified_at TEXT NOT NULL
         );
         """
     )
@@ -811,6 +821,55 @@ def get_idea_sources(
             row["excerpt"],
         )
         for row in rows
+    )
+
+
+def save_brand_asset(
+    conn: sqlite3.Connection,
+    asset: BrandAsset,
+) -> None:
+    with conn:
+        conn.execute(
+            """
+            INSERT INTO brand_assets (
+                company_key, company, local_path,
+                official_source_url, verified_at
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(company_key) DO UPDATE SET
+                company = excluded.company,
+                local_path = excluded.local_path,
+                official_source_url = excluded.official_source_url,
+                verified_at = excluded.verified_at
+            """,
+            (
+                asset.company.strip().casefold(),
+                asset.company,
+                str(asset.local_path),
+                asset.official_source_url,
+                asset.verified_at,
+            ),
+        )
+
+
+def get_brand_asset(
+    conn: sqlite3.Connection,
+    company: str,
+) -> BrandAsset | None:
+    row = conn.execute(
+        """
+        SELECT company, local_path, official_source_url, verified_at
+        FROM brand_assets
+        WHERE company_key = ?
+        """,
+        (company.strip().casefold(),),
+    ).fetchone()
+    if row is None:
+        return None
+    return BrandAsset(
+        row["company"],
+        Path(row["local_path"]),
+        row["official_source_url"],
+        row["verified_at"],
     )
 
 
