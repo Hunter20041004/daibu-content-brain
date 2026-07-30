@@ -34,6 +34,12 @@
   使用者刪掉就是刪掉了，不再自動補回
 - **採用與淘汰都是一步完成、都可復原**（2026-07-25）：
   實際使用時淘汰的次數遠多於採用，不該把它設計得比較麻煩
+- **Logo 上限**（2026-07-30）：檔案 ≤ 2 MB；PNG 單邊 ≤ 4096 px、總像素 ≤ 800 萬、
+  單邊 ≥ 64 px；SVG 必須有 `viewBox` 或寬高。檔案大小與解碼後像素分開限制，
+  防的是「壓縮後很小、解開很大」的圖
+- **來源包與來源快照分兩張表**（2026-07-30）：`idea_sources` 可隨時編輯，
+  `carousel_sources` 是產草稿當下的快照，事後改筆記不會弄壞已存草稿
+- **缺 Logo 只擋產圖、不擋產草稿**（2026-07-30）：草稿是純文字，不需要 Logo
 
 ## 目前進度
 
@@ -109,7 +115,11 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. 規劃來源蒐集、Logo 上傳、ZIP 與選題頁接線。
+1. **來源蒐集＋Logo 上傳＋ZIP＋選題頁接線：設計與計畫已完成（2026-07-30），
+   等 Codex 實作。**
+   - 設計規格：`docs/specs/2026-07-30-來源蒐集與出圖接線-design.md`
+   - TDD 計畫：`docs/plan-cards-wiring.md`（Phase A–D，Task 1–11）
+   - 一場對話只做一個 Phase；本輪範圍寫在 `HANDOFF.md`。
 2. 決定 `codex/ia-topic-first` 如何整合回 `main`。
 3. 更遠的一輪：分平台產文字（Threads／IG／LinkedIn）——本輪明確不做，
    見 `docs/open-questions.md`

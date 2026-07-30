@@ -1,62 +1,57 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 於 2026-07-30 更新。
-> 一句話現況：**輪播重設 Phase C 與免費 LLM 換模已在 main 完成；
-> 全測與真實契約通過，並已推送至私人 GitHub 儲存庫。**
+> 一句話現況：**出圖引擎已完成並在 `main`；這一輪開始把它接上人真正會操作的
+> 四件事——蒐集來源、上傳 Logo、產圖、下載 ZIP。**
 
-## 本輪目標與驗收
+## 本輪目標與驗收（只做 Phase A）
 
-依 `docs/plan-carousel-redesign.md` 完成 Phase C：
+依 `docs/plan-cards-wiring.md` 完成 **Phase A：來源包可蒐集、可編輯**，
+共 Task 1–3。**做完就停，提醒使用者開新對話接 Phase B。**
 
-- 七頁結構化草稿、已驗證 Logo、固定圖解組成 1080×1350 滿版 HTML；
-- Chromium 一次輸出七張 PNG，量測 Logo、overflow、來源位置與下半部內容；
-- 桌機／手機兩輪視覺自檢，保留第 4 頁 A1／M1 與可讀字級。
+- Task 1：新表 `idea_sources`，冪等搬遷、round-trip、刪題目連帶清乾淨。
+- Task 2：`daibu/cards/sources.py` — 1–8 筆上限、`S1`–`S8` 編號、刪中間一筆
+  不重新編號、必填欄位錯誤訊息。
+- Task 3：`daibu/fetch/page.py` — 貼 https 網址抓出版方／日期／引文建議值，
+  含一條真實網路的 `@pytest.mark.contract` 測試。
+
+驗收：`.venv/bin/pytest -q` 全套綠燈且高於 312；新增測試都走過紅→綠。
+
+## 設計依據
+
+- 規格：`docs/specs/2026-07-30-來源蒐集與出圖接線-design.md`
+- 計畫：`docs/plan-cards-wiring.md`（Phase A–D，Task 1–11）
+- 上一輪歸檔：`docs/history/HANDOFF-2026-07-30-carousel-phase-c.md`
+
+## 本輪已裁決（Claude，2026-07-30）
+
+- **來源包與來源快照分兩張表**：`idea_sources` 可隨時編輯，
+  `carousel_sources` 是產草稿當下的快照。理由：`source_label` 是產生當下寫死的
+  字串且會被 `validate_draft` 回頭檢查，共用一張表會讓舊草稿突然驗證失敗。
+- **Logo 上限**：檔案 ≤ 2 MB；PNG 單邊 ≤ 4096 px、總像素 ≤ 800 萬、單邊 ≥ 64 px；
+  SVG 必須有 `viewBox` 或同時有 `width`／`height`。檔案大小與解碼後像素分開限制，
+  因為壓縮後很小的圖解開可能吃掉數百 MB 記憶體。錯誤文案見規格 §5.3。
+- **新檢查只放新的 `validate_upload()`**，不動 `logo_data_uri()`／`_validate_svg()`。
+- **抓網址只產生「建議值」**，使用者逐欄確認後才存——那一按就是查證動作本身。
 
 ## 本輪狀態
 
-- 目前分支：`main`，追蹤 `origin/main`。
-- Task 6 提交 `4c1b948`：新版 HTML renderer、七頁 section／Logo／來源／安全跳脫。
-- Task 7 提交 `4f6c631`：七張 PNG、`LayoutReport`、真實瀏覽器版面契約。
-- 第二輪視覺驗收全部合格：
-  - `.screenshots/carousel-redesign/round2/desktop.png`
-  - `.screenshots/carousel-redesign/round2/mobile.png`
-- 本機全套：`304 passed, 9 deselected`；高於 Phase B 的 303。
-- 2026-07-30 免費 LLM 契約修正與換模：
-  - Idea 真實 fixture 改成含具名公司；真實契約 `1 passed in 6.58s`。
-  - `LLMProvider` 新增輪播專用入口；Gemini 使用 JSON Schema 鎖七頁、必要欄位、
-    section `source_ids`，Groq 保留既有文字生成備援。
-  - 原 `gemini-2.5-flash` 每日 20 次額度用盡；2.5 Flash-Lite 對新使用者已 404。
-    即時 `models.list` 確認後改用 stable `gemini-3.1-flash-lite`。
-  - Gemini 3.1 使用 `thinking_level=medium`、45 秒單次 timeout；輪播真實契約
-    `1 passed in 29.57s`，Idea 同模型亦通過，既有 validator 與修稿均未放寬。
-  - transport timeout、504 deadline 與 429 quota 都轉成可理解的產品錯誤。
-  - provider／設定頁預設與本機 SQLite `llm_model` 均已切到 3.1 Flash-Lite。
-  - commit `38bce29` 已 fast-forward 合併本機 `main`；main 全套
-    `312 passed, 9 deselected in 18.44s`。
-  - 私人遠端：`https://github.com/Hunter20041004/daibu-content-brain`。
-  - `main` 已推送；遠端起點為 commit `df6ff28`。專案目前沒有正式部署流程。
-  - 推送前重跑全套：`312 passed, 9 deselected in 18.94s`。
-  - `.DS_Store`、`.claude/` 保持原有未追蹤狀態，未碰觸。
-
-## 產品理解檢查點
-
-1. **產品能力**：查證來源＋官方 Logo 可產七張輪播圖。
-2. **使用者體驗**：每頁回答一題、Logo 每頁可見；缺 Logo 阻擋但不刪草稿。
-3. **技術結構**：schema、DB、LLM、Logo／SVG、HTML、Playwright。
-4. **資料流程**：來源包 → 草稿 → 驗證 → 儲存 → Logo → HTML → PNG。
-5. **設計理由**：固定讀者任務、彈性 AI 角色、自然垂直敘事。
-6. **替代方案**：一次接完整 UI 較快，但故障難定位；本輪分層完成出圖核心。
-7. **安全與成本**：API key 仍只走環境變數；只用免費 provider，修稿最多兩次呼叫。
-8. **測試證據**：3.1 Flash-Lite 的 Idea 與輪播真實契約均通過。
-9. **剩餘限制**：Groq 無 key 未跑真實契約；Google 免費額度仍可能調整。
-
-## 下一步
-
-下一輪規劃來源蒐集＋Logo 上傳＋ZIP＋選題頁接線。
+- 目前分支：`main`，追蹤 `origin/main`，工作區乾淨（`.DS_Store`、`.claude/`
+  維持未追蹤）。
+- 基線：`312 passed, 9 deselected`。
+- Claude 這一輪只寫了 `docs/` 與 `HANDOFF.md`，**未動任何原始碼**。
+- Codex 尚未開工。
 
 ## 最容易踩的坑
 
-1. 不可為了契約綠燈放寬來源引用、140 字門檻或改成 mock。
-2. 不可因缺 Logo 降級成純文字，也不可刪掉已存草稿。
-3. 第 4 頁維持 A1／M1：無虛線、無頭像背景框，步驟字級 36／30px。
-4. 不可重新開放 SVG 外部網址、`style` 或非 `#fragment` 引用。
+1. **缺 Logo 只擋「產生七張圖」，不擋「產生輪播草稿」**——草稿是純文字。
+   前一版規格寫「缺 Logo 阻擋產圖」，容易被讀成什麼都不能做。
+2. 不可為了讓測試綠燈放寬既有規則：五欄必填、https、`YYYY-MM-DD`、
+   140–220 字門檻、SVG 白名單、PNG 透明檢查，一條都不動。
+3. 驗證失敗時**不清空使用者輸入、不寫回半套資料**——「正文草稿靜默消失」是
+   這個專案真實發生過的事故。
+4. viewBox 檢查別塞進 `_validate_svg()`，會弄紅既有的
+   `test_logo_accepts_svg_with_local_gradient_and_symbol`。
+5. 紅→綠只跑當前那一個測試檔，Task 收尾才跑全套。
+6. 手動驗收用複本：`cp daibu.db /tmp/daibu-test.db` 並跑在 port 8502
+   （使用者的 Streamlit 佔著 8501）。
