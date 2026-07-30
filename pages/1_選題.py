@@ -1,12 +1,15 @@
 import html
 import os
 from dataclasses import replace
+from datetime import date
 from urllib.parse import urlparse
 
 import streamlit as st
 
 from daibu import clock, db, pipeline, selection
+from daibu.cards import assets as carousel_assets
 from daibu.cards import draft as carousel_draft_service
+from daibu.cards import logo as carousel_logo
 from daibu.cards import pages as carousel_pages
 from daibu.cards import sources as card_sources
 from daibu.cards import workbench as carousel_workbench
@@ -36,6 +39,53 @@ page_header(
 )
 
 conn = connect_app_db()
+
+
+def render_logo_upload_form(idea_id: int, company: str, suffix: str) -> None:
+    with st.form(f"carousel-logo-{idea_id}-{suffix}"):
+        uploaded_logo = st.file_uploader(
+            "上傳官方 Logo",
+            type=["png", "svg"],
+            key=f"carousel-logo-file-{idea_id}-{suffix}",
+        )
+        official_source_url = st.text_input(
+            "Logo 官方來源網址",
+            key=f"carousel-logo-source-{idea_id}-{suffix}",
+            help="請填公司官網或官方品牌素材頁。",
+        )
+        verified_at = st.date_input(
+            "Logo 確認日期",
+            value=date.today(),
+            key=f"carousel-logo-date-{idea_id}-{suffix}",
+        )
+        if st.form_submit_button(
+            "儲存 Logo",
+            disabled=uploaded_logo is None,
+        ):
+            if not official_source_url.strip():
+                st.error(
+                    "請填這個 Logo 的官方來源網址（公司官網或品牌素材頁），"
+                    "之後才能追溯是哪裡拿的。"
+                )
+                return
+            try:
+                carousel_assets.store_logo(
+                    conn,
+                    company,
+                    uploaded_logo.name,
+                    uploaded_logo.getvalue(),
+                    official_source_url,
+                    verified_at.isoformat(),
+                )
+            except carousel_logo.InvalidBrandAsset as error:
+                st.error(str(error))
+                return
+            st.session_state.pop(
+                f"show-replace-carousel-logo-{idea_id}",
+                None,
+            )
+            queue_toast(st.session_state, "官方 Logo 已儲存。")
+            st.rerun()
 
 
 def save_body_draft(idea_id: int, body_key: str) -> None:
@@ -754,6 +804,58 @@ with candidate_column:
                             f"已刪除來源 {verified_source.source_id}。",
                         )
                         st.rerun()
+                if idea.company.strip():
+                    st.markdown("#### 官方 Logo")
+                    if brand_asset is None:
+                        st.markdown(
+                            '<div class="carousel-status '
+                            'carousel-status--missing">'
+                            f"<strong>還沒有 {html.escape(idea.company)} "
+                            "的官方 Logo</strong>"
+                            "<p>草稿仍可產生；上傳 Logo 後才能輸出七張圖。</p>"
+                            "</div>",
+                            unsafe_allow_html=True,
+                        )
+                        render_logo_upload_form(
+                            idea.id,
+                            idea.company,
+                            "new",
+                        )
+                    else:
+                        st.markdown(
+                            '<div class="verified-logo">'
+                            f"<strong>{html.escape(idea.company)} "
+                            "官方 Logo</strong>"
+                            "</div>",
+                            unsafe_allow_html=True,
+                        )
+                        st.image(
+                            str(brand_asset.local_path),
+                            caption=f"{idea.company} 官方 Logo",
+                            width=240,
+                        )
+                        st.link_button(
+                            "查看 Logo 官方來源",
+                            brand_asset.official_source_url,
+                        )
+                        st.caption(
+                            f"確認日期：{brand_asset.verified_at}"
+                        )
+                        if st.button(
+                            "換一張",
+                            key=f"replace-carousel-logo-{idea.id}",
+                        ):
+                            st.session_state[
+                                f"show-replace-carousel-logo-{idea.id}"
+                            ] = True
+                        if st.session_state.get(
+                            f"show-replace-carousel-logo-{idea.id}"
+                        ):
+                            render_logo_upload_form(
+                                idea.id,
+                                idea.company,
+                                "replace",
+                            )
                 stored_draft = db.get_carousel_draft(conn, idea.id)
                 if stored_draft is None:
                     st.caption("會呼叫 AI，約 10–40 秒。")
@@ -928,6 +1030,19 @@ with candidate_column:
                                     "重新產生失敗，原本草稿仍保留。"
                                     f"請稍後重試；原因：{error}"
                                 )
+                st.button(
+                    "產生七張圖",
+                    key=f"render-carousel-{idea.id}",
+                    disabled=(
+                        stored_draft is None
+                        or not carousel_workbench.can_render(
+                            idea,
+                            source_pack,
+                            brand_asset,
+                        )
+                    ),
+                    width="stretch",
+                )
             save_column, return_column, publish_column = st.columns(3)
             if save_column.button(
                 "儲存正文",

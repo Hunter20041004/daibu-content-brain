@@ -1729,3 +1729,145 @@ def test_regenerating_a_carousel_requires_explicit_confirmation(
         "會覆蓋目前的七頁內容，且無法復原" in caption.value
         for caption in app.caption
     )
+
+
+def test_carousel_logo_block_explains_missing_asset_and_disables_render(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "Logo 缺件測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    db.save_idea_sources(conn, idea_id, carousel_draft().sources)
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    rendered = " ".join(block.value for block in app.markdown)
+    render_button = next(
+        button for button in app.button
+        if button.label == "產生七張圖"
+    )
+
+    assert not app.exception
+    assert "還沒有 ElevenLabs 的官方 Logo" in rendered
+    assert len(app.file_uploader) == 1
+    assert render_button.disabled
+
+
+def test_carousel_logo_can_be_uploaded_and_reused(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import solid_png
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    monkeypatch.setenv("DAIBU_LOGO_DIR", str(tmp_path / "logos"))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "Logo 上傳測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    app.file_uploader[0].upload(
+        "official.png",
+        solid_png(240, 80),
+        "image/png",
+    )
+    next(
+        field for field in app.text_input
+        if field.label == "Logo 官方來源網址"
+    ).set_value("https://elevenlabs.io/about")
+    next(
+        button for button in app.button
+        if button.label == "儲存 Logo"
+    ).click().run()
+
+    stored = db.get_brand_asset(conn, "ElevenLabs")
+    rendered = " ".join(block.value for block in app.markdown)
+    captions = " ".join(caption.value for caption in app.caption)
+    assert not app.exception
+    assert stored is not None
+    assert stored.local_path.is_file()
+    assert "ElevenLabs 官方 Logo" in rendered
+    assert "2026-07-30" in captions
+    assert any(button.label == "換一張" for button in app.button)
+
+
+def test_rejected_carousel_logo_upload_keeps_page_running(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import solid_png
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    monkeypatch.setenv("DAIBU_LOGO_DIR", str(tmp_path / "logos"))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "Logo 擋錯測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    app.file_uploader[0].upload(
+        "oversized.png",
+        solid_png(4200, 120),
+        "image/png",
+    )
+    next(
+        field for field in app.text_input
+        if field.label == "Logo 官方來源網址"
+    ).set_value("https://elevenlabs.io/about")
+    next(
+        button for button in app.button
+        if button.label == "儲存 Logo"
+    ).click().run()
+
+    assert not app.exception
+    assert any("超過 4096 px" in error.value for error in app.error)
+    assert db.get_brand_asset(conn, "ElevenLabs") is None
+    assert not (tmp_path / "logos").exists()
