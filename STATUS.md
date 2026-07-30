@@ -1,6 +1,6 @@
 # 專案現況 — 呆一布選題大腦（Daibu Content Brain）
 
-> 由 Claude 建立、於 2026-07-26 更新。**新對話請先讀這份**。
+> 由 Claude 建立、於 2026-07-30 更新。**新對話請先讀這份**。
 
 ## 這是什麼
 
@@ -60,7 +60,7 @@
   - TDD 計畫：`docs/plan-qa-fixes.md`（Task 1–24，五個階段）
   - **狀態：階段 A–E（Task 1–24）與最後整體驗收全部完成。**
 
-- **貼文輪播圖產生器**：進行中，同樣位於 `codex/ia-topic-first`。
+- **貼文輪播圖產生器**：出圖引擎與選題工作台接線皆已在 `main` 完成。
   - 設計規格：`docs/specs/2026-07-28-貼文輪播圖產生器-design.md`
   - TDD 計畫：`docs/plan-carousel.md`（Task 1–17，分階段 A ＋ B1／B2／B3）
   - **階段 A（Task 1–6）已驗收**（2026-07-29）：選題產得出具體公司名與來源引文。
@@ -73,6 +73,9 @@
     `docs/plan-carousel-redesign.md` 的 Task 1–8 已完成。七頁來源草稿、官方 Logo
     驗證、固定圖解、滿版 HTML、七張 PNG 與兩輪視覺驗收均通過；免費 LLM 已改用
     `gemini-3.1-flash-lite`，Idea 與輪播真實契約均通過。
+- **來源蒐集與出圖接線 Phase A–D 已完成（2026-07-30）**：
+    `docs/plan-cards-wiring.md` 的 Task 1–11 已完成。每題來源包、網址建議值、
+    Logo 上傳／重用、七頁編輯、出圖預覽與 ZIP 下載已接進已採用題目的工作台。
 
 ## 測試基線
 
@@ -92,6 +95,9 @@
 
 **免費 LLM 契約修正與換模後為 312 passed、9 deselected**。真實 Idea 契約與
 輪播契約均以 `gemini-3.1-flash-lite` 通過；輪播為 `1 passed in 29.57s`。
+**來源蒐集與出圖接線完成後為 349 passed、10 deselected**；合併到 `main` 後
+複驗同樣為 `349 passed, 10 deselected in 28.53s`。文章網址的真實契約另以
+TechCrunch 公開頁面驗證通過。
 
 （2026-07-23 的舊修正：`pytest` 原本有 12 個 collection 錯誤，已在 `pytest.ini`
 加入 `pythonpath = .` 解決。）
@@ -115,18 +121,14 @@ DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 85
 
 ## 下一步
 
-1. **來源蒐集＋Logo 上傳＋ZIP＋選題頁接線：設計與計畫已完成（2026-07-30），
-   等 Codex 實作。**
-   - 設計規格：`docs/specs/2026-07-30-來源蒐集與出圖接線-design.md`
-   - TDD 計畫：`docs/plan-cards-wiring.md`（Phase A–D，Task 1–11）
-   - 一場對話只做一個 Phase；本輪範圍寫在 `HANDOFF.md`。
-2. 決定 `codex/ia-topic-first` 如何整合回 `main`。
+1. 依新的產品優先順序開下一個 Task；本輪 Phase A–D 已結束。
+2. 如需真人內容驗收，使用 `/tmp` 的資料庫複本操作來源、Logo、產圖與 ZIP 全流程。
 3. 更遠的一輪：分平台產文字（Threads／IG／LinkedIn）——本輪明確不做，
    見 `docs/open-questions.md`
 
 ## 分支現況
 
-- `main` — 目前的可用版本
+- `main` — 目前的可用版本，含來源蒐集與出圖接線 Phase A–D
 - `codex/frontend-brand-refactor` — 前端品牌重構，待整合
 - `codex/ia-topic-first` — 資訊架構重整與操作驗收修正 Task 1–24
   已實作並完成整體驗收
