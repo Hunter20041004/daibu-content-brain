@@ -27,6 +27,14 @@ class Material:
 
 
 @dataclass(frozen=True)
+class SourceSuggestion:
+    publisher: str
+    published_at: str
+    url: str
+    excerpt: str
+
+
+@dataclass(frozen=True)
 class StoredIdea:
     id: int
     theme_id: int | None
