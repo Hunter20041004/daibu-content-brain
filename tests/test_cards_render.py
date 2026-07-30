@@ -70,7 +70,7 @@ def test_non_cover_page_contains_its_body():
 def test_html_contains_the_page_type_label():
     out = render.page_html(_row("how-ai"), company="ElevenLabs")
 
-    assert "他們怎麼運用 AI" in out
+    assert "AI 在裡面扮演什麼角色" in out
 
 
 def test_font_is_loaded_from_local_files():

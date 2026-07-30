@@ -370,3 +370,21 @@ def test_migration_adds_structured_carousel_storage_idempotently(tmp_path):
         "SELECT name FROM sqlite_master "
         "WHERE type='table' AND name='carousel_sources'"
     ).fetchone()
+
+
+def test_migration_adds_carousel_source_position_idempotently(tmp_path):
+    path = tmp_path / "carousel-sources.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    conn.execute("ALTER TABLE carousel_sources DROP COLUMN position")
+    conn.commit()
+
+    db.init_schema(conn)
+    db.init_schema(conn)
+
+    columns = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(carousel_sources)")
+    }
+    assert "position" in columns
+    conn.close()

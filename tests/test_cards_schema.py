@@ -90,6 +90,40 @@ def test_draft_requires_each_pages_named_content_sections():
         validate_draft(replace(draft, pages=(draft.pages[0], who, *draft.pages[2:])))
 
 
+def test_draft_rejects_extra_or_reordered_section_labels():
+    from daibu.cards.schema import ContentSection, validate_draft
+
+    draft = carousel_draft()
+    cover = draft.pages[0]
+    extra = ContentSection("模型自創欄位", "不應出現在固定版型", ("S1",))
+    cover = replace(cover, sections=(*cover.sections, extra))
+
+    with pytest.raises(ValueError, match="cover section 必須依固定順序"):
+        validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
+
+
+def test_draft_rejects_blank_page_headings():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    cover = replace(draft.pages[0], heading="   ")
+
+    with pytest.raises(ValueError, match="cover 標題不可空白"):
+        validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
+
+
+def test_draft_rejects_blank_required_section_text():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    cover = draft.pages[0]
+    blank = replace(cover.sections[0], text=" \n ")
+    cover = replace(cover, sections=(blank, cover.sections[1]))
+
+    with pytest.raises(ValueError, match="cover 一句話定位 內容不可空白"):
+        validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
+
+
 def test_draft_requires_a_compatible_diagram_for_explanatory_pages():
     from daibu.cards.schema import validate_draft
 
@@ -111,6 +145,41 @@ def test_draft_rejects_a_diagram_kind_that_does_not_match_the_page():
     problem = replace(problem, diagram=wrong_diagram)
 
     with pytest.raises(ValueError, match="problem 使用了不相容的圖解"):
+        validate_draft(
+            replace(draft, pages=(*draft.pages[:2], problem, *draft.pages[3:]))
+        )
+
+
+def test_draft_requires_three_nodes_for_each_main_diagram():
+    from daibu.cards.schema import DiagramSpec, validate_draft
+
+    draft = carousel_draft()
+    problem = replace(
+        draft.pages[2],
+        diagram=DiagramSpec("problem-chain", ()),
+    )
+
+    with pytest.raises(ValueError, match="problem 圖解必須有 3 個節點"):
+        validate_draft(
+            replace(draft, pages=(*draft.pages[:2], problem, *draft.pages[3:]))
+        )
+
+
+def test_draft_rejects_blank_diagram_node_content():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    problem = draft.pages[2]
+    blank_node = replace(problem.diagram.nodes[0], title=" ")
+    problem = replace(
+        problem,
+        diagram=replace(
+            problem.diagram,
+            nodes=(blank_node, *problem.diagram.nodes[1:]),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="problem 圖解節點不可空白"):
         validate_draft(
             replace(draft, pages=(*draft.pages[:2], problem, *draft.pages[3:]))
         )
@@ -196,6 +265,16 @@ def test_page_mapping_uses_verified_sources_to_build_the_source_label():
     assert page.source_label == "來源：ElevenLabs · 2026-07-12"
 
 
+def test_draft_rejects_a_noncanonical_source_label():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    cover = replace(draft.pages[0], source_label="模型自己寫的來源")
+
+    with pytest.raises(ValueError, match="cover 來源標示必須由程式產生"):
+        validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
+
+
 def test_page_mapping_builds_structured_diagram_nodes():
     from daibu.cards.schema import page_from_mapping
 
@@ -205,3 +284,36 @@ def test_page_mapping_builds_structured_diagram_nodes():
     page = page_from_mapping(asdict(expected), draft.sources)
 
     assert page.diagram == expected.diagram
+
+
+def test_draft_reports_all_validation_errors_in_one_review():
+    from daibu.cards.schema import ContentSection, validate_draft
+
+    draft = carousel_draft()
+    cover = replace(
+        draft.pages[0],
+        sections=(
+            ContentSection("一句話定位", "內容", ()),
+            ContentSection("產業分類", "語音", ()),
+        ),
+    )
+    who = draft.pages[1]
+    too_long = replace(
+        who.sections[0],
+        text=who.sections[0].text + ("補" * 100),
+    )
+    who = replace(who, sections=(too_long, who.sections[1]))
+    broken = replace(
+        draft,
+        pages=(cover, who, *draft.pages[2:]),
+    )
+
+    with pytest.raises(ValueError) as error:
+        validate_draft(broken)
+
+    message = str(error.value)
+    assert "一句話定位 是事實區塊，必須附來源" in message
+    assert "產業分類 是事實區塊，必須附來源" in message
+    assert "who 文字需為 140–220 字" in message
+    assert error.value.page_types == frozenset({"cover", "who"})
+    assert error.value.has_global_issues is False

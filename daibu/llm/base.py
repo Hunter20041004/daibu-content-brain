@@ -23,6 +23,8 @@ class LLMResponseError(ValueError):
 
 
 class LLMProvider(Protocol):
+    def generate_text(self, prompt_text: str) -> str: ...
+
     def generate_ideas(
         self,
         theme_name: str,

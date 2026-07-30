@@ -273,6 +273,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS carousel_sources (
             idea_id INTEGER NOT NULL,
             source_key TEXT NOT NULL,
+            position INTEGER NOT NULL DEFAULT 0,
             publisher TEXT NOT NULL,
             published_at TEXT NOT NULL,
             url TEXT NOT NULL,
@@ -300,6 +301,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
                 "ALTER TABLE carousel_pages "
                 f"ADD COLUMN {column} TEXT NOT NULL DEFAULT {default}"
             )
+    source_columns = _table_columns(conn, "carousel_sources")
+    if "position" not in source_columns:
+        conn.execute(
+            "ALTER TABLE carousel_sources "
+            "ADD COLUMN position INTEGER NOT NULL DEFAULT 0"
+        )
     already_pruned = conn.execute(
         "SELECT 1 FROM config WHERE key = 'startup_sources_pruned'"
     ).fetchone()
@@ -790,19 +797,21 @@ def save_carousel_draft(
         conn.executemany(
             """
             INSERT INTO carousel_sources (
-                idea_id, source_key, publisher, published_at, url, excerpt
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                idea_id, source_key, position, publisher,
+                published_at, url, excerpt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
                     idea_id,
                     source.source_id,
+                    position,
                     source.publisher,
                     source.published_at,
                     source.url,
                     source.excerpt,
                 )
-                for source in draft.sources
+                for position, source in enumerate(draft.sources)
             ],
         )
         conn.executemany(
@@ -846,7 +855,7 @@ def get_carousel_draft(
         SELECT source_key, publisher, published_at, url, excerpt
         FROM carousel_sources
         WHERE idea_id = ?
-        ORDER BY source_key
+        ORDER BY position, source_key
         """,
         (idea_id,),
     ).fetchall()

@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from daibu.llm import base, prompt
@@ -104,7 +102,7 @@ def test_gemini_provider_maps_model_response(monkeypatch):
 
     monkeypatch.setattr(
         provider,
-        "_generate_text",
+        "generate_text",
         fake_generate,
     )
 
@@ -132,7 +130,7 @@ def test_groq_provider_maps_model_response(monkeypatch):
 
     monkeypatch.setattr(
         provider,
-        "_generate_text",
+        "generate_text",
         fake_generate,
     )
 
@@ -160,6 +158,12 @@ def test_get_provider_selects_configured_adapter():
     assert provider.model == "test-model"
 
 
+def test_provider_exposes_public_text_generation_for_carousel_copy():
+    provider = GeminiProvider(api_key="fake")
+
+    assert callable(provider.generate_text)
+
+
 def test_provider_retries_once_after_unparseable_response(monkeypatch):
     provider = GeminiProvider(api_key="fake")
     responses = iter(
@@ -177,7 +181,7 @@ def test_provider_retries_once_after_unparseable_response(monkeypatch):
         calls.append(text)
         return next(responses)
 
-    monkeypatch.setattr(provider, "_generate_text", fake_generate)
+    monkeypatch.setattr(provider, "generate_text", fake_generate)
 
     ideas = provider.generate_ideas(
         "新創介紹",
@@ -194,7 +198,7 @@ def test_provider_exposes_last_raw_response_after_retry_fails(monkeypatch):
     responses = iter(["第一次壞掉", "第二次仍壞掉"])
     monkeypatch.setattr(
         provider,
-        "_generate_text",
+        "generate_text",
         lambda text: next(responses),
     )
 
@@ -239,87 +243,322 @@ def test_build_prompt_demands_a_named_company():
     assert "寧可少產" in text
 
 
-def test_parse_carousel_returns_seven_pages_with_grounding():
-    raw = """[
-      {"page_type": "cover", "heading": "讓文字開口說話",
-       "body": "ElevenLabs", "grounding": "source",
-       "source_quote": "2022 年於倫敦成立。"},
-      {"page_type": "who", "heading": "他們是誰", "body": "英國新創",
-       "grounding": "source", "source_quote": "2022 年於倫敦成立。"},
-      {"page_type": "problem", "heading": "配音很貴", "body": "小團隊做不起",
-       "grounding": "model", "source_quote": ""},
-      {"page_type": "how-ai", "heading": "學會說話的節奏", "body": "不只唸字",
-       "grounding": "model", "source_quote": ""},
-      {"page_type": "results", "heading": "誰在用", "body": "有聲書與遊戲",
-       "grounding": "model", "source_quote": ""},
-      {"page_type": "why-care", "heading": "成本被改寫", "body": "內容產業變了",
-       "grounding": "model", "source_quote": ""},
-      {"page_type": "cta", "heading": "追蹤呆一布", "body": "每週五更新",
-       "grounding": "model", "source_quote": ""}
-    ]"""
+def test_carousel_prompt_limits_copy_to_verified_sources():
+    from tests.card_fixtures import verified_sources
 
-    got = prompt.parse_carousel(raw)
-
-    assert len(got) == 7
-    assert [row["page_no"] for row in got] == [1, 2, 3, 4, 5, 6, 7]
-    assert got[0]["grounding"] == "source"
-    assert got[2]["grounding"] == "model"
-    assert got[2]["source_quote"] == ""
-
-
-def test_parse_carousel_rejects_wrong_page_count():
-    with pytest.raises(ValueError):
-        prompt.parse_carousel('[{"page_type": "cover"}]')
-
-
-def test_parse_carousel_defaults_unknown_grounding_to_model():
-    """AI 沒標或亂標時，一律當成需查證，不可預設為有依據。"""
-    payload = [
-        {"page_type": page_type, "heading": "h", "body": "b"}
-        for page_type in (
-            "cover",
-            "who",
-            "problem",
-            "how-ai",
-            "results",
-            "why-care",
-            "cta",
-        )
-    ]
-    got = prompt.parse_carousel(json.dumps(payload, ensure_ascii=False))
-
-    assert {row["grounding"] for row in got} == {"model"}
-
-
-def test_build_carousel_prompt_carries_limits_and_grounding_rule():
     text = prompt.build_carousel(
         "ElevenLabs",
-        "讓文字開口說話",
-        "配音成本被改寫",
-        "2022 年於倫敦成立。",
+        "t",
+        "a",
+        verified_sources(),
     )
 
-    assert "ElevenLabs" in text
-    assert "2022 年於倫敦成立。" in text
-    assert "grounding" in text
-    # 字數上限要寫進指令
-    assert "14" in text and "60" in text
-    # 七個頁型都要出現
-    for page_type in (
-        "cover",
-        "who",
-        "problem",
-        "how-ai",
-        "results",
-        "why-care",
-        "cta",
-    ):
-        assert page_type in text
+    assert "140–220" in text
+    assert "ai-infrastructure" in text
+    assert "來源中沒有的公司、人物、客戶、數字或能力" in text
+    assert "目前公開證據有限" in text
+
+
+def test_carousel_prompt_spells_out_exact_section_labels():
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
+
+    assert "sections.label 必須逐字使用" in text
+    assert '"cover": ["一句話定位", "產業分類"]' in text
+    assert '"problem": ["誰受影響", "原本的代價"]' in text
+
+
+def test_carousel_prompt_lists_both_valid_why_care_label_sequences():
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
+
+    assert (
+        '"why-care": [["觀察訊號 1", "觀察訊號 2", "證據限制"], '
+        '["觀察訊號 1", "觀察訊號 2", "觀察訊號 3", "證據限制"]]'
+        in text
+    )
+
+
+def test_carousel_prompt_gives_the_model_a_buffered_output_checklist():
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
+
+    assert '"page_no": 1, "page_type": "cover"' in text
+    assert '"page_no": 7, "page_type": "cta"' in text
+    assert "170–190" in text
+    assert "輸出前逐頁檢查" in text
+
+
+def test_carousel_prompt_assigns_section_length_targets():
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
+
+    assert '"who": "每段 85–95 字"' in text
+    assert '"results": "每段 55–65 字"' in text
+    assert '"how-ai": "每段 40–48 字"' in text
+
+
+def test_carousel_repair_prompt_preserves_the_contract_and_reports_the_error():
+    from tests.card_fixtures import verified_sources
+
+    original = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
+
+    text = prompt.build_carousel_repair(
+        original,
+        '{"page_no": 1, "page_type": "cover"}',
+        ValueError("產業分類 是事實區塊，必須附來源"),
+    )
+
+    assert '"original_instructions"' in text
+    assert "sections.label 必須逐字使用" in text
+    assert '"failed_response"' in text
+    assert "page_no" in text and "cover" in text
+    assert "產業分類 是事實區塊，必須附來源" in text
+    assert "不得新增來源包沒有的事實" in text
+    assert "只輸出修正後的完整 JSON 陣列" in text
+
+
+def test_carousel_parser_builds_a_validated_sourced_draft():
+    from daibu.cards import pages
+    from tests.card_fixtures import (
+        structured_llm_response,
+        verified_sources,
+    )
+
+    draft = prompt.parse_carousel(
+        structured_llm_response(),
+        verified_sources(),
+    )
+
+    assert [page.page_type for page in draft.pages] == list(pages.PAGE_TYPES)
+    assert draft.pages[3].diagram.kind == "ai-generate"
+    assert draft.pages[0].source_label.startswith("來源：ElevenLabs")
+
+
+def test_carousel_decoder_reports_missing_required_page_fields():
+    from tests.card_fixtures import verified_sources
+
+    with pytest.raises(ValueError, match="page_no"):
+        prompt.decode_carousel(
+            '[{"page_type": "cover"}]',
+            verified_sources(),
+        )
+
+
+def test_carousel_decoder_reports_non_list_sections():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": null, "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="sections 必須是陣列"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_list_diagram_nodes():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 3, "page_type": "problem", "heading": "標題",'
+        ' "sections": [],'
+        ' "diagram": {"kind": "problem-chain", "nodes": null}}]'
+    )
+
+    with pytest.raises(ValueError, match="diagram.nodes 必須是陣列"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_object_sections():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": [null], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="section 必須是物件"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_missing_section_fields():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": [{"label": "一句話定位"}], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="section 缺少必要欄位：text"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_list_section_source_ids():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": [{"label": "一句話定位", "text": "內容",'
+        ' "source_ids": null}], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="section.source_ids 必須是陣列"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_rejects_non_string_source_ids():
+    from dataclasses import replace
+
+    from tests.card_fixtures import verified_sources
+
+    sources = verified_sources()
+    numeric_id_source = replace(sources[0], source_id="1")
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": [{"label": "一句話定位", "text": "內容",'
+        ' "source_ids": [1]}], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="source_ids 每一項都必須是非空字串"):
+        prompt.decode_carousel(
+            raw,
+            (numeric_id_source, *sources[1:]),
+        )
+
+
+def test_carousel_decoder_reports_missing_section_source_ids():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 7, "page_type": "cta", "heading": "標題",'
+        ' "sections": [{"label": "互動邀請", "text": "歡迎追蹤"}],'
+        ' "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="section 缺少必要欄位：source_ids"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_integer_page_numbers():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": null, "page_type": "cover", "heading": "標題",'
+        ' "sections": [], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="page_no 必須是整數"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_string_page_text_fields():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": null,'
+        ' "sections": [], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="heading 必須是字串"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_string_section_text():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": [{"label": "一句話定位", "text": null,'
+        ' "source_ids": ["S1"]}], "diagram": null}]'
+    )
+
+    with pytest.raises(ValueError, match="section.text 必須是字串"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_reports_non_string_diagram_node_text():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 3, "page_type": "problem", "heading": "標題",'
+        ' "sections": [], "diagram": {"kind": "problem-chain",'
+        ' "nodes": [{"title": null, "text": "內容"}]}}]'
+    )
+
+    with pytest.raises(ValueError, match="diagram node.title 必須是字串"):
+        prompt.decode_carousel(raw, verified_sources())
+
+
+def test_carousel_decoder_rejects_non_object_page_items():
+    import json
+
+    from tests.card_fixtures import (
+        structured_llm_response,
+        verified_sources,
+    )
+
+    payload = json.loads(structured_llm_response())
+    payload.append(None)
+
+    with pytest.raises(ValueError, match="每一頁必須是物件"):
+        prompt.decode_carousel(
+            json.dumps(payload, ensure_ascii=False),
+            verified_sources(),
+        )
+
+
+def test_carousel_decoder_rejects_non_object_diagrams():
+    from tests.card_fixtures import verified_sources
+
+    raw = (
+        '[{"page_no": 1, "page_type": "cover", "heading": "標題",'
+        ' "sections": [], "diagram": []}]'
+    )
+
+    with pytest.raises(ValueError, match="diagram 必須是物件或 null"):
+        prompt.decode_carousel(raw, verified_sources())
 
 
 def test_build_carousel_prompt_forbids_anxiety_framing():
     """網站 PRD 第二條營運鐵律：降低焦慮，不製造焦慮。"""
-    text = prompt.build_carousel("ElevenLabs", "t", "a", "片段")
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
 
     assert "焦慮" in text
     assert "落伍" in text

@@ -518,6 +518,23 @@ def test_structured_carousel_round_trip(tmp_path):
     conn.close()
 
 
+def test_structured_carousel_preserves_verified_source_order(tmp_path):
+    from dataclasses import replace
+
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    original = carousel_draft()
+    expected = replace(original, sources=tuple(reversed(original.sources)))
+
+    db.save_carousel_draft(conn, idea_id, expected)
+
+    assert db.get_carousel_draft(conn, idea_id) == expected
+    conn.close()
+
+
 def test_deleting_idea_removes_its_structured_carousel_sources(tmp_path):
     from tests.card_fixtures import carousel_draft
 

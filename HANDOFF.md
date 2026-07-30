@@ -1,56 +1,44 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
-> 兩個貼上區塊：規劃找 🧠 Claude、實作找 🖐 Codex。於 2026-07-29 更新。
-> 一句話現況：**B2 已完成；先驗收七張 PNG，通過後另開對話做 B3。**
-> 專案全貌、設計決策、測試基線一律看 `STATUS.md`，這裡不重複。
+> 於 2026-07-29 更新。
+> 一句話現況：**新版輪播 Phase A（Task 1–3）完成；下一輪從 Phase B Task 4
+>「官方 Logo 是產圖硬門檻」開始。**
 
----
+## 本輪目標與驗收
 
-## 下一輪要做什麼
+依 `docs/plan-carousel-redesign.md` 完成 Phase A（Task 1–3）：
 
-**B3 ＝ Task 15–17。使用者核可 B2 的七張圖後才開始。**
-
-下一輪交付的是：**超長文字不爆版、七張圖可打包 zip、選題頁接上「產貼圖」按鈕**。
-
-- 設計規格：`docs/specs/2026-07-28-貼文輪播圖產生器-design.md`
-- TDD 計畫：`docs/plan-carousel.md`（Task 15–17）
-- B1 驗收證據：`docs/history/HANDOFF-2026-07-29-carousel-b1.md`
-
-實作前基線：`.venv/bin/pytest -q` → `220 passed, 8 deselected`。
-
----
-
-## ⚠️ 下一輪最容易踩的坑
-
-1. Task 15 要用超長字串真的出圖看底部像素，不可只測 CSS 字串。
-2. Task 16 的 zip 檔名固定 `01-cover.png` 到 `07-cta.png`，七張順序不可漂移。
-3. Task 17 要補 provider 公開的 `generate_text`；真實 LLM 契約測資也要換掉，
-   詳見 B1 歷史交接單。
-4. **不要碰真實 `daibu.db`。** 要實際跑就用複本：
-   ```
-    cp daibu.db /tmp/daibu-b3.db
-    DAIBU_DB_PATH=/tmp/daibu-b3.db .venv/bin/streamlit run app.py --server.port 8502
-   ```
-   使用者自己常開著一個 Streamlit 在 8501，請挑別的 port。
-
----
+- 七頁結構、必要 section、140–220 字、圖解與來源 ID 可驗證；
+- 結構化草稿與來源能安全寫入／讀回 SQLite；
+- 免費 LLM 真實回覆能通過同一份嚴格契約。
 
 ## 本輪狀態
 
-- 2026-07-29：Task 12–14 完成；尚未碰 Task 15–17。
-- 新增 `shoot.png_bytes(html_text)`：以臨時本機 HTML 載入三個 LINE Seed TW 字重，
-  再用 Chromium 輸出固定 1080×1350 PNG；字型失敗會明確報錯，不會靜默 fallback。
-- 四個瀏覽器／像素測試預設執行：PNG 簽名與尺寸、外框／白卡色、文字像素、缺字型
-  錯誤；Task 14 局部 `4 passed`，全套 `220 passed, 8 deselected`。
-- 七張輸出與兩輪視覺自檢完成，最終瀏覽器 console `0 errors, 0 warnings`。
-  七張圖：`.screenshots/task14-final/01-cover.png` 至 `07-cta.png`；
-  檢視表：`.screenshots/task14-round1-contact-sheet.png`；
-  最終封面：`.screenshots/task14-final-cover.png`。
-- 下一步：先讓使用者目視驗收七張圖；通過後另開新對話做 B3。
+- 工作分支：`codex/carousel-redesign-phase-a`。
+- Task 1 提交 `9b6618c`：七頁 schema、必要 section、140–220 字、圖解與來源契約。
+- Task 2 提交 `0f03782`：SQLite 結構化頁面／來源 round-trip 與舊資料庫 migration。
+- Task 3（本次提交）：Gemini／Groq 共用 prompt/parser、一次帶完整錯誤的定向修稿、
+  僅合併失敗頁、第二次失敗不保存；來源先驗證、標示由程式產生並保留來源順序。
+- Code review 的第八頁覆寫、malformed JSON、固定 label 順序、空內容／圖解節點等
+  邊界已補回歸測試；最終 reviewer 回報無阻擋問題。
+- 驗收：
+  - 相關測試：`113 passed`。
+  - 全套：`271 passed, 9 deselected`。
+  - 真實免費 Gemini 契約曾通過：`1 passed in 70.28s`，涵蓋產生、定向修稿、驗證、
+    SQLite 寫入與讀回；提示文字澄清後再跑時碰到免費每日 20 次的 `429` 額度上限，
+    並非 parser／validator 失敗。
+- `docs/open-questions.md` 已記錄採用「一次帶錯誤修稿」的裁決。
 
----
+## 下一步
 
-## 歷史
+另開新對話執行 Phase B Task 4：官方 Logo 是產圖硬門檻。先讀計畫第 1384 行起的
+Logo 驗證／快取切片；依 TDD 一次完成一個垂直切片。Phase B 仍不做 HTML 排版或 PNG
+出圖，那是 Phase C。
 
-每一輪的完整實作紀錄與驗收證據放在 `docs/history/`，這份交接單只留當前這一輪
-（上限 4 KB，由 `~/.claude/hooks/handoff-size-gate.mjs` 把關）。
+## 最容易踩的坑
+
+1. 不可把空 `source_ids` 自動補成某個來源；程式不知道哪一筆真的支持該主張。
+2. 不可把 140 字下限或必要 label 放寬來讓真實測試假綠。
+3. 第二次 LLM 回覆只可替換第一次失敗／錯位的頁；已合格頁不可覆寫。
+4. 不要碰真實 `daibu.db`；資料庫測試只用 `tmp_path`。
+5. Gemini 免費額度可能在同日觸發 `429`；不要因此切到付費模型。

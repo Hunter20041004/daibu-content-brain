@@ -22,15 +22,32 @@ MASCOT_FOR = {
     "cta": "wave",
 }
 
-REQUIRED_SECTIONS = {
-    "cover": {"一句話定位", "產業分類"},
-    "who": {"白話定位", "基本資料"},
-    "problem": {"誰受影響", "原本的代價"},
-    "how-ai": {"傳統做法", "AI 的角色", "人仍負責", "本頁要記住"},
-    "results": {"代表使用者", "使用前後", "購買關係"},
-    "why-care": {"觀察訊號 1", "觀察訊號 2", "證據限制"},
-    "cta": {"公司定位", "AI 的角色", "觀察重點", "互動邀請"},
+SECTION_LABELS = {
+    "cover": ("一句話定位", "產業分類"),
+    "who": ("白話定位", "基本資料"),
+    "problem": ("誰受影響", "原本的代價"),
+    "how-ai": ("傳統做法", "AI 的角色", "人仍負責", "本頁要記住"),
+    "results": ("代表使用者", "使用前後", "購買關係"),
+    "why-care": ("觀察訊號 1", "觀察訊號 2", "證據限制"),
+    "cta": ("公司定位", "AI 的角色", "觀察重點", "互動邀請"),
 }
+REQUIRED_SECTIONS = {
+    page_type: set(labels)
+    for page_type, labels in SECTION_LABELS.items()
+}
+SECTION_LABEL_SEQUENCES = {
+    page_type: (labels,)
+    for page_type, labels in SECTION_LABELS.items()
+}
+SECTION_LABEL_SEQUENCES["why-care"] = (
+    SECTION_LABELS["why-care"],
+    (
+        "觀察訊號 1",
+        "觀察訊號 2",
+        "觀察訊號 3",
+        "證據限制",
+    ),
+)
 
 AI_ROLE_KINDS = {
     "ai-analyze",

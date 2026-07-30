@@ -1,3 +1,5 @@
+import json
+from dataclasses import asdict
 from pathlib import Path
 
 from daibu.cards.schema import (
@@ -253,7 +255,8 @@ def carousel_draft() -> CarouselDraft:
                 _section("互動邀請", "按讚並追蹤呆一布，繼續看懂 AI 公司。"),
             ),
             None,
-            "來源：ElevenLabs；Verified News",
+            "來源：ElevenLabs · 2026-07-12、2026-07-18；"
+            "Verified News · 2026-07-20",
         ),
     )
     draft = CarouselDraft(verified_sources(), pages)
@@ -276,3 +279,20 @@ def brand_asset(path: Path) -> BrandAsset:
         "https://elevenlabs.io/about",
         "2026-07-29",
     )
+
+
+def structured_llm_response(
+    draft: CarouselDraft | None = None,
+) -> str:
+    payload = []
+    for page in (draft or carousel_draft()).pages:
+        payload.append(
+            {
+                "page_no": page.page_no,
+                "page_type": page.page_type,
+                "heading": page.heading,
+                "sections": [asdict(section) for section in page.sections],
+                "diagram": asdict(page.diagram) if page.diagram else None,
+            }
+        )
+    return json.dumps(payload, ensure_ascii=False)

@@ -52,6 +52,27 @@ class CarouselDraft:
     pages: tuple[CarouselPage, ...]
 
 
+class DraftValidationError(ValueError):
+    def __init__(
+        self,
+        draft: CarouselDraft,
+        issues: tuple[tuple[str | None, str], ...],
+    ) -> None:
+        self.draft = draft
+        self.issues = issues
+        self.page_types = frozenset(
+            page_type
+            for page_type, _message in issues
+            if page_type is not None
+        )
+        self.has_global_issues = any(
+            page_type is None for page_type, _message in issues
+        )
+        super().__init__(
+            "\n".join(f"- {message}" for _page_type, message in issues)
+        )
+
+
 @dataclass(frozen=True)
 class BrandAsset:
     company: str
@@ -69,12 +90,16 @@ def _source_label(
     sources: tuple[VerifiedSource, ...],
 ) -> str:
     used = {item for section in sections for item in section.source_ids}
-    entries = []
-    for source in sources:
+    dates_by_publisher: dict[str, list[str]] = {}
+    for source in sorted(sources, key=lambda item: item.source_id):
         if source.source_id in used:
-            label = f"{source.publisher} · {source.published_at}"
-            if label not in entries:
-                entries.append(label)
+            dates = dates_by_publisher.setdefault(source.publisher, [])
+            if source.published_at not in dates:
+                dates.append(source.published_at)
+    entries = (
+        f"{publisher} · {'、'.join(dates)}"
+        for publisher, dates in dates_by_publisher.items()
+    )
     return "來源：" + "；".join(entries)
 
 
@@ -82,46 +107,107 @@ def page_from_mapping(
     value: Mapping[str, object],
     sources: tuple[VerifiedSource, ...],
 ) -> CarouselPage:
-    sections = tuple(
-        ContentSection(
-            str(item["label"]),
-            str(item["text"]),
-            tuple(str(source_id) for source_id in item.get("source_ids", [])),
+    for field in ("page_no", "page_type", "heading"):
+        if field not in value:
+            raise ValueError(f"輪播頁缺少必要欄位：{field}")
+    page_no = value["page_no"]
+    if not isinstance(page_no, int) or isinstance(page_no, bool):
+        raise ValueError("輪播頁 page_no 必須是整數")
+    for field in ("page_type", "heading"):
+        if not isinstance(value[field], str):
+            raise ValueError(f"輪播頁 {field} 必須是字串")
+    raw_sections = value.get("sections", [])
+    if not isinstance(raw_sections, (list, tuple)):
+        raise ValueError("輪播頁 sections 必須是陣列")
+    parsed_sections = []
+    for item in raw_sections:
+        if not isinstance(item, Mapping):
+            raise ValueError("輪播頁 section 必須是物件")
+        for field in ("label", "text", "source_ids"):
+            if field not in item:
+                raise ValueError(
+                    f"輪播頁 section 缺少必要欄位：{field}"
+                )
+        for field in ("label", "text"):
+            if not isinstance(item[field], str):
+                raise ValueError(
+                    f"輪播頁 section.{field} 必須是字串"
+                )
+        raw_source_ids = item["source_ids"]
+        if not isinstance(raw_source_ids, (list, tuple)):
+            raise ValueError("輪播頁 section.source_ids 必須是陣列")
+        if any(
+            not isinstance(source_id, str) or not source_id.strip()
+            for source_id in raw_source_ids
+        ):
+            raise ValueError(
+                "輪播頁 section.source_ids 每一項都必須是非空字串"
+            )
+        parsed_sections.append(
+            ContentSection(
+                item["label"],
+                item["text"],
+                tuple(raw_source_ids),
+            )
         )
-        for item in value.get("sections", [])
-    )
+    sections = tuple(parsed_sections)
     raw_diagram = value.get("diagram")
+    if raw_diagram is not None and not isinstance(raw_diagram, Mapping):
+        raise ValueError("輪播頁 diagram 必須是物件或 null")
     diagram = None
     if isinstance(raw_diagram, Mapping):
+        raw_nodes = raw_diagram.get("nodes", [])
+        if not isinstance(raw_nodes, (list, tuple)):
+            raise ValueError("輪播頁 diagram.nodes 必須是陣列")
+        parsed_nodes = []
+        for node in raw_nodes:
+            if not isinstance(node, Mapping):
+                raise ValueError("輪播頁 diagram node 必須是物件")
+            for field in ("title", "text"):
+                if not isinstance(node.get(field), str):
+                    raise ValueError(
+                        f"輪播頁 diagram node.{field} 必須是字串"
+                    )
+            expression = node.get("expression", "")
+            if not isinstance(expression, str):
+                raise ValueError(
+                    "輪播頁 diagram node.expression 必須是字串"
+                )
+            parsed_nodes.append(
+                DiagramNode(
+                    node["title"],
+                    node["text"],
+                    expression,
+                )
+            )
         diagram = DiagramSpec(
             str(raw_diagram.get("kind", "")),
-            tuple(
-                DiagramNode(
-                    str(node.get("title", "")),
-                    str(node.get("text", "")),
-                    str(node.get("expression", "")),
-                )
-                for node in raw_diagram.get("nodes", [])
-                if isinstance(node, Mapping)
-            ),
+            tuple(parsed_nodes),
         )
     return CarouselPage(
-        int(value["page_no"]),
-        str(value["page_type"]),
-        str(value["heading"]),
+        page_no,
+        value["page_type"],
+        value["heading"],
         sections,
         diagram,
         _source_label(sections, sources),
     )
 
 
-def validate_draft(draft: CarouselDraft) -> None:
-    """Validate a structured carousel draft."""
-    source_ids = [source.source_id for source in draft.sources]
-    if len(source_ids) != len(set(source_ids)):
-        raise ValueError("來源 ID 不可重複")
+def _source_validation_errors(
+    sources: tuple[VerifiedSource, ...],
+) -> tuple[str, ...]:
+    errors: list[str] = []
 
-    for source in draft.sources:
+    def record(message: str) -> None:
+        if message not in errors:
+            errors.append(message)
+
+    source_ids = [source.source_id for source in sources]
+    if len(source_ids) != len(set(source_ids)):
+        record("來源 ID 不可重複")
+
+    for source in sources:
         values = (
             source.source_id,
             source.publisher,
@@ -129,55 +215,138 @@ def validate_draft(draft: CarouselDraft) -> None:
             source.url,
             source.excerpt,
         )
-        if not all(value.strip() for value in values):
-            raise ValueError("來源資料不完整")
-        parsed = urlparse(source.url)
-        if parsed.scheme != "https" or not parsed.netloc:
-            raise ValueError("來源網址必須是 https")
+        if not all(
+            isinstance(value, str) and value.strip()
+            for value in values
+        ):
+            record("來源資料不完整")
+        parsed = (
+            urlparse(source.url)
+            if isinstance(source.url, str)
+            else None
+        )
+        if parsed is None or parsed.scheme != "https" or not parsed.netloc:
+            record("來源網址必須是 https")
         try:
+            if not isinstance(source.published_at, str):
+                raise ValueError
             date.fromisoformat(source.published_at)
-        except ValueError as error:
-            raise ValueError("來源日期必須是 YYYY-MM-DD") from error
+        except ValueError:
+            record("來源日期必須是 YYYY-MM-DD")
+    return tuple(errors)
+
+
+def validate_sources(sources: tuple[VerifiedSource, ...]) -> None:
+    errors = _source_validation_errors(sources)
+    if errors:
+        raise ValueError("\n".join(f"- {message}" for message in errors))
+
+
+def validate_draft(draft: CarouselDraft) -> None:
+    """Validate a structured carousel draft."""
+    errors: list[tuple[str | None, str]] = []
+
+    def record(message: str, page_type: str | None = None) -> None:
+        issue = (page_type, message)
+        if issue not in errors:
+            errors.append(issue)
+
+    for source_error in _source_validation_errors(draft.sources):
+        record(source_error)
 
     expected = list(enumerate(pages.PAGE_TYPES, start=1))
     actual = [(page.page_no, page.page_type) for page in draft.pages]
     if actual != expected:
-        raise ValueError("輪播必須依固定順序包含七頁")
+        record("輪播必須依固定順序包含七頁")
 
     known_sources = {source.source_id for source in draft.sources}
     for page in draft.pages:
-        labels = {section.label for section in page.sections}
-        missing = pages.REQUIRED_SECTIONS[page.page_type] - labels
-        if missing:
-            raise ValueError(
-                f"{page.page_type} 缺少 section：{', '.join(sorted(missing))}"
+        if not page.heading.strip():
+            record(f"{page.page_type} 標題不可空白", page.page_type)
+        expected_source_label = _source_label(page.sections, draft.sources)
+        if page.source_label != expected_source_label:
+            record(
+                f"{page.page_type} 來源標示必須由程式產生",
+                page.page_type,
             )
+        ordered_labels = tuple(section.label for section in page.sections)
+        labels = set(ordered_labels)
+        required = pages.REQUIRED_SECTIONS.get(page.page_type)
+        if required is not None:
+            missing = required - labels
+            if missing:
+                record(
+                    f"{page.page_type} 缺少 section："
+                    f"{', '.join(sorted(missing))}",
+                    page.page_type,
+                )
+            if ordered_labels not in pages.SECTION_LABEL_SEQUENCES[page.page_type]:
+                record(
+                    f"{page.page_type} section 必須依固定順序完整提供",
+                    page.page_type,
+                )
 
         if page.page_type in pages.DIAGRAM_FOR:
             if page.diagram is None:
-                raise ValueError(f"{page.page_type} 缺少品牌圖解")
-            if page.diagram.kind not in pages.DIAGRAM_FOR[page.page_type]:
-                raise ValueError(f"{page.page_type} 使用了不相容的圖解")
-        elif page.diagram is not None:
-            raise ValueError(f"{page.page_type} 不應放主圖解")
+                record(f"{page.page_type} 缺少品牌圖解", page.page_type)
+            elif page.diagram.kind not in pages.DIAGRAM_FOR[page.page_type]:
+                record(f"{page.page_type} 使用了不相容的圖解", page.page_type)
+            elif len(page.diagram.nodes) != 3:
+                record(
+                    f"{page.page_type} 圖解必須有 3 個節點",
+                    page.page_type,
+                )
+            elif any(
+                not node.title.strip() or not node.text.strip()
+                for node in page.diagram.nodes
+            ):
+                record(
+                    f"{page.page_type} 圖解節點不可空白",
+                    page.page_type,
+                )
+        elif page.page_type in pages.PAGE_TYPES and page.diagram is not None:
+            record(f"{page.page_type} 不應放主圖解", page.page_type)
 
         if page.page_type in pages.PAGE_TYPES[1:6]:
             count = narrative_chars(page)
             if not pages.LIMITS["inner_min"] <= count <= pages.LIMITS["inner_max"]:
-                raise ValueError(
+                record(
                     f"{page.page_type} 文字需為 "
                     f"{pages.LIMITS['inner_min']}–{pages.LIMITS['inner_max']} 字，"
-                    f"目前 {count} 字"
+                    f"目前 {count} 字",
+                    page.page_type,
                 )
 
         for section in page.sections:
+            if not section.text.strip():
+                record(
+                    f"{page.page_type} {section.label} 內容不可空白",
+                    page.page_type,
+                )
             unknown = set(section.source_ids) - known_sources
             if unknown:
-                raise ValueError(f"引用不存在的來源：{', '.join(sorted(unknown))}")
+                record(
+                    f"引用不存在的來源：{', '.join(sorted(unknown))}",
+                    page.page_type,
+                )
             may_be_unsourced = section.label in {"互動邀請", "證據限制"}
             if not section.source_ids and not may_be_unsourced:
-                raise ValueError(f"{section.label} 是事實區塊，必須附來源")
+                record(
+                    f"{section.label} 是事實區塊，必須附來源",
+                    page.page_type,
+                )
 
-    cta = " ".join(section.text for section in draft.pages[-1].sections)
-    if any(word in cta for word in ("試用", "註冊", "下載", "投資", "官網看看")):
-        raise ValueError("第 7 頁只能邀請按讚或追蹤")
+    cta_page = next(
+        (page for page in draft.pages if page.page_type == "cta"),
+        None,
+    )
+    if cta_page is not None:
+        cta = " ".join(section.text for section in cta_page.sections)
+        if any(
+            word in cta
+            for word in ("試用", "註冊", "下載", "投資", "官網看看")
+        ):
+            record("第 7 頁只能邀請按讚或追蹤", "cta")
+
+    if errors:
+        raise DraftValidationError(draft, tuple(errors))

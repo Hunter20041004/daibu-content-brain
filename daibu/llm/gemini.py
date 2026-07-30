@@ -14,7 +14,7 @@ class GeminiProvider:
         self.api_key = api_key
         self.model = model
 
-    def _generate_text(self, text: str) -> str:
+    def generate_text(self, text: str) -> str:
         client = genai.Client(api_key=self.api_key)
         response = client.models.generate_content(
             model=self.model,
@@ -35,4 +35,4 @@ class GeminiProvider:
             n,
             avoid_titles,
         )
-        return generate_and_parse(self._generate_text, text)
+        return generate_and_parse(self.generate_text, text)
