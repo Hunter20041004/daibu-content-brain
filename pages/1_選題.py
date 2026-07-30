@@ -622,7 +622,7 @@ with candidate_column:
                 "正文",
                 value=idea.body,
                 key=body_key,
-                height=240,
+                height=180,
                 on_change=save_body_draft,
                 args=(idea.id, body_key),
             )
@@ -696,78 +696,6 @@ with candidate_column:
                 source_fetch_error_key = (
                     f"carousel-source-fetch-error-{idea.id}"
                 )
-                with st.form(f"carousel-source-{idea.id}"):
-                    source_url = st.text_input(
-                        "來源網址",
-                        value=(
-                            idea.source_url
-                            if not source_pack
-                            else ""
-                        ),
-                        key=source_url_key,
-                        help="只接受公開可讀的 https 網址。",
-                    )
-                    source_publisher = st.text_input(
-                        "出版方",
-                        key=source_publisher_key,
-                    )
-                    source_date = st.text_input(
-                        "發布日期",
-                        key=source_date_key,
-                        placeholder="YYYY-MM-DD",
-                    )
-                    source_excerpt = st.text_area(
-                        "查證引文",
-                        value=(
-                            idea.source_excerpt
-                            if not source_pack
-                            else ""
-                        ),
-                        key=source_excerpt_key,
-                        height=120,
-                    )
-                    fetch_column, add_column = st.columns(2)
-                    fetch_column.form_submit_button(
-                        "抓取內容",
-                        on_click=fetch_source_suggestion,
-                        args=(
-                            source_url_key,
-                            source_publisher_key,
-                            source_date_key,
-                            source_excerpt_key,
-                            source_fetch_error_key,
-                        ),
-                        width="stretch",
-                    )
-                    if add_column.form_submit_button(
-                        "加入來源",
-                        width="stretch",
-                    ):
-                        try:
-                            updated_pack = card_sources.add(
-                                source_pack,
-                                source_publisher,
-                                source_date,
-                                source_url,
-                                source_excerpt,
-                            )
-                            db.save_idea_sources(
-                                conn,
-                                idea.id,
-                                updated_pack,
-                            )
-                            queue_toast(
-                                st.session_state,
-                                "已加入查證來源。",
-                            )
-                            st.rerun()
-                        except ValueError as error:
-                            st.error(str(error))
-                    source_fetch_error = st.session_state.get(
-                        source_fetch_error_key
-                    )
-                    if source_fetch_error:
-                        st.error(source_fetch_error)
                 for verified_source in source_pack:
                     st.markdown(
                         '<div class="verified-source">'
@@ -806,6 +734,82 @@ with candidate_column:
                             f"已刪除來源 {verified_source.source_id}。",
                         )
                         st.rerun()
+                with st.expander(
+                    "＋ 新增來源",
+                    expanded=not source_pack,
+                ):
+                    with st.form(f"carousel-source-{idea.id}"):
+                        source_url = st.text_input(
+                            "來源網址",
+                            value=(
+                                idea.source_url
+                                if not source_pack
+                                else ""
+                            ),
+                            key=source_url_key,
+                            help="只接受公開可讀的 https 網址。",
+                        )
+                        source_publisher = st.text_input(
+                            "出版方",
+                            key=source_publisher_key,
+                        )
+                        source_date = st.text_input(
+                            "發布日期",
+                            key=source_date_key,
+                            placeholder="YYYY-MM-DD",
+                        )
+                        source_excerpt = st.text_area(
+                            "查證引文",
+                            value=(
+                                idea.source_excerpt
+                                if not source_pack
+                                else ""
+                            ),
+                            key=source_excerpt_key,
+                            height=120,
+                        )
+                        fetch_column, add_column = st.columns(2)
+                        fetch_column.form_submit_button(
+                            "抓取內容",
+                            on_click=fetch_source_suggestion,
+                            args=(
+                                source_url_key,
+                                source_publisher_key,
+                                source_date_key,
+                                source_excerpt_key,
+                                source_fetch_error_key,
+                            ),
+                            width="stretch",
+                        )
+                        if add_column.form_submit_button(
+                            "加入來源",
+                            width="stretch",
+                        ):
+                            try:
+                                updated_pack = card_sources.add(
+                                    source_pack,
+                                    source_publisher,
+                                    source_date,
+                                    source_url,
+                                    source_excerpt,
+                                )
+                                db.save_idea_sources(
+                                    conn,
+                                    idea.id,
+                                    updated_pack,
+                                )
+                                queue_toast(
+                                    st.session_state,
+                                    "已加入查證來源。",
+                                )
+                                st.rerun()
+                            except ValueError as error:
+                                st.error(str(error))
+                        source_fetch_error = st.session_state.get(
+                            source_fetch_error_key
+                        )
+                        if source_fetch_error:
+                            st.error(source_fetch_error)
                 if idea.company.strip():
                     st.markdown("#### 官方 Logo")
                     if brand_asset is None:

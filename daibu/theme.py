@@ -505,6 +505,84 @@ def css(mode: str | None = None) -> str:
         line-height: 1.45;
     }}
 
+    .carousel-status {{
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--highlight);
+        border-radius: 12px;
+        margin: 0.5rem 0 1rem;
+        padding: 0.9rem 1rem;
+    }}
+
+    .carousel-status strong {{
+        display: block;
+        font-size: 1rem;
+        line-height: 1.35;
+    }}
+
+    .carousel-status p {{
+        font-size: 0.875rem;
+        line-height: 1.55;
+        margin: 0.35rem 0 0;
+        opacity: 0.72;
+    }}
+
+    .verified-source,
+    .verified-logo {{
+        align-items: baseline;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-top: 0.65rem;
+        padding: 0.75rem 0.9rem;
+    }}
+
+    .verified-source strong,
+    .verified-logo strong {{
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }}
+
+    .verified-source span {{
+        flex: 0 0 auto;
+        font-size: 0.75rem;
+        opacity: 0.62;
+    }}
+
+    .carousel-page-heading {{
+        align-items: center;
+        display: flex;
+        gap: 0.65rem;
+        margin-bottom: 0.85rem;
+    }}
+
+    .carousel-page-heading span {{
+        align-items: center;
+        background: var(--brand-primary);
+        border-radius: 999px;
+        color: var(--primary-button-ink) !important;
+        display: inline-flex;
+        font-size: 0.7rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        justify-content: center;
+        min-height: 1.6rem;
+        min-width: 2rem;
+    }}
+
+    .carousel-page-heading strong {{
+        font-size: 1rem;
+        line-height: 1.35;
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-carousel-page-"] {{
+        background: var(--surface);
+        border-left: 3px solid var(--brand-primary);
+    }}
+
     @media (hover: hover) and (pointer: fine) {{
         .stButton > button:hover,
         [data-testid^="stBaseButton"]:hover {{
