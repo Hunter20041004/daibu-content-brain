@@ -1,70 +1,56 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 於 2026-07-30 更新。
-> 一句話現況：**來源蒐集、官方 Logo、七張圖與 ZIP 已全部接進選題工作台，
-> Phase A–D 已在 `main` 完成。**
+> 一句話現況：**功能已全部接完並在 `main`（349 passed）；這一輪不寫新功能，
+> 改用真實資料、真實網路、真實 AI 額度走完一次全流程驗收。**
 
-## 本輪目標與結果
+## 本輪目標與驗收
 
-依 `docs/plan-cards-wiring.md` 完成 Phase A–D、Task 1–11。
+依 `docs/plan-acceptance-cards.md` 執行 A–D 四段，**這一輪只驗收、不修 bug**：
 
-- **Phase A｜來源包**：新增 `idea_sources`，每題可存 1–8 筆查證來源；
-  `S1`–`S8` 取最小空號，刪題目會連帶清除。貼入公開 https 網址可抓出版方、
-  日期與引文建議值，仍須由使用者確認後才存。
-- **Phase B｜官方 Logo**：公司共用 Logo 可上傳、替換、重用並保留官方來源與
-  確認日期。只收 SVG／透明 PNG；限制 2 MB、4096 px、800 萬總像素與 64 px
-  最小邊，錯誤不會留下半套資料。
-- **Phase C｜ZIP**：七張 1080×1350 PNG 依固定頁型編成
-  `01-cover.png` 到 `07-cta.png`，下載檔名含公司與日期。
-- **Phase D｜工作台**：已採用題目內可完成公司名、來源、Logo、七頁草稿編輯、
-  重新產生確認、出圖預覽與 ZIP 下載。草稿改動後舊圖快取會失效。
+- **A 操作驗收**：從舊資料庫搬遷開始，一路到來源、Logo、草稿、出圖、ZIP。
+- **B 觀眾視角**：把七張 PNG 當成一則真的 IG 貼文，回答腳本裡的 10 個問題。
+- **C 回報**：問題清單寫進 `docs/2026-07-30-輪播全流程驗收回饋.md`，
+  分 🔴 會弄壞資料或信任／🟠 會擋住流程／🟡 礙眼但不擋 三級。
+- **D 分支清理**：刪三個已無用的本機分支（使用者已同意）。
 
-## 產品與資料流
+驗收完成的定義：七條驗收條件逐條有「符合／不符合＋證據」，回饋文件已產出。
 
-```text
-採用題目
-  → idea_sources（可編輯查證包）
-  → carousel_sources（產稿當下快照）＋ carousel_pages（七頁草稿）
-  → brand_assets（公司共用、附官方來源的 Logo）
-  → Playwright 渲染七張 PNG → ZIP
-```
+## 為什麼要做
 
-來源包與快照分開，避免之後修改筆記時讓既有草稿的來源標籤失效。缺 Logo 只擋
-「產生七張圖」，不擋純文字草稿；這是本輪刻意保留的產品行為。
+349 個測試全綠，但**全部都是程式在驗程式**。上一次真人驗收也是在 99 個測試全綠
+時揪出 24 條問題，其中 4 條會弄壞資料——共同點是它們都跨越了單一函式的邊界。
 
-## 驗收證據
+## 最容易踩的坑
 
-- 分支 `codex/cards-wiring` 已快轉合併進 `main`。
-- 功能分支收尾：`.venv/bin/pytest -q` → **349 passed, 10 deselected**。
-- 合併後 `main` 複驗：`.venv/bin/pytest -q` →
-  **349 passed, 10 deselected in 28.53s**。
-- 真實文章頁契約：TechCrunch 網址抓取測試 **1 passed**。
-- 最終 UI：console **0 errors**；375px 時
-  `scrollWidth = clientWidth = 375`，無橫向破版。
-- 截圖：`.screenshots/desktop.png`、`.screenshots/mobile.png`
-  （目錄已忽略，不進 git）。
-- 合併前差異審查：無 Critical／Important 問題。
+1. **一定要用複本**：`cp daibu.db /tmp/daibu-test.db`，跑 port 8502
+   （使用者自己的 Streamlit 佔著 8501）。驗收結束要確認真實 `daibu.db`
+   的修改時間沒變。
+2. **使用者的真實資料庫還停在很舊的結構**：`ideas` 沒有 `company`、
+   沒有 `source_excerpt`，四張輪播相關的表也全都不存在，裡面有 3 主題、
+   8 則題目（6 候選、1 採用、1 已發）。複本第一次被新版開啟時會真的跑一次搬遷，
+   **這是最可能出事、也最沒被測試涵蓋的一步**，要先確認資料一則都沒少。
+3. **舊的 6 則候選是舊 prompt 產的**，沒有公司名也沒有引文，接不上輪播流程；
+   要先產一批新候選（會花免費額度、會打 15 個外部來源）。
+4. **Logo 只能來自公司官網或官方品牌素材包**，禁止從圖片搜尋抓第一張。下載後
+   要把圖貼給使用者確認是官方版本，再往下走——這是規格要求的那一步「使用者確認」。
+5. **這一輪不要順手修 bug**。發現問題就記錄、繼續往下跑。只有流程被完全擋死時
+   才做最小修正，並在報告中標明改了什麼、為什麼非改不可。
+6. **不要判斷「這則內容值不值得發」**——那是使用者的產品決策。Codex 只回報
+   哪一張讀不懂、哪一句不通順、哪裡違反規格。
+7. 刪分支時前兩個用小寫 `-d`；**若 git 拒絕就停下來回報，不要改用 `-D` 硬刪**。
+   只刪本機分支，不要碰 `origin`。
 
-## 剩餘限制與風險
+## 本輪狀態
 
-1. 預設略過的 10 個 contract 測試會打真實 LLM／RSS／網頁，需網路或 API key；
-   一般全套測試不會花免費額度。
-2. 部分網站會擋自動抓取；介面會保留原輸入，使用者可改成手動填寫。
-3. 這是本機 Streamlit 工具，專案沒有 production 部署流程；v1 的雲端部署仍是
-   non-goal。
-4. 手動驗收請用複本資料庫與 port 8502，不要動使用者正在用的 `daibu.db`。
+- 目前分支：`main`，功能最後一個 commit 是 `57e147d`，工作區乾淨
+  （`.DS_Store` 維持未追蹤）。
+- 基線：`349 passed, 10 deselected`（Claude 已獨立複驗）。
+- Claude 這一輪只寫 `docs/` 與 `HANDOFF.md`，未動任何原始碼。
+- Codex 尚未開工。
 
 ## 設計依據
 
+- 驗收腳本：`docs/plan-acceptance-cards.md`
 - 規格：`docs/specs/2026-07-30-來源蒐集與出圖接線-design.md`
-- 計畫：`docs/plan-cards-wiring.md`
-- 上一輪歸檔：`docs/history/HANDOFF-2026-07-30-carousel-phase-c.md`
-
-## 下一輪
-
-本輪已完整結束。請開新對話處理下一個 Task；若要做真人內容驗收，先複製資料庫：
-
-```bash
-cp daibu.db /tmp/daibu-test.db
-DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 8502
-```
+- 上一輪歸檔：`docs/history/HANDOFF-2026-07-30-cards-wiring.md`
