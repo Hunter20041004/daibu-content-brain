@@ -203,6 +203,28 @@ def test_add_and_get_idea_keeps_company_and_excerpt(tmp_path):
     conn.close()
 
 
+def test_idea_source_pack_round_trip_and_cascade_delete(tmp_path):
+    from tests.card_fixtures import verified_sources
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    expected = verified_sources()
+
+    db.save_idea_sources(conn, idea_id, expected)
+
+    assert db.get_idea_sources(conn, idea_id) == expected
+    assert db.get_idea_sources(conn, idea_id + 999) == ()
+
+    db.save_idea_sources(conn, idea_id, expected[:1])
+    assert db.get_idea_sources(conn, idea_id) == expected[:1]
+
+    db.delete_idea(conn, idea_id)
+    assert conn.execute(
+        "SELECT COUNT(*) FROM idea_sources"
+    ).fetchone()[0] == 0
+
+
 def test_add_idea_records_local_created_time(monkeypatch, tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

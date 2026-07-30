@@ -388,3 +388,26 @@ def test_migration_adds_carousel_source_position_idempotently(tmp_path):
     }
     assert "position" in columns
     conn.close()
+
+
+def test_migration_adds_idea_source_pack_idempotently(tmp_path):
+    path = tmp_path / "pack.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    conn.execute("DROP TABLE IF EXISTS idea_sources")
+    conn.commit()
+
+    db.init_schema(conn)
+    db.init_schema(conn)
+
+    columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(idea_sources)")
+    }
+    assert {
+        "idea_id",
+        "source_key",
+        "publisher",
+        "published_at",
+        "url",
+        "excerpt",
+    } <= columns

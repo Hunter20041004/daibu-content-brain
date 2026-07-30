@@ -10,6 +10,7 @@ from daibu.cards.schema import (
     DiagramSpec,
     VerifiedSource,
     validate_draft,
+    validate_sources,
 )
 from daibu.clock import now as _now
 from daibu.llm.base import Idea
@@ -281,6 +282,17 @@ def init_schema(conn: sqlite3.Connection) -> None:
             PRIMARY KEY (idea_id, source_key),
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
         );
+
+        CREATE TABLE IF NOT EXISTS idea_sources (
+            idea_id INTEGER NOT NULL,
+            source_key TEXT NOT NULL,
+            publisher TEXT NOT NULL,
+            published_at TEXT NOT NULL,
+            url TEXT NOT NULL,
+            excerpt TEXT NOT NULL,
+            PRIMARY KEY (idea_id, source_key),
+            FOREIGN KEY (idea_id) REFERENCES ideas(id)
+        );
         """
     )
     idea_columns = _table_columns(conn, "ideas")
@@ -497,6 +509,13 @@ def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
     conn.execute(
         """
         DELETE FROM carousel_sources
+        WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
+        """,
+        (theme_id,),
+    )
+    conn.execute(
+        """
+        DELETE FROM idea_sources
         WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
         """,
         (theme_id,),
@@ -734,8 +753,65 @@ def update_idea_content(
 def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
     conn.execute("DELETE FROM carousel_pages WHERE idea_id = ?", (idea_id,))
     conn.execute("DELETE FROM carousel_sources WHERE idea_id = ?", (idea_id,))
+    conn.execute("DELETE FROM idea_sources WHERE idea_id = ?", (idea_id,))
     conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
     conn.commit()
+
+
+def save_idea_sources(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    sources: tuple[VerifiedSource, ...],
+) -> None:
+    validate_sources(sources)
+    with conn:
+        conn.execute(
+            "DELETE FROM idea_sources WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.executemany(
+            """
+            INSERT INTO idea_sources (
+                idea_id, source_key, publisher, published_at, url, excerpt
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    idea_id,
+                    source.source_id,
+                    source.publisher,
+                    source.published_at,
+                    source.url,
+                    source.excerpt,
+                )
+                for source in sources
+            ],
+        )
+
+
+def get_idea_sources(
+    conn: sqlite3.Connection,
+    idea_id: int,
+) -> tuple[VerifiedSource, ...]:
+    rows = conn.execute(
+        """
+        SELECT source_key, publisher, published_at, url, excerpt
+        FROM idea_sources
+        WHERE idea_id = ?
+        ORDER BY source_key
+        """,
+        (idea_id,),
+    ).fetchall()
+    return tuple(
+        VerifiedSource(
+            row["source_key"],
+            row["publisher"],
+            row["published_at"],
+            row["url"],
+            row["excerpt"],
+        )
+        for row in rows
+    )
 
 
 def save_carousel(
