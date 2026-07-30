@@ -1,8 +1,8 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 於 2026-07-30 更新。
-> 一句話現況：**輪播重設 Phase C 與免費 LLM 換模已合併本機 main；
-> 全測與真實契約通過，但 repository 沒有 remote，尚未 push。**
+> 一句話現況：**輪播重設 Phase C 與免費 LLM 換模已在 main 完成；
+> 全測與真實契約通過，並已推送至私人 GitHub 儲存庫。**
 
 ## 本輪目標與驗收
 
@@ -14,7 +14,7 @@
 
 ## 本輪狀態
 
-- 工作分支：`codex/carousel-redesign-phase-c`。
+- 目前分支：`main`，追蹤 `origin/main`。
 - Task 6 提交 `4c1b948`：新版 HTML renderer、七頁 section／Logo／來源／安全跳脫。
 - Task 7 提交 `4f6c631`：七張 PNG、`LayoutReport`、真實瀏覽器版面契約。
 - 第二輪視覺驗收全部合格：
@@ -33,7 +33,9 @@
   - provider／設定頁預設與本機 SQLite `llm_model` 均已切到 3.1 Flash-Lite。
   - commit `38bce29` 已 fast-forward 合併本機 `main`；main 全套
     `312 passed, 9 deselected in 18.44s`。
-  - `git remote -v` 為空，無法 push；專案目前也沒有正式部署流程。
+  - 私人遠端：`https://github.com/Hunter20041004/daibu-content-brain`。
+  - `main` 已推送；遠端起點為 commit `df6ff28`。專案目前沒有正式部署流程。
+  - 推送前重跑全套：`312 passed, 9 deselected in 18.94s`。
   - `.DS_Store`、`.claude/` 保持原有未追蹤狀態，未碰觸。
 
 ## 產品理解檢查點
@@ -50,8 +52,7 @@
 
 ## 下一步
 
-先提供／設定既有 Git remote，再 push 本機 main。下一輪再規劃來源蒐集＋Logo
-上傳＋ZIP＋選題頁接線。
+下一輪規劃來源蒐集＋Logo 上傳＋ZIP＋選題頁接線。
 
 ## 最容易踩的坑
 
