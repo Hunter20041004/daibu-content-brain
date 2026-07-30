@@ -82,12 +82,26 @@ def test_missing_logo_blocks_pngs_without_deleting_saved_draft(tmp_path):
     assert db.get_carousel_draft(conn, idea_id) == expected
 
 
-def test_png_bytes_has_exact_canvas_and_brand_pixels(tmp_path):
+def test_who_page_uses_the_lower_part_of_the_canvas(tmp_path):
+    asset = brand_asset(_test_logo(tmp_path))
+    page = carousel_draft().pages[1]
+
+    report = shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
+
+    assert 1000 <= report.source_bottom <= 1260
+
+
+def test_png_bytes_has_exact_canvas_size(tmp_path):
     data = shoot.png_bytes(_html(tmp_path))
-    image = Image.open(io.BytesIO(data)).convert("RGB")
 
     assert data[:8] == b"\x89PNG\r\n\x1a\n"
     assert _png_size(data) == (1080, 1350)
+
+
+def test_png_bytes_has_brand_pixels(tmp_path):
+    data = shoot.png_bytes(_html(tmp_path))
+    image = Image.open(io.BytesIO(data)).convert("RGB")
+
     assert image.getpixel((20, 20)) == (0xD5, 0xE6, 0xF4)
     assert image.getpixel((540, 300)) == (0xFB, 0xFC, 0xFE)
 

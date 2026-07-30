@@ -57,12 +57,20 @@ def test_html_escapes_heading_section_and_company_text(tmp_path):
     assert html_lib.escape(unsafe) in output
 
 
-def test_html_declares_exact_canvas_and_approved_geometry(tmp_path):
+def test_html_declares_exact_canvas_size(tmp_path):
     output = _render(tmp_path)
 
     for declaration in (
         "width: 1080px",
         "height: 1350px",
+    ):
+        assert declaration in output
+
+
+def test_card_uses_approved_geometry(tmp_path):
+    output = _render(tmp_path)
+
+    for declaration in (
         "inset: 48px 48px 64px",
         "border-radius: 40px",
         "0 6px 36px rgba(38,38,65,.06)",
@@ -90,7 +98,7 @@ def test_colors_match_the_brand_palette(tmp_path):
         assert retired not in output, f"{retired} 是改版前的舊色，不該出現"
 
 
-def test_type_hierarchy_uses_approved_sizes_and_weights(tmp_path):
+def test_type_hierarchy_uses_approved_sizes(tmp_path):
     output = _render(tmp_path)
 
     for declaration in (
@@ -98,6 +106,14 @@ def test_type_hierarchy_uses_approved_sizes_and_weights(tmp_path):
         "font-size: 29px",
         "font-size: 56px",
         "font-size: 96px",
+    ):
+        assert declaration in output
+
+
+def test_type_hierarchy_uses_approved_weights(tmp_path):
+    output = _render(tmp_path)
+
+    for declaration in (
         "font-weight: 400",
         "font-weight: 700",
         "font-weight: 800",
@@ -105,22 +121,48 @@ def test_type_hierarchy_uses_approved_sizes_and_weights(tmp_path):
         assert declaration in output
 
 
+def test_ai_role_diagram_keeps_readable_step_type(tmp_path):
+    output = _render(tmp_path, page_index=3)
+
+    assert ".page--how-ai .diagram-copy strong { font-size: 36px; }" in output
+    assert "font-size: 30px;" in output.split(
+        ".page--how-ai .diagram-copy span", 1
+    )[1].split("}", 1)[0]
+
+
 def test_html_includes_approved_frame_decorations(tmp_path):
     output = _render(tmp_path)
 
     assert 'class="frame-pattern frame-pattern--stripes"' in output
     assert 'class="frame-pattern frame-pattern--dots"' in output
+
+
+def test_handle_sits_in_the_frame_below_the_card(tmp_path):
+    output = _render(tmp_path)
+
     assert 'class="handle"' in output
     assert "@呆一布" in output
     assert "bottom: 16px" in output
 
 
-def test_html_has_no_theme_dependent_colors_or_unapproved_weights(tmp_path):
+def test_html_has_no_theme_dependent_colors(tmp_path):
     output = _render(tmp_path)
 
     assert "var(--" not in output
     assert "light-dark(" not in output
     assert "prefers-color-scheme" not in output
+
+
+def test_html_has_no_unapproved_weights_or_italics(tmp_path):
+    output = _render(tmp_path)
+
     assert "font-weight: 500" not in output
     assert "font-weight: 600" not in output
     assert "font-style: italic" not in output
+
+
+def test_inner_page_has_page_type_class_and_label(tmp_path):
+    output = _render(tmp_path, page_index=3)
+
+    assert 'class="canvas page--how-ai"' in output
+    assert "04｜AI 在裡面扮演什麼角色" in output

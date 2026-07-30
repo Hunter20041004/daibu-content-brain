@@ -202,8 +202,8 @@ h1 {
   font-size: 46px;
   line-height: 1.45;
 }
-.page--who .content-stack { gap: 32px; }
-.page--who .content-block { padding-top: 34px; padding-bottom: 36px; }
+.page--who .content-stack { gap: 60px; }
+.page--who .content-block { padding-top: 50px; padding-bottom: 52px; }
 .page--how-ai .content-stack {
   gap: 12px;
   padding-top: 20px;
@@ -233,9 +233,9 @@ h1 {
   height: 66px;
   flex-basis: 70px;
 }
-.page--how-ai .diagram-copy strong { font-size: 27px; }
+.page--how-ai .diagram-copy strong { font-size: 36px; }
 .page--how-ai .diagram-copy span {
-  font-size: 22px;
+  font-size: 30px;
   line-height: 1.25;
 }
 .page--why-care .content-stack { gap: 12px; }

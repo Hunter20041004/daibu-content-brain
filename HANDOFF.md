@@ -1,47 +1,52 @@
 # HANDOFF — 呆一布選題大腦（daibu-content-brain）
 
 > 於 2026-07-30 更新。
-> 一句話現況：**新版輪播 Phase B（Task 4–5）完成；下一輪從 Phase C Task 6
->「新版滿版垂直敘事 HTML」開始。**
+> 一句話現況：**輪播重設 Phase C（Task 6–8）功能與本機視覺驗收完成；
+> 真實免費 LLM 契約失敗，尚未合併 main／push。**
 
 ## 本輪目標與驗收
 
-依 `docs/plan-carousel-redesign.md` 完成 Phase B：
+依 `docs/plan-carousel-redesign.md` 完成 Phase C：
 
-- 沒有已確認的官方 Logo 就阻擋產圖；
-- Logo 公司、官方 HTTPS 來源、確認日期與本機檔案都可驗證；
-- 只接受可解碼的透明 PNG 或不含危險／外部內容的 SVG；
-- 八種圖解使用固定品牌 layout，AI 角色採 A1 直式步驟＋M1 無框 Q 版頭像。
+- 七頁結構化草稿、已驗證 Logo、固定圖解組成 1080×1350 滿版 HTML；
+- Chromium 一次輸出七張 PNG，量測 Logo、overflow、來源位置與下半部內容；
+- 桌機／手機兩輪視覺自檢，保留第 4 頁 A1／M1 與可讀字級。
 
 ## 本輪狀態
 
-- 工作分支：`codex/carousel-redesign-phase-b`。
-- Task 4 提交 `c4eb2e1`：Logo metadata、PNG／SVG 驗證與 data URI。
-- Task 5 提交 `e99376c`：固定圖解 layout 與四種 M1 表情。
-- 審查修正 `f8365c0`：
-  - PNG 改為 Pillow 真實解碼，並要求 alpha／透明資訊；
-  - SVG 阻擋 protocol-relative、data URI、CSS `@import`、style 與外部 `url()`，
-    仍允許本機 `#fragment` gradient／symbol；
-  - 補八種 layout 路由、箭頭數與 HTML 跳脫測試。
-- 安全複審修正 `fd0fb61`：SVG 改採靜態元素／屬性允許清單，阻擋 XML stylesheet、
-  SMIL 動畫、DOCTYPE 與未知可執行元素。
-- 最終安全修正 `c13f7ea`：資源型屬性採值級允許清單，阻擋 CSS escape／comment
-  偽裝的外部 `url()`，只接受本機 `url(#id)`。
-- 最新全套：`303 passed, 9 deselected`。
-- `9 deselected` 是既有真實 LLM／RSS 契約測試；Phase B 沒有新增網路邊界。
-- 本輪只做底層視覺零件，尚無完整畫面，因此未進前端截圖迴圈；Phase C 接成
-  1080×1350 畫布後必須做兩輪視覺自檢。
-- Logo 檔案大小／解碼像素上限尚未定義，已記錄於 `docs/open-questions.md`。
+- 工作分支：`codex/carousel-redesign-phase-c`。
+- Task 6 提交 `4c1b948`：新版 HTML renderer、七頁 section／Logo／來源／安全跳脫。
+- Task 7 提交 `4f6c631`：七張 PNG、`LayoutReport`、真實瀏覽器版面契約。
+- 第二輪視覺驗收全部合格：
+  - `.screenshots/carousel-redesign/round2/desktop.png`
+  - `.screenshots/carousel-redesign/round2/mobile.png`
+- 本機全套：`304 passed, 9 deselected`；高於 Phase B 的 303。
+- 真實契約阻擋：
+  - `test_real_llm_returns_parsable_ideas`：免費 provider 回傳 0 個 Idea；
+  - `test_real_llm_returns_valid_sourced_carousel`：超過 30 秒未完成；
+  - 本輪未修改 LLM，沒有放寬 parser 或 mock。
+
+## 產品理解檢查點
+
+1. **產品能力**：查證來源＋官方 Logo 可產七張輪播圖。
+2. **使用者體驗**：每頁回答一題、Logo 每頁可見；缺 Logo 阻擋但不刪草稿。
+3. **技術結構**：schema、DB、LLM、Logo／SVG、HTML、Playwright。
+4. **資料流程**：來源包 → 草稿 → 驗證 → 儲存 → Logo → HTML → PNG。
+5. **設計理由**：固定讀者任務、彈性 AI 角色、自然垂直敘事。
+6. **替代方案**：一次接完整 UI 較快，但故障難定位；本輪分層完成出圖核心。
+7. **安全與成本**：Logo metadata／SVG 白名單／HTML 跳脫；零圖片生成費。
+8. **測試證據**：局部、全套、像素／DOM 契約與兩輪截圖均通過。
+9. **剩餘限制**：免費 LLM 契約阻擋整合；來源蒐集、Logo 上傳、ZIP、
+   選題頁接線尚未做。
 
 ## 下一步
 
-另開新對話執行 Phase C Task 6：把結構化七頁、Logo 與圖解接進新版滿版 HTML。
-依 TDD 一次完成一個垂直切片；Phase C 完成前不得宣稱 PNG 視覺已驗收。
+另開新對話先診斷免費 LLM 契約；通過後才合併本分支。再規劃來源蒐集＋Logo
+上傳＋ZIP＋選題頁接線。
 
 ## 最容易踩的坑
 
-1. 不可因缺 Logo 降級成公司名稱純文字，也不可刪掉已存草稿。
-2. 不可重新開放 SVG 的外部網址、`style` 或非 `#fragment` 引用。
-3. 第 4 頁維持 A1／M1：無虛線、無頭像背景框。
-4. 不可讓 LLM 輸出任意 SVG；它只能選既有 `DiagramSpec`。
-5. 不要碰真實 `daibu.db`；資料庫與出圖驗收使用暫存副本。
+1. 不可為了契約綠燈放寬來源引用、140 字門檻或改成 mock。
+2. 不可因缺 Logo 降級成純文字，也不可刪掉已存草稿。
+3. 第 4 頁維持 A1／M1：無虛線、無頭像背景框，步驟字級 36／30px。
+4. 不可重新開放 SVG 外部網址、`style` 或非 `#fragment` 引用。
