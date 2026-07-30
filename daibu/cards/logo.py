@@ -1,13 +1,21 @@
 import base64
 from datetime import date
 from io import BytesIO
+from pathlib import Path
 import re
+import warnings
 from urllib.parse import urlparse
 from xml.etree import ElementTree
 
 from PIL import Image
 
 from daibu.cards.schema import BrandAsset
+
+MAX_FILE_BYTES = 2 * 1024 * 1024
+MAX_EDGE_PX = 4096
+MAX_TOTAL_PX = 8_000_000
+MIN_EDGE_PX = 64
+Image.MAX_IMAGE_PIXELS = MAX_TOTAL_PX
 
 
 _LOCAL_FRAGMENT = re.compile(r"#[A-Za-z0-9_.:-]+")
@@ -130,6 +138,69 @@ class BrandAssetRequired(ValueError):
 
 class InvalidBrandAsset(ValueError):
     pass
+
+
+def validate_upload(data: bytes, filename: str) -> None:
+    if len(data) > MAX_FILE_BYTES:
+        size_mb = len(data) / (1024 * 1024)
+        raise InvalidBrandAsset(
+            f"這個檔案 {size_mb:.1f} MB，超過 2 MB 上限。"
+            "請改用官方品牌素材包裡的 SVG 或去背 PNG。"
+        )
+    suffix = Path(filename).suffix.lower()
+    if suffix not in {".png", ".svg"}:
+        raise InvalidBrandAsset(
+            "只接受 SVG 或去背 PNG。JPG 沒有透明背景，"
+            "貼上會出現白色方塊。"
+        )
+    if suffix == ".png":
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter(
+                    "ignore",
+                    Image.DecompressionBombWarning,
+                )
+                with Image.open(BytesIO(data)) as image:
+                    width, height = image.size
+        except Image.DecompressionBombError as error:
+            raise InvalidBrandAsset(
+                "圖片總像素超過 800 萬，解開後會佔用太多記憶體。"
+                "請改用官方素材包裡較小的版本。"
+            ) from error
+        except (OSError, SyntaxError, ValueError) as error:
+            raise InvalidBrandAsset("PNG Logo 檔案格式不正確") from error
+        if max(width, height) > MAX_EDGE_PX:
+            raise InvalidBrandAsset(
+                f"圖片解析度 {width}×{height}，超過 4096 px 上限。"
+                "請用官方素材包裡較小的版本，或先縮到 2048 px 以內。"
+            )
+        if width * height > MAX_TOTAL_PX:
+            raise InvalidBrandAsset(
+                "圖片總像素超過 800 萬，解開後會佔用太多記憶體。"
+                "請改用官方素材包裡較小的版本。"
+            )
+        if min(width, height) < MIN_EDGE_PX:
+            raise InvalidBrandAsset(
+                f"圖片只有 {width}×{height}，看起來是網站小圖示。"
+                "請上傳至少 64 px 的官方 Logo。"
+            )
+        _validate_png(data)
+    else:
+        _validate_svg(data)
+        root = ElementTree.fromstring(data)
+        attributes = {
+            _local_name(name): value
+            for name, value in root.attrib.items()
+        }
+        has_box = bool(attributes.get("viewbox", "").strip())
+        has_dimensions = bool(attributes.get("width", "").strip()) and bool(
+            attributes.get("height", "").strip()
+        )
+        if not has_box and not has_dimensions:
+            raise InvalidBrandAsset(
+                "這個 SVG 沒有 viewBox 或寬高，排版時會變形。"
+                "請用官方素材包裡的完整版本。"
+            )
 
 
 def _local_name(value: str) -> str:

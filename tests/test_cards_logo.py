@@ -4,7 +4,7 @@ import pytest
 from PIL import Image
 
 from daibu.cards import logo
-from tests.card_fixtures import brand_asset
+from tests.card_fixtures import brand_asset, solid_png
 
 
 def test_logo_is_required_and_verified_png_becomes_data_uri(tmp_path):
@@ -17,6 +17,48 @@ def test_logo_is_required_and_verified_png_becomes_data_uri(tmp_path):
     result = logo.logo_data_uri(brand_asset(path), "ElevenLabs")
 
     assert result.startswith("data:image/png;base64,")
+
+
+def test_upload_rejects_oversized_files_and_wrong_types():
+    with pytest.raises(logo.InvalidBrandAsset, match="超過 2 MB"):
+        logo.validate_upload(
+            b"x" * (logo.MAX_FILE_BYTES + 1),
+            "logo.png",
+        )
+
+    with pytest.raises(
+        logo.InvalidBrandAsset,
+        match="只接受 SVG 或去背 PNG",
+    ):
+        logo.validate_upload(b"x" * 100, "logo.jpg")
+
+
+def test_upload_rejects_out_of_range_png_dimensions():
+    with pytest.raises(logo.InvalidBrandAsset, match="超過 4096 px"):
+        logo.validate_upload(solid_png(4200, 120), "logo.png")
+
+    with pytest.raises(logo.InvalidBrandAsset, match="800 萬"):
+        logo.validate_upload(solid_png(3000, 3000), "logo.png")
+
+    with pytest.raises(logo.InvalidBrandAsset, match="至少 64 px"):
+        logo.validate_upload(solid_png(32, 32), "logo.png")
+
+    logo.validate_upload(solid_png(240, 80), "logo.png")
+
+
+def test_upload_requires_svg_to_declare_its_own_box():
+    naked = (
+        b'<svg xmlns="http://www.w3.org/2000/svg">'
+        b'<path d="M0 0h8v8H0z"/></svg>'
+    )
+    with pytest.raises(logo.InvalidBrandAsset, match="viewBox"):
+        logo.validate_upload(naked, "logo.svg")
+
+    boxed = (
+        b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+        b'<path d="M0 0h8v8H0z"/></svg>'
+    )
+    logo.validate_upload(boxed, "logo.svg")
 
 
 def test_logo_rejects_svg_with_script(tmp_path):

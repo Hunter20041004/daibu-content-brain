@@ -39,6 +39,19 @@ def verified_sources() -> tuple[VerifiedSource, ...]:
     )
 
 
+def solid_png(width: int, height: int) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGBA", (width, height), (10, 20, 30, 255)).save(
+        buffer,
+        format="PNG",
+    )
+    return buffer.getvalue()
+
+
 def _section(label: str, text: str, *source_ids: str) -> ContentSection:
     return ContentSection(label, text, tuple(source_ids))
 
