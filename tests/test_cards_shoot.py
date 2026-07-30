@@ -1,12 +1,13 @@
 import io
 import struct
+import zipfile
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
 from daibu import db
-from daibu.cards import logo, render, shoot
+from daibu.cards import bundle, logo, render, shoot
 from daibu.llm.base import Idea
 from tests.card_fixtures import brand_asset, carousel_draft
 
@@ -121,3 +122,17 @@ def test_missing_bundled_font_does_not_silently_use_fallback(tmp_path):
 
     with pytest.raises(RuntimeError, match="LINE Seed TW"):
         shoot.png_bytes(html_text)
+
+
+def test_real_rendered_pngs_can_be_unpacked_from_the_bundle(tmp_path):
+    asset = brand_asset(_test_logo(tmp_path))
+    pngs = shoot.carousel_pngs(carousel_draft(), "ElevenLabs", asset)
+
+    archive = bundle.carousel_zip(pngs)
+
+    with zipfile.ZipFile(io.BytesIO(archive)) as packaged:
+        assert packaged.namelist() == list(bundle.PAGE_FILENAMES)
+        assert all(
+            packaged.read(filename).startswith(b"\x89PNG")
+            for filename in bundle.PAGE_FILENAMES
+        )
