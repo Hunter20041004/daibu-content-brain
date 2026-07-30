@@ -1,12 +1,16 @@
 import html
 import os
+from dataclasses import replace
 from urllib.parse import urlparse
 
 import streamlit as st
 
 from daibu import clock, db, pipeline, selection
+from daibu.cards import draft as carousel_draft_service
+from daibu.cards import pages as carousel_pages
 from daibu.cards import sources as card_sources
 from daibu.cards import workbench as carousel_workbench
+from daibu.cards.schema import validate_draft
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.models import Source, Theme
@@ -55,6 +59,20 @@ def fetch_source_suggestion(
     st.session_state[date_key] = suggestion.published_at
     st.session_state[excerpt_key] = suggestion.excerpt
     st.session_state.pop(error_key, None)
+
+
+def clear_carousel_editor_state(idea_id: int, draft) -> None:
+    for carousel_page in draft.pages:
+        st.session_state.pop(
+            f"carousel-heading-{idea_id}-{carousel_page.page_type}",
+            None,
+        )
+        for section_index, _section in enumerate(carousel_page.sections):
+            st.session_state.pop(
+                f"carousel-section-{idea_id}-{carousel_page.page_type}-"
+                f"{section_index}",
+                None,
+            )
 
 
 themes = db.get_themes(conn)
@@ -736,6 +754,180 @@ with candidate_column:
                             f"已刪除來源 {verified_source.source_id}。",
                         )
                         st.rerun()
+                stored_draft = db.get_carousel_draft(conn, idea.id)
+                if stored_draft is None:
+                    st.caption("會呼叫 AI，約 10–40 秒。")
+                    if st.button(
+                        "產生輪播草稿",
+                        key=f"generate-carousel-draft-{idea.id}",
+                        type="primary",
+                        disabled=bool(missing),
+                        width="stretch",
+                    ):
+                        try:
+                            provider = base.get_provider(provider_config)
+                            with st.spinner(
+                                "正在整理七頁輪播草稿，約 10–40 秒…"
+                            ):
+                                carousel_draft_service.generate(
+                                    conn,
+                                    idea,
+                                    source_pack,
+                                    provider.generate_carousel_text,
+                                )
+                            queue_toast(
+                                st.session_state,
+                                "七頁輪播草稿已產生。",
+                            )
+                            st.rerun()
+                        except (
+                            base.LLMResponseError,
+                            RuntimeError,
+                            ValueError,
+                        ) as error:
+                            st.error(
+                                "輪播草稿產生失敗，既有內容沒有被刪除。"
+                                f"請稍後重試；原因：{error}"
+                            )
+                if stored_draft is not None:
+                    st.markdown("#### 七頁草稿")
+                    st.caption(
+                        "可修改標題與文字；段落標籤和來源 ID 會保持不變。"
+                    )
+                    for carousel_page in stored_draft.pages:
+                        page_label = carousel_pages.label(
+                            carousel_page.page_type
+                        )
+                        with st.container(
+                            border=True,
+                            key=(
+                                f"carousel-page-{idea.id}-"
+                                f"{carousel_page.page_type}"
+                            ),
+                        ):
+                            st.markdown(
+                                '<div class="carousel-page-heading">'
+                                f"<span>{carousel_page.page_no:02d}</span>"
+                                f"<strong>{html.escape(page_label)}</strong>"
+                                "</div>",
+                                unsafe_allow_html=True,
+                            )
+                            st.text_input(
+                                f"頁面標題｜{page_label}",
+                                value=carousel_page.heading,
+                                key=(
+                                    f"carousel-heading-{idea.id}-"
+                                    f"{carousel_page.page_type}"
+                                ),
+                            )
+                            for section_index, section in enumerate(
+                                carousel_page.sections
+                            ):
+                                st.text_area(
+                                    section.label,
+                                    value=section.text,
+                                    key=(
+                                        f"carousel-section-{idea.id}-"
+                                        f"{carousel_page.page_type}-"
+                                        f"{section_index}"
+                                    ),
+                                    height=120,
+                                )
+                                if section.source_ids:
+                                    st.caption(
+                                        "來源 ID："
+                                        + "、".join(section.source_ids)
+                                    )
+                                else:
+                                    st.caption("這段是互動邀請，不需來源。")
+                            st.caption(carousel_page.source_label)
+                    if st.button(
+                        "儲存草稿",
+                        key=f"save-carousel-draft-{idea.id}",
+                        type="primary",
+                    ):
+                        edited_pages = tuple(
+                            replace(
+                                carousel_page,
+                                heading=st.session_state[
+                                    f"carousel-heading-{idea.id}-"
+                                    f"{carousel_page.page_type}"
+                                ],
+                                sections=tuple(
+                                    replace(
+                                        section,
+                                        text=st.session_state[
+                                            f"carousel-section-{idea.id}-"
+                                            f"{carousel_page.page_type}-"
+                                            f"{section_index}"
+                                        ],
+                                    )
+                                    for section_index, section in enumerate(
+                                        carousel_page.sections
+                                    )
+                                ),
+                            )
+                            for carousel_page in stored_draft.pages
+                        )
+                        edited_draft = replace(
+                            stored_draft,
+                            pages=edited_pages,
+                        )
+                        try:
+                            validate_draft(edited_draft)
+                            db.save_carousel_draft(
+                                conn,
+                                idea.id,
+                                edited_draft,
+                            )
+                        except ValueError as error:
+                            for message in str(error).splitlines():
+                                st.error(message.removeprefix("- "))
+                        else:
+                            queue_toast(
+                                st.session_state,
+                                "輪播草稿已儲存。",
+                            )
+                            st.rerun()
+                    with st.popover("重新產生"):
+                        st.caption(
+                            "會覆蓋目前的七頁內容，且無法復原；"
+                            "也會再使用一次免費 AI 額度。"
+                        )
+                        if st.button(
+                            "確認重新產生",
+                            key=f"regenerate-carousel-draft-{idea.id}",
+                            width="stretch",
+                        ):
+                            try:
+                                provider = base.get_provider(provider_config)
+                                with st.spinner(
+                                    "正在重新整理七頁輪播草稿…"
+                                ):
+                                    carousel_draft_service.generate(
+                                        conn,
+                                        idea,
+                                        source_pack,
+                                        provider.generate_carousel_text,
+                                    )
+                                clear_carousel_editor_state(
+                                    idea.id,
+                                    stored_draft,
+                                )
+                                queue_toast(
+                                    st.session_state,
+                                    "七頁輪播草稿已重新產生。",
+                                )
+                                st.rerun()
+                            except (
+                                base.LLMResponseError,
+                                RuntimeError,
+                                ValueError,
+                            ) as error:
+                                st.error(
+                                    "重新產生失敗，原本草稿仍保留。"
+                                    f"請稍後重試；原因：{error}"
+                                )
             save_column, return_column, publish_column = st.columns(3)
             if save_column.button(
                 "儲存正文",

@@ -1555,3 +1555,177 @@ def test_adopted_idea_carousel_can_remove_a_source(
         source.source_id
         for source in db.get_idea_sources(conn, idea_id)
     ] == ["S1", "S3"]
+
+
+def test_adopted_idea_can_generate_a_carousel_draft(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import structured_llm_response, verified_sources
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "草稿生成測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    db.save_idea_sources(conn, idea_id, verified_sources())
+
+    class Provider:
+        def generate_carousel_text(self, _prompt):
+            return structured_llm_response()
+
+    monkeypatch.setattr(base, "get_provider", lambda _config: Provider())
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "產生輪播草稿"
+    ).click().run()
+
+    stored = db.get_carousel_draft(conn, idea_id)
+    assert not app.exception
+    assert stored is not None
+    assert len(stored.pages) == 7
+
+
+def test_saved_carousel_draft_shows_seven_editable_pages(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import pages as card_pages
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "草稿顯示測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    db.save_idea_sources(conn, idea_id, carousel_draft().sources)
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    rendered = " ".join(block.value for block in app.markdown)
+    captions = " ".join(caption.value for caption in app.caption)
+
+    assert not app.exception
+    assert all(label in rendered for label in card_pages.LABELS.values())
+    assert len([
+        field for field in app.text_input
+        if field.label.startswith("頁面標題")
+    ]) == 7
+    assert "來源 ID：" in captions
+
+
+def test_invalid_carousel_edit_keeps_widgets_and_database_unchanged(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "草稿驗證測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    original = carousel_draft()
+    db.save_idea_sources(conn, idea_id, original.sources)
+    db.save_carousel_draft(conn, idea_id, original)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    field = next(
+        text_area for text_area in app.text_area
+        if text_area.label == "白話定位"
+    )
+    field.set_value("太短")
+    next(
+        button for button in app.button
+        if button.label == "儲存草稿"
+    ).click().run()
+
+    assert any("140" in error.value for error in app.error)
+    assert db.get_carousel_draft(conn, idea_id) == original
+    assert next(
+        text_area.value for text_area in app.text_area
+        if text_area.label == "白話定位"
+    ) == "太短"
+
+
+def test_regenerating_a_carousel_requires_explicit_confirmation(
+    tmp_path,
+    monkeypatch,
+):
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "重新產生測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    db.save_idea_sources(conn, idea_id, carousel_draft().sources)
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    assert any(
+        button.label == "確認重新產生"
+        for button in app.button
+    )
+    assert any(
+        "會覆蓋目前的七頁內容，且無法復原" in caption.value
+        for caption in app.caption
+    )
