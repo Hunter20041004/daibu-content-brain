@@ -1,6 +1,6 @@
 # HANDOFF — 呆一布選題大腦
 
-> 2026-07-31 更新。輪播全流程原有 10 項問題已修正並重驗；等待合併 `main` 後複驗與推送。
+> 2026-07-31 更新。輪播全流程原有 10 項問題已修正、重驗、合併 `main` 並完成推送收尾。
 
 ## 本輪目標與驗收
 
@@ -28,13 +28,12 @@
   通順度與規格。十項原問題均通過重驗。
 - **目前未解**：側欄首頁仍顯示 `app`，列為 🟡、不影響流程；本機未設定 Tavily key，
   因此其真實契約 skip，Gemini 與 TechCrunch 真實契約已通過。
-- **驗證**：工作分支 `366 passed, 11 deselected, 1 warning in 18.59s`；
-  `git diff --check` 通過。合併 `main` 後仍需再跑一次全套才可推送。
+- **驗證**：工作分支 `366 passed, 11 deselected, 1 warning in 18.59s`；合併後的
+  `main` 為 `366 passed, 11 deselected, 1 warning in 18.43s`；`git diff --check` 通過。
 
 ## 下一步
 
-合併 `main`、在 `main` 重跑全套並推送。之後若要處理側欄 `app`，請另開新 Task；
-本輪不要再擴大範圍。
+本輪開發收尾已完成。之後若要處理側欄 `app`，請另開新 Task；不要在本輪擴大範圍。
 
 ## 依據
 
