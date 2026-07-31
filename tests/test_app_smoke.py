@@ -1821,7 +1821,7 @@ def test_carousel_logo_can_be_uploaded_and_reused(
     assert stored is not None
     assert stored.local_path.is_file()
     assert "ElevenLabs 官方 Logo" in rendered
-    assert "2026-07-30" in captions
+    assert date.today().isoformat() in captions
     assert any(button.label == "換一張" for button in app.button)
 
 
