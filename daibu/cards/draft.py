@@ -16,6 +16,17 @@ def generate(
     sources: tuple["VerifiedSource", ...],
     generate_text: Callable[[str], str],
 ) -> "CarouselDraft":
+    result = create(idea, sources, generate_text)
+    db.save_carousel_draft(conn, idea.id, result)
+    return result
+
+
+def create(
+    idea: StoredIdea,
+    sources: tuple["VerifiedSource", ...],
+    generate_text: Callable[[str], str],
+) -> "CarouselDraft":
+    """Generate and validate a draft without mutating persistent state."""
     from daibu.cards.schema import (
         CarouselDraft,
         validate_company_headings,
@@ -42,5 +53,4 @@ def generate(
         validate_company_headings(result, idea.company)
     except ValueError as error:
         raise base.LLMResponseError(raw) from error
-    db.save_carousel_draft(conn, idea.id, result)
     return result

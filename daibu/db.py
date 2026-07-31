@@ -796,30 +796,38 @@ def save_idea_sources(
 ) -> None:
     validate_sources(sources)
     with conn:
-        conn.execute(
-            "DELETE FROM idea_sources WHERE idea_id = ?",
-            (idea_id,),
-        )
-        conn.executemany(
-            """
-            INSERT INTO idea_sources (
-                idea_id, source_key, publisher, published_at, url, excerpt,
-                source_kind
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            [
-                (
-                    idea_id,
-                    source.source_id,
-                    source.publisher,
-                    source.published_at,
-                    source.url,
-                    source.excerpt,
-                    source.source_kind,
-                )
-                for source in sources
-            ],
-        )
+        _replace_idea_sources(conn, idea_id, sources)
+
+
+def _replace_idea_sources(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    sources: tuple[VerifiedSource, ...],
+) -> None:
+    conn.execute(
+        "DELETE FROM idea_sources WHERE idea_id = ?",
+        (idea_id,),
+    )
+    conn.executemany(
+        """
+        INSERT INTO idea_sources (
+            idea_id, source_key, publisher, published_at, url, excerpt,
+            source_kind
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                idea_id,
+                source.source_id,
+                source.publisher,
+                source.published_at,
+                source.url,
+                source.excerpt,
+                source.source_kind,
+            )
+            for source in sources
+        ],
+    )
 
 
 def get_idea_sources(
@@ -945,65 +953,87 @@ def save_carousel_draft(
 ) -> None:
     validate_draft(draft)
     with conn:
-        conn.execute(
-            "DELETE FROM carousel_pages WHERE idea_id = ?",
-            (idea_id,),
-        )
-        conn.execute(
-            "DELETE FROM carousel_sources WHERE idea_id = ?",
-            (idea_id,),
-        )
-        conn.executemany(
-            """
-            INSERT INTO carousel_sources (
-                idea_id, source_key, position, publisher,
-                published_at, url, excerpt, source_kind
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            [
+        _replace_carousel_draft(conn, idea_id, draft)
+
+
+def _replace_carousel_draft(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    draft: CarouselDraft,
+) -> None:
+    conn.execute(
+        "DELETE FROM carousel_pages WHERE idea_id = ?",
+        (idea_id,),
+    )
+    conn.execute(
+        "DELETE FROM carousel_sources WHERE idea_id = ?",
+        (idea_id,),
+    )
+    conn.executemany(
+        """
+        INSERT INTO carousel_sources (
+            idea_id, source_key, position, publisher,
+            published_at, url, excerpt, source_kind
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                idea_id,
+                source.source_id,
+                position,
+                source.publisher,
+                source.published_at,
+                source.url,
+                source.excerpt,
+                source.source_kind,
+            )
+            for position, source in enumerate(draft.sources)
+        ],
+    )
+    conn.executemany(
+        """
+        INSERT INTO carousel_pages (
+            idea_id, page_no, page_type, heading, body,
+            grounding, source_quote, sections_json, diagram_json,
+            source_label, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 'source', '', ?, ?, ?, ?)
+        """,
+        [
+            (
+                idea_id,
+                page.page_no,
+                page.page_type,
+                page.heading,
+                "\n".join(section.text for section in page.sections),
+                json.dumps(
+                    [asdict(section) for section in page.sections],
+                    ensure_ascii=False,
+                ),
                 (
-                    idea_id,
-                    source.source_id,
-                    position,
-                    source.publisher,
-                    source.published_at,
-                    source.url,
-                    source.excerpt,
-                    source.source_kind,
-                )
-                for position, source in enumerate(draft.sources)
-            ],
-        )
-        conn.executemany(
-            """
-            INSERT INTO carousel_pages (
-                idea_id, page_no, page_type, heading, body,
-                grounding, source_quote, sections_json, diagram_json,
-                source_label, updated_at
-            ) VALUES (?, ?, ?, ?, ?, 'source', '', ?, ?, ?, ?)
-            """,
-            [
-                (
-                    idea_id,
-                    page.page_no,
-                    page.page_type,
-                    page.heading,
-                    "\n".join(section.text for section in page.sections),
-                    json.dumps(
-                        [asdict(section) for section in page.sections],
-                        ensure_ascii=False,
-                    ),
-                    (
-                        json.dumps(asdict(page.diagram), ensure_ascii=False)
-                        if page.diagram
-                        else ""
-                    ),
-                    page.source_label,
-                    _now(),
-                )
-                for page in draft.pages
-            ],
-        )
+                    json.dumps(asdict(page.diagram), ensure_ascii=False)
+                    if page.diagram
+                    else ""
+                ),
+                page.source_label,
+                _now(),
+            )
+            for page in draft.pages
+        ],
+    )
+
+
+def save_researched_draft(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    draft: CarouselDraft,
+) -> None:
+    """Replace research pack and immutable draft snapshot together."""
+    from daibu.cards.schema import validate_grounded_draft
+
+    validate_grounded_draft(draft)
+    with conn:
+        _replace_idea_sources(conn, idea_id, draft.sources)
+        _replace_carousel_draft(conn, idea_id, draft)
 
 
 def get_carousel_draft(

@@ -1,3 +1,5 @@
+import pytest
+
 from daibu import db, performance, pipeline
 from daibu.llm.base import Idea
 from daibu.models import Source, Theme
@@ -267,6 +269,29 @@ def test_source_kind_round_trips_through_pack_and_snapshot(tmp_path):
 
     assert db.get_idea_sources(conn, idea_id) == sources
     assert db.get_carousel_draft(conn, idea_id).sources == sources
+
+
+def test_invalid_researched_draft_preserves_existing_sources_and_pages(tmp_path):
+    from dataclasses import replace
+
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    original = carousel_draft()
+    db.save_idea_sources(conn, idea_id, original.sources)
+    db.save_carousel_draft(conn, idea_id, original)
+
+    with pytest.raises(ValueError):
+        db.save_researched_draft(
+            conn,
+            idea_id,
+            replace(original, pages=original.pages[:-1]),
+        )
+
+    assert db.get_idea_sources(conn, idea_id) == original.sources
+    assert db.get_carousel_draft(conn, idea_id) == original
 
 
 def test_add_idea_records_local_created_time(monkeypatch, tmp_path):
