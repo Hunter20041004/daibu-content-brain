@@ -563,12 +563,12 @@ def css(mode: str | None = None) -> str:
         padding: 0.18rem 0.5rem;
     }}
 
-    .source-kind--official {{
+    .source-kind[data-kind="official"] {{
         border-color: var(--brand-primary);
         color: var(--brand-primary);
     }}
 
-    .source-kind--third_party {{
+    .source-kind[data-kind="third_party"] {{
         border-color: var(--highlight);
         color: var(--ink);
     }}

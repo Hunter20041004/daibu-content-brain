@@ -730,7 +730,7 @@ with candidate_column:
                         "<div>"
                         f"<strong>{html.escape(verified_source.source_id)} · "
                         f"{html.escape(verified_source.publisher)}</strong>"
-                        f'<span class="source-kind source-kind--'
+                        '<span class="source-kind" data-kind="'
                         f'{html.escape(verified_source.source_kind)}">'
                         f"{html.escape(source_kind_label)}</span>"
                         "</div>"

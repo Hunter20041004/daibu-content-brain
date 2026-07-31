@@ -424,6 +424,8 @@ def test_migration_adds_source_kind_without_changing_old_rows(tmp_path):
     original = carousel_draft()
     db.save_idea_sources(conn, idea_id, original.sources)
     db.save_carousel_draft(conn, idea_id, original)
+    for table in ("idea_sources", "carousel_sources"):
+        conn.execute(f"ALTER TABLE {table} DROP COLUMN source_kind")
     before = {
         table: [tuple(row) for row in conn.execute(
             f"SELECT idea_id, source_key, publisher, published_at, url, excerpt "
