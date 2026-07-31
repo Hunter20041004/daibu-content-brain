@@ -1825,6 +1825,44 @@ def test_carousel_logo_can_be_uploaded_and_reused(
     assert any(button.label == "換一張" for button in app.button)
 
 
+def test_carousel_logo_submit_explains_when_file_is_missing(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    monkeypatch.setenv("DAIBU_LOGO_DIR", str(tmp_path / "logos"))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "Logo 缺檔測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    save_button = next(
+        button for button in app.button
+        if button.label == "儲存 Logo"
+    )
+
+    assert not save_button.disabled
+    save_button.click().run()
+
+    assert not app.exception
+    assert any("請先上傳" in error.value for error in app.error)
+
+
 def test_rejected_carousel_logo_upload_keeps_page_running(
     tmp_path,
     monkeypatch,

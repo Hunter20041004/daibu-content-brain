@@ -60,10 +60,10 @@ def render_logo_upload_form(idea_id: int, company: str, suffix: str) -> None:
             value=date.today(),
             key=f"carousel-logo-date-{idea_id}-{suffix}",
         )
-        if st.form_submit_button(
-            "儲存 Logo",
-            disabled=uploaded_logo is None,
-        ):
+        if st.form_submit_button("儲存 Logo"):
+            if uploaded_logo is None:
+                st.error("請先上傳官方 Logo（SVG 或去背 PNG）。")
+                return
             if not official_source_url.strip():
                 st.error(
                     "請填這個 Logo 的官方來源網址（公司官網或品牌素材頁），"
