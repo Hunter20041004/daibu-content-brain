@@ -1,4 +1,5 @@
 import html as html_lib
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -41,6 +42,16 @@ def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
         carousel_draft().pages[1],
         unsafe_company,
         replace(asset, company=unsafe_company),
+    )
+
+
+def test_cover_renders_its_verified_source_in_normal_flow(tmp_path):
+    output = _render(tmp_path)
+
+    assert 'class="source-label source-label--cover"' in output
+    assert "來源：ElevenLabs" in output
+    assert output.index("cover-summary") < output.index(
+        'source-label source-label--cover'
     )
 
 
@@ -108,6 +119,20 @@ def test_type_hierarchy_uses_approved_sizes(tmp_path):
         "font-size: 96px",
     ):
         assert declaration in output
+
+
+def test_feed_microcopy_is_large_and_high_contrast(tmp_path):
+    from daibu import theme
+
+    output = _render(tmp_path)
+    page_tag_rule = re.search(r"\.page-tag \{(?P<body>.*?)\}", output, re.S)
+    source_rule = re.search(r"\.source-label \{(?P<body>.*?)\}", output, re.S)
+
+    assert "font-size: 35px" in page_tag_rule.group("body")
+    assert "font-size: 35px" in source_rule.group("body")
+    assert theme.contrast_ratio("#5F6070", "#FBFCFE") >= 4.5
+    assert "color: #5F6070" in page_tag_rule.group("body")
+    assert "color: #5F6070" in source_rule.group("body")
 
 
 def test_type_hierarchy_uses_approved_weights(tmp_path):

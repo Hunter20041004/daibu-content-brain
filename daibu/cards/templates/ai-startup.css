@@ -74,8 +74,8 @@ body { background: #D5E6F4; }
   padding-bottom: 20px;
 }
 .page-tag {
-  color: #8F8FA2;
-  font-size: 24px;
+  color: #5F6070;
+  font-size: 35px;
   font-weight: 700;
   letter-spacing: .08em;
 }
@@ -111,10 +111,12 @@ h1 {
 .source-label {
   border-top: 2px solid #D5E6F4;
   padding-top: 14px;
-  color: #8F8FA2;
-  font-size: 21px;
+  color: #5F6070;
+  font-size: 35px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
+.source-label--cover { margin-top: 40px; }
 .diagram {
   display: grid;
   gap: 14px;
@@ -254,5 +256,15 @@ h1 {
 .page--why-care .diagram--signals .metric-card { min-height: 156px; }
 .page--why-care .diagram--signals .diagram-copy strong { font-size: 25px; }
 .page--why-care .diagram--signals .diagram-copy span { font-size: 21px; }
+.page--results .content-stack { gap: 12px; padding-top: 20px; }
+.page--results h1 { font-size: 50px; }
+.page--results .section-list { gap: 10px; }
+.page--results .content-block { padding: 10px 20px 12px; }
+.page--results .content-label { margin-bottom: 4px; font-size: 22px; }
+.page--results .content-block p { font-size: 25px; line-height: 1.34; }
+.page--results .diagram { padding: 16px; }
+.page--results .diagram--before-after .state-card { min-height: 150px; }
+.page--results .diagram--before-after .diagram-copy strong { font-size: 25px; }
+.page--results .diagram--before-after .diagram-copy span { font-size: 21px; }
 .page--cta .section-list { grid-template-columns: 1fr; }
-.page--cta .content-block { padding: 22px 28px; }
+.page--cta .content-block { padding: 36px 32px; }

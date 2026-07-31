@@ -45,6 +45,8 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
         f"<h1>{html.escape(company)}</h1>"
         '<p class="cover-summary">'
         f'{html.escape(by_label["一句話定位"].text)}</p>'
+        '<div class="source-label source-label--cover">'
+        f"{html.escape(page.source_label)}</div>"
         "</div>"
     )
 
