@@ -13,7 +13,18 @@ from urllib.request import Request, urlopen
 import certifi
 from daibu.models import SourceSuggestion
 
-_SKIPPED_ELEMENTS = {"script", "style", "nav", "footer"}
+_SKIPPED_ELEMENTS = {
+    "script",
+    "style",
+    "nav",
+    "footer",
+    "aside",
+    "form",
+    "button",
+    "noscript",
+    "svg",
+}
+_SENTENCE_ENDINGS = ("。", "！", "？", ".", "!", "?")
 
 
 class _PageParser(HTMLParser):
@@ -22,7 +33,12 @@ class _PageParser(HTMLParser):
         self.publisher = ""
         self.published_at = ""
         self.parts: list[str] = []
+        self.main_parts: list[str] = []
+        self.article_parts: list[str] = []
         self._skip_depth = 0
+        self._main_depth = 0
+        self._article_depth = 0
+        self._heading_depth = 0
 
     def handle_starttag(
         self,
@@ -32,6 +48,12 @@ class _PageParser(HTMLParser):
         values = dict(attrs)
         if tag in _SKIPPED_ELEMENTS:
             self._skip_depth += 1
+        if tag == "main":
+            self._main_depth += 1
+        if tag == "article":
+            self._article_depth += 1
+        if tag == "h1":
+            self._heading_depth += 1
         if tag == "meta":
             property_name = values.get("property", "")
             if property_name == "og:site_name":
@@ -44,10 +66,42 @@ class _PageParser(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag in _SKIPPED_ELEMENTS and self._skip_depth:
             self._skip_depth -= 1
+        if tag == "h1" and self._heading_depth:
+            self._heading_depth -= 1
+        if tag == "article" and self._article_depth:
+            self._article_depth -= 1
+        if tag == "main" and self._main_depth:
+            self._main_depth -= 1
 
     def handle_data(self, data: str) -> None:
-        if not self._skip_depth:
+        if not self._skip_depth and not self._heading_depth:
             self.parts.append(data)
+            if self._main_depth:
+                self.main_parts.append(data)
+            if self._article_depth:
+                self.article_parts.append(data)
+
+
+def _complete_sentence(text: str, limit: int) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= limit:
+        return normalized
+    candidate = normalized[:limit]
+    sentence_end = max(candidate.rfind(mark) for mark in _SENTENCE_ENDINGS)
+    if sentence_end >= 0:
+        return candidate[:sentence_end + 1].strip()
+    return candidate.rsplit(" ", 1)[0].strip()
+
+
+def _article_text(parser: _PageParser, limit: int) -> str:
+    selected = parser.article_parts or parser.main_parts or parser.parts
+    return _complete_sentence("".join(selected), limit)
+
+
+def extract_article(html: str, limit: int = 1200) -> str:
+    parser = _PageParser()
+    parser.feed(html)
+    return _article_text(parser, limit)
 
 
 def _valid_date(value: str) -> str:
@@ -88,5 +142,5 @@ def fetch_suggestion(
         publisher=parser.publisher.strip() or domain,
         published_at=_valid_date(parser.published_at.strip()),
         url=url,
-        excerpt=" ".join("".join(parser.parts).split())[:300],
+        excerpt=_article_text(parser, 1200),
     )
