@@ -14,6 +14,7 @@ class VerifiedSource:
     published_at: str
     url: str
     excerpt: str
+    source_kind: str = "manual"
 
 
 @dataclass(frozen=True)
@@ -233,6 +234,8 @@ def _source_validation_errors(
             date.fromisoformat(source.published_at)
         except ValueError:
             record("來源日期必須是 YYYY-MM-DD")
+        if source.source_kind not in {"official", "third_party", "manual"}:
+            record("來源類別無效")
     return tuple(errors)
 
 

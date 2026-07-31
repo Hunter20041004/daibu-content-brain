@@ -413,6 +413,44 @@ def test_migration_adds_idea_source_pack_idempotently(tmp_path):
     } <= columns
 
 
+def test_migration_adds_source_kind_without_changing_old_rows(tmp_path):
+    from daibu.llm.base import Idea
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "source-kind.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    original = carousel_draft()
+    db.save_idea_sources(conn, idea_id, original.sources)
+    db.save_carousel_draft(conn, idea_id, original)
+    before = {
+        table: [tuple(row) for row in conn.execute(
+            f"SELECT idea_id, source_key, publisher, published_at, url, excerpt "
+            f"FROM {table} ORDER BY source_key"
+        )]
+        for table in ("idea_sources", "carousel_sources")
+    }
+
+    db.init_schema(conn)
+
+    for table in ("idea_sources", "carousel_sources"):
+        columns = {
+            row["name"]
+            for row in conn.execute(f"PRAGMA table_info({table})")
+        }
+        assert "source_kind" in columns
+        assert {
+            row["source_kind"]
+            for row in conn.execute(f"SELECT source_kind FROM {table}")
+        } == {"manual"}
+        after = [tuple(row) for row in conn.execute(
+            f"SELECT idea_id, source_key, publisher, published_at, url, excerpt "
+            f"FROM {table} ORDER BY source_key"
+        )]
+        assert after == before[table]
+
+
 def test_migration_adds_brand_assets_idempotently(tmp_path):
     path = tmp_path / "brand-assets.db"
     conn = db.connect(str(path))

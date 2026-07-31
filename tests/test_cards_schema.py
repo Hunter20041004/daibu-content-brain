@@ -71,6 +71,16 @@ def test_draft_rejects_non_iso_source_dates():
         validate_draft(replace(draft, sources=(bad_source, *draft.sources[1:])))
 
 
+def test_draft_rejects_unknown_source_kind():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    bad_source = replace(draft.sources[0], source_kind="influencer")
+
+    with pytest.raises(ValueError, match="來源類別無效"):
+        validate_draft(replace(draft, sources=(bad_source, *draft.sources[1:])))
+
+
 def test_draft_requires_all_seven_pages_in_order():
     from daibu.cards.schema import validate_draft
 

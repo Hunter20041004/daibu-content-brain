@@ -247,6 +247,28 @@ def test_idea_source_pack_round_trip_and_cascade_delete(tmp_path):
     ).fetchone()[0] == 0
 
 
+def test_source_kind_round_trips_through_pack_and_snapshot(tmp_path):
+    from dataclasses import replace
+
+    from daibu.cards.schema import CarouselDraft
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(conn, None, Idea("t", "a", ""))
+    original = carousel_draft()
+    official = replace(original.sources[0], source_kind="official")
+    third_party = replace(original.sources[1], source_kind="third_party")
+    sources = (official, third_party, *original.sources[2:])
+    grounded = CarouselDraft(sources, original.pages)
+
+    db.save_idea_sources(conn, idea_id, sources)
+    db.save_carousel_draft(conn, idea_id, grounded)
+
+    assert db.get_idea_sources(conn, idea_id) == sources
+    assert db.get_carousel_draft(conn, idea_id).sources == sources
+
+
 def test_add_idea_records_local_created_time(monkeypatch, tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

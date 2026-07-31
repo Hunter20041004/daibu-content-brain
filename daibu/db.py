@@ -281,6 +281,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
             published_at TEXT NOT NULL,
             url TEXT NOT NULL,
             excerpt TEXT NOT NULL,
+            source_kind TEXT NOT NULL DEFAULT 'manual',
             PRIMARY KEY (idea_id, source_key),
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
         );
@@ -292,6 +293,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
             published_at TEXT NOT NULL,
             url TEXT NOT NULL,
             excerpt TEXT NOT NULL,
+            source_kind TEXT NOT NULL DEFAULT 'manual',
             PRIMARY KEY (idea_id, source_key),
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
         );
@@ -329,6 +331,12 @@ def init_schema(conn: sqlite3.Connection) -> None:
             "ALTER TABLE carousel_sources "
             "ADD COLUMN position INTEGER NOT NULL DEFAULT 0"
         )
+    for table in ("carousel_sources", "idea_sources"):
+        if "source_kind" not in _table_columns(conn, table):
+            conn.execute(
+                f"ALTER TABLE {table} "
+                "ADD COLUMN source_kind TEXT NOT NULL DEFAULT 'manual'"
+            )
     already_pruned = conn.execute(
         "SELECT 1 FROM config WHERE key = 'startup_sources_pruned'"
     ).fetchone()
@@ -794,8 +802,9 @@ def save_idea_sources(
         conn.executemany(
             """
             INSERT INTO idea_sources (
-                idea_id, source_key, publisher, published_at, url, excerpt
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                idea_id, source_key, publisher, published_at, url, excerpt,
+                source_kind
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -805,6 +814,7 @@ def save_idea_sources(
                     source.published_at,
                     source.url,
                     source.excerpt,
+                    source.source_kind,
                 )
                 for source in sources
             ],
@@ -817,7 +827,7 @@ def get_idea_sources(
 ) -> tuple[VerifiedSource, ...]:
     rows = conn.execute(
         """
-        SELECT source_key, publisher, published_at, url, excerpt
+        SELECT source_key, publisher, published_at, url, excerpt, source_kind
         FROM idea_sources
         WHERE idea_id = ?
         ORDER BY source_key
@@ -831,6 +841,7 @@ def get_idea_sources(
             row["published_at"],
             row["url"],
             row["excerpt"],
+            row["source_kind"],
         )
         for row in rows
     )
@@ -945,8 +956,8 @@ def save_carousel_draft(
             """
             INSERT INTO carousel_sources (
                 idea_id, source_key, position, publisher,
-                published_at, url, excerpt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                published_at, url, excerpt, source_kind
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -957,6 +968,7 @@ def save_carousel_draft(
                     source.published_at,
                     source.url,
                     source.excerpt,
+                    source.source_kind,
                 )
                 for position, source in enumerate(draft.sources)
             ],
@@ -999,7 +1011,7 @@ def get_carousel_draft(
 ) -> CarouselDraft | None:
     source_rows = conn.execute(
         """
-        SELECT source_key, publisher, published_at, url, excerpt
+        SELECT source_key, publisher, published_at, url, excerpt, source_kind
         FROM carousel_sources
         WHERE idea_id = ?
         ORDER BY position, source_key
@@ -1026,6 +1038,7 @@ def get_carousel_draft(
             row["published_at"],
             row["url"],
             row["excerpt"],
+            row["source_kind"],
         )
         for row in source_rows
     )
