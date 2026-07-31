@@ -546,10 +546,37 @@ def css(mode: str | None = None) -> str:
         line-height: 1.4;
     }}
 
-    .verified-source span {{
+    .verified-source time {{
         flex: 0 0 auto;
         font-size: 0.75rem;
         opacity: 0.62;
+    }}
+
+    .source-kind {{
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-left: 0.55rem;
+        padding: 0.18rem 0.5rem;
+    }}
+
+    .source-kind--official {{
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+    }}
+
+    .source-kind--third_party {{
+        border-color: var(--highlight);
+        color: var(--ink);
+    }}
+
+    [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"] {{
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }}
 
     .carousel-page-heading {{
@@ -612,6 +639,10 @@ def css(mode: str | None = None) -> str:
     }}
 
     @media (max-width: 700px) {{
+        [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"] {{
+            grid-template-columns: minmax(0, 1fr);
+        }}
+
         .page-deck {{
             display: none;
         }}

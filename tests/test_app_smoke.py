@@ -1601,6 +1601,84 @@ def test_adopted_idea_can_generate_a_carousel_draft(
     assert len(stored.pages) == 7
 
 
+def test_company_research_can_generate_without_a_manual_source_pack(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import research_draft
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(
+            None,
+            "TechCrunch",
+            "https://techcrunch.com/feed",
+            "rss",
+            True,
+        ),
+    )
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [source_id], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "自動研究測試",
+            "採用角度",
+            "",
+            company="ElevenLabs",
+        ),
+        status="採用",
+    )
+    calls = []
+
+    def fake_generate(
+        service_conn,
+        idea,
+        configured_domains,
+        brand_asset,
+        search_fn,
+        fetch_fn,
+        generate_text,
+    ):
+        del brand_asset, search_fn, fetch_fn, generate_text
+        calls.append(tuple(configured_domains))
+        result = carousel_draft()
+        db.save_researched_draft(service_conn, idea.id, result)
+        return result
+
+    monkeypatch.setattr(research_draft, "generate", fake_generate)
+    provider = type(
+        "Provider",
+        (),
+        {"generate_carousel_text": lambda self, _prompt: ""},
+    )()
+    monkeypatch.setattr(base, "get_provider", lambda _config: provider)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    generate_button = next(
+        button for button in app.button
+        if button.label == "產生輪播草稿"
+    )
+    assert generate_button.disabled is False
+    generate_button.click().run()
+
+    assert calls == [("techcrunch.com",)]
+    assert db.get_carousel_draft(conn, idea_id) is not None
+    rendered = " ".join(block.value for block in app.markdown)
+    captions = " ".join(caption.value for caption in app.caption)
+    assert "官方說法" in rendered
+    assert "第三方報導" in rendered
+    assert "查證引文" in captions
+
+
 def test_saved_carousel_draft_shows_seven_editable_pages(
     tmp_path,
     monkeypatch,
@@ -1677,18 +1755,19 @@ def test_invalid_carousel_edit_keeps_widgets_and_database_unchanged(
         text_area for text_area in app.text_area
         if text_area.label == "白話定位"
     )
-    field.set_value("太短")
+    too_long = field.value + ("補" * 221)
+    field.set_value(too_long)
     next(
         button for button in app.button
         if button.label == "儲存草稿"
     ).click().run()
 
-    assert any("140" in error.value for error in app.error)
+    assert any("220" in error.value for error in app.error)
     assert db.get_carousel_draft(conn, idea_id) == original
     assert next(
         text_area.value for text_area in app.text_area
         if text_area.label == "白話定位"
-    ) == "太短"
+    ) == too_long
 
 
 def test_regenerating_a_carousel_requires_explicit_confirmation(
@@ -1729,6 +1808,105 @@ def test_regenerating_a_carousel_requires_explicit_confirmation(
         "會覆蓋目前的七頁內容，且無法復原" in caption.value
         for caption in app.caption
     )
+
+
+def test_regeneration_uses_the_saved_snapshot_without_new_research(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import draft as draft_service
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("快照重生", "採用角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original = carousel_draft()
+    db.save_carousel_draft(conn, idea_id, original)
+    db.save_idea_sources(conn, idea_id, original.sources[:1])
+    seen_sources = []
+
+    def fake_generate(_conn, _idea, sources, _generate_text):
+        seen_sources.append(sources)
+        return original
+
+    provider = type(
+        "Provider",
+        (),
+        {"generate_carousel_text": lambda self, _prompt: ""},
+    )()
+    monkeypatch.setattr(draft_service, "generate", fake_generate)
+    monkeypatch.setattr(base, "get_provider", lambda _config: provider)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "確認重新產生"
+    ).click().run()
+
+    assert seen_sources == [original.sources]
+
+
+def test_explicit_research_refreshes_instead_of_reusing_the_snapshot(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import research_draft
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("重新研究", "採用角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original = carousel_draft()
+    db.save_researched_draft(conn, idea_id, original)
+    seen_reuse = []
+
+    def fake_generate(
+        service_conn,
+        idea,
+        configured_domains,
+        brand_asset,
+        search_fn,
+        fetch_fn,
+        generate_text,
+        *,
+        reuse_existing_sources=True,
+    ):
+        del configured_domains, brand_asset, search_fn, fetch_fn, generate_text
+        seen_reuse.append(reuse_existing_sources)
+        db.save_researched_draft(service_conn, idea.id, original)
+        return original
+
+    provider = type(
+        "Provider",
+        (),
+        {"generate_carousel_text": lambda self, _prompt: ""},
+    )()
+    monkeypatch.setattr(research_draft, "generate", fake_generate)
+    monkeypatch.setattr(base, "get_provider", lambda _config: provider)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "確認重新搜尋"
+    ).click().run()
+
+    assert seen_reuse == [False]
 
 
 def test_carousel_logo_block_explains_missing_asset_and_disables_render(

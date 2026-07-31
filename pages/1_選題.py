@@ -12,10 +12,11 @@ from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
 from daibu.cards import logo as carousel_logo
 from daibu.cards import pages as carousel_pages
+from daibu.cards import research_draft as carousel_research_draft
 from daibu.cards import shoot as carousel_shoot
 from daibu.cards import sources as card_sources
 from daibu.cards import workbench as carousel_workbench
-from daibu.cards.schema import validate_draft
+from daibu.cards.schema import validate_company_headings, validate_draft
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.models import Source, Theme
@@ -125,6 +126,23 @@ def clear_carousel_editor_state(idea_id: int, draft) -> None:
                 f"{section_index}",
                 None,
             )
+
+
+def trusted_domains_for(
+    theme: Theme | None,
+    all_sources: list[Source],
+) -> tuple[str, ...]:
+    if theme is None:
+        return ()
+    return tuple(
+        dict.fromkeys(
+            domain
+            for source in all_sources
+            if source.id in theme.source_ids
+            for domain in (urlparse(source.url).hostname or "",)
+            if domain
+        )
+    )
 
 
 themes = db.get_themes(conn)
@@ -660,6 +678,11 @@ with candidate_column:
                         + "</div>",
                         unsafe_allow_html=True,
                     )
+                if idea.company.strip() and not source_pack:
+                    st.info(
+                        "尚未建立來源快照。按「產生輪播草稿」後，"
+                        "系統會先搜尋可信網域、驗證內文，再產生草稿。"
+                    )
                 if not idea.company.strip():
                     with st.form(f"carousel-company-{idea.id}"):
                         company_name = st.text_input(
@@ -697,11 +720,21 @@ with candidate_column:
                     f"carousel-source-fetch-error-{idea.id}"
                 )
                 for verified_source in source_pack:
+                    source_kind_label = {
+                        "official": "官方說法",
+                        "third_party": "第三方報導",
+                        "manual": "手動加入",
+                    }[verified_source.source_kind]
                     st.markdown(
                         '<div class="verified-source">'
+                        "<div>"
                         f"<strong>{html.escape(verified_source.source_id)} · "
                         f"{html.escape(verified_source.publisher)}</strong>"
-                        f"<span>{html.escape(verified_source.published_at)}</span>"
+                        f'<span class="source-kind source-kind--'
+                        f'{html.escape(verified_source.source_kind)}">'
+                        f"{html.escape(source_kind_label)}</span>"
+                        "</div>"
+                        f'<time>{html.escape(verified_source.published_at)}</time>'
                         "</div>",
                         unsafe_allow_html=True,
                     )
@@ -734,6 +767,25 @@ with candidate_column:
                             f"已刪除來源 {verified_source.source_id}。",
                         )
                         st.rerun()
+                if source_pack:
+                    official_count = sum(
+                        source.source_kind == "official"
+                        for source in source_pack
+                    )
+                    third_party_count = sum(
+                        source.source_kind == "third_party"
+                        for source in source_pack
+                    )
+                    manual_count = (
+                        len(source_pack)
+                        - official_count
+                        - third_party_count
+                    )
+                    st.caption(
+                        f"來源快照共 {len(source_pack)} 筆："
+                        f"官方 {official_count}、第三方 {third_party_count}、"
+                        f"手動 {manual_count}。"
+                    )
                 with st.expander(
                     "＋ 新增來源",
                     expanded=not source_pack,
@@ -864,24 +916,40 @@ with candidate_column:
                             )
                 stored_draft = db.get_carousel_draft(conn, idea.id)
                 if stored_draft is None:
-                    st.caption("會呼叫 AI，約 10–40 秒。")
+                    st.caption("會先查證公司資料，再呼叫一次 AI，約 10–40 秒。")
                     if st.button(
                         "產生輪播草稿",
                         key=f"generate-carousel-draft-{idea.id}",
                         type="primary",
-                        disabled=bool(missing),
+                        disabled=not idea.company.strip(),
                         width="stretch",
                     ):
                         try:
                             provider = base.get_provider(provider_config)
-                            with st.spinner(
-                                "正在整理七頁輪播草稿，約 10–40 秒…"
-                            ):
-                                carousel_draft_service.generate(
+                            configured_domains = trusted_domains_for(
+                                selected_theme,
+                                sources,
+                            )
+                            with st.status(
+                                "正在查證公司資料…",
+                                expanded=True,
+                            ) as research_status:
+                                research_status.write("搜尋可信網域")
+                                research_status.write("驗證文章與來源類別")
+                                research_status.write("擷取可逐字核對的證據")
+                                carousel_research_draft.generate(
                                     conn,
                                     idea,
-                                    source_pack,
+                                    configured_domains,
+                                    brand_asset,
+                                    None,
+                                    None,
                                     provider.generate_carousel_text,
+                                )
+                                research_status.update(
+                                    label="公司資料已查證，七頁草稿已產生",
+                                    state="complete",
+                                    expanded=False,
                                 )
                             queue_toast(
                                 st.session_state,
@@ -947,7 +1015,12 @@ with candidate_column:
                                         + "、".join(section.source_ids)
                                     )
                                 else:
-                                    st.caption("這段是互動邀請，不需來源。")
+                                    st.caption("這段不是事實陳述，不需來源。")
+                                for evidence in section.evidence_quotes:
+                                    st.caption(
+                                        f"查證引文 {evidence.source_id}："
+                                        f"「{evidence.quote}」"
+                                    )
                             st.caption(carousel_page.source_label)
                     if st.button(
                         "儲存草稿",
@@ -983,6 +1056,10 @@ with candidate_column:
                         )
                         try:
                             validate_draft(edited_draft)
+                            validate_company_headings(
+                                edited_draft,
+                                idea.company,
+                            )
                             db.save_carousel_draft(
                                 conn,
                                 idea.id,
@@ -1015,7 +1092,7 @@ with candidate_column:
                                     carousel_draft_service.generate(
                                         conn,
                                         idea,
-                                        source_pack,
+                                        stored_draft.sources,
                                         provider.generate_carousel_text,
                                     )
                                 clear_carousel_editor_state(
@@ -1034,6 +1111,64 @@ with candidate_column:
                             ) as error:
                                 st.error(
                                     "重新產生失敗，原本草稿仍保留。"
+                                    f"請稍後重試；原因：{error}"
+                                )
+                    with st.popover("重新搜尋公司資料"):
+                        st.caption(
+                            "會重新搜尋可信網域並覆蓋目前的來源快照與七頁草稿；"
+                            "只有整套新資料成功時才會換掉舊版本。"
+                        )
+                        if st.button(
+                            "確認重新搜尋",
+                            key=f"research-carousel-again-{idea.id}",
+                            width="stretch",
+                        ):
+                            try:
+                                provider = base.get_provider(provider_config)
+                                with st.status(
+                                    "正在重新查證公司資料…",
+                                    expanded=True,
+                                ) as research_status:
+                                    research_status.write("搜尋可信網域")
+                                    research_status.write("驗證文章與逐字證據")
+                                    carousel_research_draft.generate(
+                                        conn,
+                                        idea,
+                                        trusted_domains_for(
+                                            selected_theme,
+                                            sources,
+                                        ),
+                                        brand_asset,
+                                        None,
+                                        None,
+                                        provider.generate_carousel_text,
+                                        reuse_existing_sources=False,
+                                    )
+                                    research_status.update(
+                                        label="來源快照與七頁草稿已換新",
+                                        state="complete",
+                                        expanded=False,
+                                    )
+                                clear_carousel_editor_state(
+                                    idea.id,
+                                    stored_draft,
+                                )
+                                st.session_state.pop(
+                                    f"carousel-png-{idea.id}",
+                                    None,
+                                )
+                                queue_toast(
+                                    st.session_state,
+                                    "公司資料與七頁草稿已重新查證。",
+                                )
+                                st.rerun()
+                            except (
+                                base.LLMResponseError,
+                                RuntimeError,
+                                ValueError,
+                            ) as error:
+                                st.error(
+                                    "重新搜尋失敗，原本來源、草稿與圖片仍保留。"
                                     f"請稍後重試；原因：{error}"
                                 )
                 render_disabled = (
@@ -1085,17 +1220,19 @@ with candidate_column:
                     cached_pngs = None
                 if cached_pngs is not None:
                     st.markdown("#### 七張圖預覽")
-                    preview_columns = st.columns(2)
-                    for index, png in enumerate(cached_pngs):
-                        page_type = carousel_pages.PAGE_TYPES[index]
-                        preview_columns[index % 2].image(
-                            png,
-                            caption=(
-                                f"{index + 1:02d} · "
-                                f"{carousel_pages.label(page_type)}"
-                            ),
-                            width="stretch",
-                        )
+                    with st.container(
+                        key=f"carousel-preview-grid-{idea.id}"
+                    ):
+                        for index, png in enumerate(cached_pngs):
+                            page_type = carousel_pages.PAGE_TYPES[index]
+                            st.image(
+                                png,
+                                caption=(
+                                    f"{index + 1:02d} · "
+                                    f"{carousel_pages.label(page_type)}"
+                                ),
+                                width="stretch",
+                            )
                     archive = carousel_bundle.carousel_zip(cached_pngs)
                     st.download_button(
                         "下載全部（ZIP）",

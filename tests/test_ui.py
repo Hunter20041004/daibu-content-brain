@@ -76,6 +76,16 @@ def test_carousel_workbench_uses_branded_hierarchy_styles():
     assert "border: 1px solid var(--border)" in styles
 
 
+def test_carousel_preview_uses_one_responsive_ordered_grid():
+    page_source = (ROOT / "pages" / "1_選題.py").read_text()
+    styles = theme.css("light")
+
+    assert "preview_columns[index % 2]" not in page_source
+    assert "carousel-preview-grid-" in page_source
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
+    assert "grid-template-columns: minmax(0, 1fr)" in styles
+
+
 def test_apply_styles_uses_current_streamlit_theme(monkeypatch):
     received_modes = []
     monkeypatch.setattr(
