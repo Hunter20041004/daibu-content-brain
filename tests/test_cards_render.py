@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from daibu.cards import render
+from daibu.cards import pages, render
 from tests.card_fixtures import brand_asset, carousel_draft
 
 
@@ -205,5 +205,38 @@ def test_html_has_no_unapproved_weights_or_italics(tmp_path):
 def test_inner_page_has_page_type_class_and_label(tmp_path):
     output = _render(tmp_path, page_index=3)
 
-    assert 'class="canvas page--how-ai"' in output
+    assert 'class="canvas page--how-ai shot--evidence"' in output
     assert "04｜AI 在裡面扮演什麼角色" in output
+
+
+def test_seven_pages_use_three_distinct_story_shots(tmp_path):
+    asset = brand_asset(_logo(tmp_path))
+    outputs = [
+        render.page_html(page, "ElevenLabs", asset)
+        for page in carousel_draft().pages
+    ]
+
+    assert 'shot--hero' in outputs[0]
+    assert 'shot--hero' in outputs[6]
+    assert 'shot--editorial' in outputs[1]
+    assert 'shot--editorial' in outputs[2]
+    assert all('shot--evidence' in outputs[index] for index in (3, 4, 5))
+
+
+def test_every_page_uses_its_storytelling_mascot_and_chinese_lab_signature(
+    tmp_path,
+):
+    asset = brand_asset(_logo(tmp_path))
+    draft = carousel_draft()
+    outputs = [
+        render.page_html(page, "ElevenLabs", asset)
+        for page in draft.pages
+    ]
+
+    for page, output in zip(draft.pages, outputs, strict=True):
+        pose = pages.MASCOT_FOR[page.page_type]
+        assert f'class="story-mascot mascot--{pose}"' in output
+        assert f"mascot/{pose}.svg" in output
+        assert "呆一布 AI 實驗室" in output
+    assert "DAIBU AI LAB" not in "".join(outputs)
+    assert "CASE FILE" not in "".join(outputs)

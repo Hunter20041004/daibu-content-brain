@@ -14,6 +14,15 @@ FONT_FILES = {
 }
 
 SERIES_NAME = "一布懂 AI 新創"
+SHOT_FOR = {
+    "cover": "hero",
+    "who": "editorial",
+    "problem": "editorial",
+    "how-ai": "evidence",
+    "results": "evidence",
+    "why-care": "evidence",
+    "cta": "hero",
+}
 
 
 def _company_name_class(company: str) -> str:
@@ -23,6 +32,22 @@ def _company_name_class(company: str) -> str:
     if length <= 16:
         return "medium"
     return "long"
+
+
+def _mascot_uri(page_type: str) -> str:
+    pose = pages.MASCOT_FOR[page_type]
+    path = ASSETS / "mascot" / f"{pose}.svg"
+    if not path.is_file():
+        raise RuntimeError(f"找不到呆一布角色素材：{pose}")
+    return path.as_uri()
+
+
+def _mascot_html(page_type: str) -> str:
+    pose = pages.MASCOT_FOR[page_type]
+    return (
+        f'<img class="story-mascot mascot--{pose}" '
+        f'src="{_mascot_uri(page_type)}" alt="呆一布角色插圖">'
+    )
 
 
 def _section_html(section: ContentSection) -> str:
@@ -37,8 +62,10 @@ def _section_html(section: ContentSection) -> str:
 def _header(page: CarouselPage, company: str, logo_uri: str) -> str:
     return (
         '<header class="page-header">'
+        '<div class="page-identity">'
+        f'<div class="series-mini">{SERIES_NAME}</div>'
         f'<div class="page-tag">{page.page_no:02d}｜'
-        f"{html.escape(pages.label(page.page_type))}</div>"
+        f"{html.escape(pages.label(page.page_type))}</div></div>"
         f'<img class="company-logo company-logo--small" '
         f'src="{logo_uri}" alt="{html.escape(company)} Logo">'
         "</header>"
@@ -58,6 +85,7 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
         f'<h1 class="cover-hook">{html.escape(page.heading)}</h1>'
         '<p class="cover-positioning">'
         f'{html.escape(by_label["一句話定位"].text)}</p>'
+        f'{_mascot_html(page.page_type)}'
         "</div>"
     )
 
@@ -71,8 +99,10 @@ def _inner(page: CarouselPage, company: str, logo_uri: str) -> str:
         f"<h1>{html.escape(page.heading)}</h1>"
         f'<div class="section-list">{sections}</div>'
         f"{diagram}"
-        f'<div class="source-label">{html.escape(page.source_label)}</div>'
         "</main>"
+        f'{_mascot_html(page.page_type)}'
+        '<footer class="page-source source-label">'
+        f'{html.escape(page.source_label)}</footer>'
     )
 
 
@@ -95,5 +125,7 @@ def page_html(
         .read_text(encoding="utf-8")
         .replace("__CSS__", css)
         .replace("__PAGE_TYPE__", html.escape(page.page_type))
+        .replace("__SHOT__", SHOT_FOR[page.page_type])
+        .replace("__PAGE_NO__", f"{page.page_no:02d}")
         .replace("__CONTENT__", content)
     )
