@@ -6,4 +6,5 @@ __pycache__/
 .screenshots/
 .playwright-cli/
 .superpowers/
+.worktrees/
 assets/logos/
