@@ -1,6 +1,6 @@
 # HANDOFF — 呆一布選題大腦
 
-> 2026-07-31 更新。「一布懂 AI 新創」七頁輪播敘事視覺已完成，待分支合併與 main 複驗。
+> 2026-07-31 更新。「一布懂 AI 新創」七頁輪播敘事視覺已完成、合併至 `main` 並通過複驗。
 
 ## 本輪目標與驗收
 
@@ -29,15 +29,16 @@
 - **視覺自檢**：兩輪各只截桌機與手機；最終檔案為 `.screenshots/desktop.png`、
   `.screenshots/mobile.png`。層次、留白、字體、配色、對齊、響應式、狀態、動效皆通過。
 - **測試**：相關測試 `115 passed in 22.89s`；feature branch 全套
-  `383 passed, 11 deselected, 1 warning in 44.42s`，`git diff --check` 待文件提交前複驗。
+  `383 passed, 11 deselected, 1 warning in 44.42s`；合併後 `main` 全套
+  `383 passed, 11 deselected, 1 warning in 36.64s`。唯一警告為既有 Starlette 測試
+  套件棄用提示；`git diff --check` 通過。
 - **資料安全**：視覺操作只用 `/tmp/daibu-carousel-story-test.db`、port 8502、
   `/tmp/daibu-carousel-story-logos/`。真實 `daibu.db` mtime 前後均為 `1785433278`。
 
 ## 下一步
 
-1. 提交本交接文件。
-2. 合併 `codex/carousel-story-redesign` 回 `main`，在 main 重跑全套測試。
-3. 推送 `origin/main`；本專案沒有 production 部署流程，不另建正式站。
+- 本輪已完成；`main` 推送至既有 `origin`。本專案沒有 production 部署流程，未另建正式站。
+- 下一階段請另開 task，從本交接單繼續。
 
 ## 最容易踩的坑
 
