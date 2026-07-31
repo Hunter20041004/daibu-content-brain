@@ -92,6 +92,23 @@ def test_who_page_uses_the_lower_part_of_the_canvas(tmp_path):
     assert 1000 <= report.source_bottom <= 1260
 
 
+def test_story_layout_keeps_mascot_and_bottom_source_visible_without_overlap(
+    tmp_path,
+):
+    asset = brand_asset(_test_logo(tmp_path))
+    reports = [
+        shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
+        for page in carousel_draft().pages
+    ]
+
+    assert all(report.mascot_visible for report in reports)
+    assert all(not report.source_overlap for report in reports[1:])
+    assert all(
+        1180 <= report.source_bottom <= 1260
+        for report in reports[1:]
+    )
+
+
 def test_png_bytes_has_exact_canvas_size(tmp_path):
     data = shoot.png_bytes(_html(tmp_path))
 
@@ -111,10 +128,10 @@ def test_text_actually_rendered_with_the_bundled_font(tmp_path):
     data = shoot.png_bytes(_html(tmp_path))
     image = Image.open(io.BytesIO(data)).convert("RGB")
 
-    band = [image.getpixel((x, 715)) for x in range(140, 940, 4)]
+    band = [image.getpixel((x, 430)) for x in range(140, 760, 4)]
     inked = [pixel for pixel in band if sum(pixel) < 650]
 
-    assert len(inked) > 20, "白卡中央沒有足夠文字像素，代表字型可能未載入"
+    assert len(inked) > 20, "封面公司名沒有足夠文字像素，代表字型可能未載入"
 
 
 def test_missing_bundled_font_does_not_silently_use_fallback(tmp_path):

@@ -641,6 +641,13 @@ def css(mode: str | None = None) -> str:
     @media (max-width: 700px) {{
         [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"] {{
             grid-template-columns: minmax(0, 1fr);
+            min-width: 0;
+            overflow-x: hidden;
+        }}
+
+        [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"]
+        [data-testid="stImage"] {{
+            max-width: 100%;
         }}
 
         .page-deck {{

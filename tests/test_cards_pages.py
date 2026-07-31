@@ -28,6 +28,10 @@ def test_every_page_type_maps_to_a_known_mascot_pose():
     assert set(pages.MASCOT_FOR.values()) <= set(pages.POSES)
 
 
+def test_curiosity_cover_uses_the_thinking_pose():
+    assert pages.MASCOT_FOR["cover"] == "think"
+
+
 def test_inner_pages_have_a_narrative_density_target():
     assert pages.LIMITS["inner_min"] == 140
     assert pages.LIMITS["inner_max"] == 220

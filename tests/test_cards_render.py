@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from daibu.cards import render
+from daibu.cards import pages, render
 from tests.card_fixtures import brand_asset, carousel_draft
 
 
@@ -23,7 +23,7 @@ def _render(tmp_path: Path, page_index: int = 0) -> str:
     )
 
 
-def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
+def test_every_page_has_logo_and_inner_pages_keep_their_source(tmp_path):
     asset = brand_asset(_logo(tmp_path))
     outputs = [
         render.page_html(page, "ElevenLabs", asset)
@@ -35,6 +35,7 @@ def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
     assert all('company-logo company-logo--small' in output for output in outputs[1:])
     assert "原本的代價" in outputs[2]
     assert 'data-diagram-kind="ai-generate"' in outputs[3]
+    assert "來源：ElevenLabs" not in outputs[0]
     assert "來源：ElevenLabs" in outputs[4]
     assert "margin-top: auto" not in outputs[4]
     unsafe_company = "<script>alert(1)</script>"
@@ -45,14 +46,29 @@ def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
     )
 
 
-def test_cover_renders_its_verified_source_in_normal_flow(tmp_path):
+def test_cover_omits_source_and_industry_but_keeps_positioning(tmp_path):
     output = _render(tmp_path)
 
-    assert 'class="source-label source-label--cover"' in output
-    assert "來源：ElevenLabs" in output
-    assert output.index("cover-summary") < output.index(
-        'source-label source-label--cover'
+    assert 'class="source-label source-label--cover"' not in output
+    assert "來源：ElevenLabs" not in output
+    assert "生成式語音" not in output
+    assert "ElevenLabs 用 AI 生成與轉換保有語氣的聲音。" in output
+
+
+def test_cover_leads_with_series_and_hook_without_industry_or_source(
+    tmp_path,
+):
+    output = _render(tmp_path)
+
+    assert '<div class="series-lockup">一布懂 AI 新創</div>' in output
+    assert (
+        '<h1 class="cover-hook">讓每段文字保留說話方式</h1>'
+        in output
     )
+    assert 'class="cover-positioning"' in output
+    assert "生成式語音" not in output
+    assert "來源：ElevenLabs" not in output
+    assert 'class="company-name company-name--short"' in output
 
 
 def test_html_escapes_heading_section_and_company_text(tmp_path):
@@ -84,7 +100,7 @@ def test_card_uses_approved_geometry(tmp_path):
     for declaration in (
         "inset: 48px 48px 64px",
         "border-radius: 40px",
-        "0 6px 36px rgba(38,38,65,.06)",
+        "0 6px 36px rgba(38, 38, 65, .06)",
     ):
         assert declaration in output
 
@@ -126,13 +142,13 @@ def test_feed_microcopy_is_large_and_high_contrast(tmp_path):
 
     output = _render(tmp_path)
     page_tag_rule = re.search(r"\.page-tag \{(?P<body>.*?)\}", output, re.S)
-    source_rule = re.search(r"\.source-label \{(?P<body>.*?)\}", output, re.S)
+    source_rule = re.search(r"\.page-source \{(?P<body>.*?)\}", output, re.S)
 
-    assert "font-size: 35px" in page_tag_rule.group("body")
-    assert "font-size: 35px" in source_rule.group("body")
-    assert theme.contrast_ratio("#5F6070", "#FBFCFE") >= 4.5
-    assert "color: #5F6070" in page_tag_rule.group("body")
-    assert "color: #5F6070" in source_rule.group("body")
+    assert "font-size: 24px" in page_tag_rule.group("body")
+    assert "font-size: 30px" in source_rule.group("body")
+    assert theme.contrast_ratio("#4F5362", "#FBFCFE") >= 4.5
+    assert "color: var(--muted)" in page_tag_rule.group("body")
+    assert "color: var(--muted)" in source_rule.group("body")
 
 
 def test_type_hierarchy_uses_approved_weights(tmp_path):
@@ -155,11 +171,12 @@ def test_ai_role_diagram_keeps_readable_step_type(tmp_path):
     )[1].split("}", 1)[0]
 
 
-def test_html_includes_approved_frame_decorations(tmp_path):
+def test_html_replaces_generic_patterns_with_one_lab_signature(tmp_path):
     output = _render(tmp_path)
 
-    assert 'class="frame-pattern frame-pattern--stripes"' in output
-    assert 'class="frame-pattern frame-pattern--dots"' in output
+    assert "呆一布 AI 實驗室" in output
+    assert 'class="frame-pattern frame-pattern--stripes"' not in output
+    assert 'class="frame-pattern frame-pattern--dots"' not in output
 
 
 def test_handle_sits_in_the_frame_below_the_card(tmp_path):
@@ -170,10 +187,11 @@ def test_handle_sits_in_the_frame_below_the_card(tmp_path):
     assert "bottom: 16px" in output
 
 
-def test_html_has_no_theme_dependent_colors(tmp_path):
+def test_html_uses_local_tokens_without_theme_dependent_colors(tmp_path):
     output = _render(tmp_path)
 
-    assert "var(--" not in output
+    assert ":root" in output
+    assert "--paper: #FBFCFE" in output
     assert "light-dark(" not in output
     assert "prefers-color-scheme" not in output
 
@@ -189,5 +207,87 @@ def test_html_has_no_unapproved_weights_or_italics(tmp_path):
 def test_inner_page_has_page_type_class_and_label(tmp_path):
     output = _render(tmp_path, page_index=3)
 
-    assert 'class="canvas page--how-ai"' in output
+    assert 'class="canvas page--how-ai shot--evidence"' in output
     assert "04｜AI 在裡面扮演什麼角色" in output
+
+
+def test_seven_pages_use_three_distinct_story_shots(tmp_path):
+    asset = brand_asset(_logo(tmp_path))
+    outputs = [
+        render.page_html(page, "ElevenLabs", asset)
+        for page in carousel_draft().pages
+    ]
+
+    assert 'shot--hero' in outputs[0]
+    assert 'shot--hero' in outputs[6]
+    assert 'shot--editorial' in outputs[1]
+    assert 'shot--editorial' in outputs[2]
+    assert all('shot--evidence' in outputs[index] for index in (3, 4, 5))
+
+
+def test_every_page_uses_its_storytelling_mascot_and_chinese_lab_signature(
+    tmp_path,
+):
+    asset = brand_asset(_logo(tmp_path))
+    draft = carousel_draft()
+    outputs = [
+        render.page_html(page, "ElevenLabs", asset)
+        for page in draft.pages
+    ]
+
+    for page, output in zip(draft.pages, outputs, strict=True):
+        pose = pages.MASCOT_FOR[page.page_type]
+        assert f'class="story-mascot mascot--{pose}"' in output
+        assert f"mascot/{pose}.svg" in output
+        assert "呆一布 AI 實驗室" in output
+    assert "DAIBU AI LAB" not in "".join(outputs)
+    assert "CASE FILE" not in "".join(outputs)
+
+
+def test_story_css_prioritizes_series_source_readability_and_full_outline_blocks(
+    tmp_path,
+):
+    output = _render(tmp_path)
+
+    assert ".series-lockup" in output
+    assert "font-size: 80px" in output
+    assert ".page-source" in output
+    assert "font-size: 30px" in output
+    assert ".story-mascot" in output
+    assert "border-left:" not in output
+    assert "text-transform: uppercase" not in output
+
+
+def test_story_mascots_face_the_content_and_fill_deliberate_lower_zones(
+    tmp_path,
+):
+    output = _render(tmp_path)
+
+    point_rule = re.search(r"\.mascot--point \{(?P<body>.*?)\}", output, re.S)
+    cover_rule = re.search(
+        r"\.page--cover \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+    who_rule = re.search(
+        r"\.page--who \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+    results_rule = re.search(
+        r"\.page--results \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+    why_care_rule = re.search(
+        r"\.page--why-care \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+
+    assert "transform: scaleX(-1)" in point_rule.group("body")
+    assert "bottom: 80px" in cover_rule.group("body")
+    assert "inset: auto" in who_rule.group("body")
+    assert "top:" not in who_rule.group("body")
+    assert "inset: auto" in results_rule.group("body")
+    assert "inset: auto" in why_care_rule.group("body")

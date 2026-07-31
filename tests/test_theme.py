@@ -199,6 +199,17 @@ def test_context_column_sticky_applies_to_streamlit_layout_wrapper():
     )
 
 
+def test_carousel_preview_is_two_columns_on_desktop_and_one_on_mobile():
+    styles = theme.css()
+    selector = '[class*="st-key-carousel-preview-grid-"]'
+
+    assert selector in styles
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
+    mobile = styles.split("@media (max-width: 700px)", maxsplit=1)[1]
+    assert "grid-template-columns: minmax(0, 1fr)" in mobile
+    assert "overflow-x: hidden" in mobile
+
+
 def test_calendar_cards_have_fixed_height():
     styles = theme.css()
     calendar_rule = styles.split(
