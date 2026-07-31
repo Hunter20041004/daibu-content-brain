@@ -29,7 +29,7 @@ SECTION_LABELS = {
     "how-ai": ("傳統做法", "AI 的角色", "人仍負責", "本頁要記住"),
     "results": ("代表使用者", "使用前後", "購買關係"),
     "why-care": ("觀察訊號 1", "觀察訊號 2", "證據限制"),
-    "cta": ("公司定位", "AI 的角色", "觀察重點", "互動邀請"),
+    "cta": ("收束結論", "給讀者的問題", "互動邀請"),
 }
 REQUIRED_SECTIONS = {
     page_type: set(labels)
@@ -39,6 +39,11 @@ SECTION_LABEL_SEQUENCES = {
     page_type: (labels,)
     for page_type, labels in SECTION_LABELS.items()
 }
+SECTION_LABEL_SEQUENCES["cta"] = (
+    SECTION_LABELS["cta"],
+    ("公司定位", "AI 的角色", "觀察重點", "互動邀請"),
+)
+REQUIRED_SECTIONS["cta"] = {"互動邀請"}
 SECTION_LABEL_SEQUENCES["why-care"] = (
     SECTION_LABELS["why-care"],
     (
@@ -78,7 +83,7 @@ LABELS = {
     "how-ai": "AI 在裡面扮演什麼角色",
     "results": "誰會用、怎麼用",
     "why-care": "接下來觀察什麼",
-    "cta": "三件值得記住的事",
+    "cta": "收束與互動",
 }
 
 

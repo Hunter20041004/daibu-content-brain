@@ -18,6 +18,7 @@ def generate(
 ) -> "CarouselDraft":
     from daibu.cards.schema import (
         CarouselDraft,
+        validate_company_headings,
         validate_grounded_draft,
         validate_sources,
     )
@@ -38,6 +39,7 @@ def generate(
     try:
         result = prompt.parse_carousel(raw, sources)
         validate_grounded_draft(result)
+        validate_company_headings(result, idea.company)
     except ValueError as error:
         raise base.LLMResponseError(raw) from error
     db.save_carousel_draft(conn, idea.id, result)

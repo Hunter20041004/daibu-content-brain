@@ -22,6 +22,51 @@ def test_complete_fixture_passes_the_grounded_evidence_contract():
     validate_grounded_draft(carousel_draft())
 
 
+def test_pages_four_through_seven_must_name_the_company_in_the_heading():
+    from daibu.cards.schema import validate_company_headings
+
+    draft = carousel_draft()
+    pages = tuple(
+        replace(page, heading=f"ElevenLabs：{page.heading}")
+        if 4 <= page.page_no <= 7
+        else page
+        for page in draft.pages
+    )
+    pages = (*pages[:3], replace(pages[3], heading="AI 重建說話方式"), *pages[4:])
+
+    with pytest.raises(ValueError, match="第 4 頁標題必須寫出 ElevenLabs"):
+        validate_company_headings(replace(draft, pages=pages), "ElevenLabs")
+
+
+def test_new_cta_contract_closes_with_a_conclusion_and_reader_question():
+    from daibu.cards import pages
+
+    assert pages.SECTION_LABELS["cta"] == (
+        "收束結論",
+        "給讀者的問題",
+        "互動邀請",
+    )
+
+
+def test_legacy_four_section_cta_remains_readable():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    cta = draft.pages[-1]
+    sourced = cta.sections[0]
+    legacy = replace(
+        cta,
+        sections=(
+            replace(sourced, label="公司定位"),
+            replace(sourced, label="AI 的角色"),
+            replace(sourced, label="觀察重點"),
+            cta.sections[-1],
+        ),
+    )
+
+    validate_draft(replace(draft, pages=(*draft.pages[:-1], legacy)))
+
+
 def test_draft_rejects_incomplete_source_metadata():
     from daibu.cards.schema import validate_draft
 

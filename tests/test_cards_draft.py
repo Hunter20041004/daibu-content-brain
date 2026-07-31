@@ -232,3 +232,45 @@ def test_generate_reports_invalid_json_after_exactly_one_llm_call(tmp_path):
     assert len(calls) == 1
     assert db.get_carousel_draft(conn, idea_id) is None
     conn.close()
+
+
+def test_generate_rejects_pages_that_drop_the_company_as_subject(tmp_path):
+    from dataclasses import replace
+
+    from tests.card_fixtures import (
+        carousel_draft,
+        structured_llm_response,
+        verified_sources,
+    )
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(
+            title="t",
+            angle="a",
+            source_url="https://example.com/a",
+            company="ElevenLabs",
+            source_excerpt=LONG_EXCERPT,
+        ),
+    )
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    invalid = carousel_draft()
+    page_four = replace(invalid.pages[3], heading="AI 重建說話方式")
+    invalid = replace(
+        invalid,
+        pages=(*invalid.pages[:3], page_four, *invalid.pages[4:]),
+    )
+
+    with pytest.raises(base.LLMResponseError):
+        draft.generate(
+            conn,
+            idea,
+            verified_sources(),
+            lambda _text: structured_llm_response(invalid),
+        )
+
+    assert db.get_carousel_draft(conn, idea_id) is None
+    conn.close()

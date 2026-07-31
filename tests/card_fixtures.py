@@ -143,7 +143,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             4,
             "how-ai",
-            "AI 重建的是說話方式",
+            "ElevenLabs 用 AI 重建說話方式",
             (
                 _section(
                     "傳統做法",
@@ -183,7 +183,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             5,
             "results",
-            "誰會把它放進工作裡",
+            "誰把 ElevenLabs 放進工作裡",
             (
                 _section(
                     "代表使用者",
@@ -219,7 +219,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             6,
             "why-care",
-            "接下來看三個訊號",
+            "觀察 ElevenLabs 的三個訊號",
             (
                 _section(
                     "觀察訊號 1",
@@ -259,30 +259,19 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             7,
             "cta",
-            "三件值得記住的事",
+            "你會怎麼看 ElevenLabs",
             (
                 _section(
-                    "公司定位",
-                    "它把語氣與節奏一起放進生成式語音。",
+                    "收束結論",
+                    "ElevenLabs 把語氣與節奏放進可反覆調整的生成式語音流程，但最後內容、"
+                    "授權與品質仍由人負責。",
                     "S1",
                 ),
-                _section(
-                    "AI 的角色",
-                    "先產生能反覆調整的聲音版本。",
-                    "S1",
-                ),
-                _section(
-                    "觀察重點",
-                    "看長內容、工作流程與聲音授權。",
-                    "S1",
-                    "S2",
-                    "S3",
-                ),
+                _section("給讀者的問題", "你會先用 AI 語音處理哪一種內容？"),
                 _section("互動邀請", "按讚並追蹤呆一布，繼續看懂 AI 公司。"),
             ),
             None,
-            "來源：ElevenLabs · 2026-07-12、2026-07-18；"
-            "Verified News · 2026-07-20",
+            "來源：ElevenLabs · 2026-07-12",
         ),
     )
     draft = CarouselDraft(verified_sources(), pages)
