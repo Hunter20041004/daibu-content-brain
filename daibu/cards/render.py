@@ -13,6 +13,17 @@ FONT_FILES = {
     "__FONT_EB__": "LINESeedTW_OTF_Eb.otf",
 }
 
+SERIES_NAME = "一布懂 AI 新創"
+
+
+def _company_name_class(company: str) -> str:
+    length = len("".join(company.split()))
+    if length <= 10:
+        return "short"
+    if length <= 16:
+        return "medium"
+    return "long"
+
 
 def _section_html(section: ContentSection) -> str:
     return (
@@ -36,17 +47,17 @@ def _header(page: CarouselPage, company: str, logo_uri: str) -> str:
 
 def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
     by_label = {section.label: section for section in page.sections}
+    company_class = _company_name_class(company)
     return (
         '<div class="cover-content">'
+        f'<div class="series-lockup">{SERIES_NAME}</div>'
         f'<img class="company-logo company-logo--cover" '
         f'src="{logo_uri}" alt="{html.escape(company)} Logo">'
-        '<div class="industry-tag">'
-        f'{html.escape(by_label["產業分類"].text)}</div>'
-        f"<h1>{html.escape(company)}</h1>"
-        '<p class="cover-summary">'
+        f'<div class="company-name company-name--{company_class}">'
+        f'{html.escape(company)}</div>'
+        f'<h1 class="cover-hook">{html.escape(page.heading)}</h1>'
+        '<p class="cover-positioning">'
         f'{html.escape(by_label["一句話定位"].text)}</p>'
-        '<div class="source-label source-label--cover">'
-        f"{html.escape(page.source_label)}</div>"
         "</div>"
     )
 

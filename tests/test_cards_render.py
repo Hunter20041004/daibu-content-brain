@@ -23,7 +23,7 @@ def _render(tmp_path: Path, page_index: int = 0) -> str:
     )
 
 
-def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
+def test_every_page_has_logo_and_inner_pages_keep_their_source(tmp_path):
     asset = brand_asset(_logo(tmp_path))
     outputs = [
         render.page_html(page, "ElevenLabs", asset)
@@ -35,6 +35,7 @@ def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
     assert all('company-logo company-logo--small' in output for output in outputs[1:])
     assert "原本的代價" in outputs[2]
     assert 'data-diagram-kind="ai-generate"' in outputs[3]
+    assert "來源：ElevenLabs" not in outputs[0]
     assert "來源：ElevenLabs" in outputs[4]
     assert "margin-top: auto" not in outputs[4]
     unsafe_company = "<script>alert(1)</script>"
@@ -45,14 +46,29 @@ def test_every_page_has_logo_sections_and_naturally_flowing_source(tmp_path):
     )
 
 
-def test_cover_renders_its_verified_source_in_normal_flow(tmp_path):
+def test_cover_omits_source_and_industry_but_keeps_positioning(tmp_path):
     output = _render(tmp_path)
 
-    assert 'class="source-label source-label--cover"' in output
-    assert "來源：ElevenLabs" in output
-    assert output.index("cover-summary") < output.index(
-        'source-label source-label--cover'
+    assert 'class="source-label source-label--cover"' not in output
+    assert "來源：ElevenLabs" not in output
+    assert "生成式語音" not in output
+    assert "ElevenLabs 用 AI 生成與轉換保有語氣的聲音。" in output
+
+
+def test_cover_leads_with_series_and_hook_without_industry_or_source(
+    tmp_path,
+):
+    output = _render(tmp_path)
+
+    assert '<div class="series-lockup">一布懂 AI 新創</div>' in output
+    assert (
+        '<h1 class="cover-hook">讓每段文字保留說話方式</h1>'
+        in output
     )
+    assert 'class="cover-positioning"' in output
+    assert "生成式語音" not in output
+    assert "來源：ElevenLabs" not in output
+    assert 'class="company-name company-name--short"' in output
 
 
 def test_html_escapes_heading_section_and_company_text(tmp_path):

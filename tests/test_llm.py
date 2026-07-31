@@ -416,6 +416,22 @@ def test_carousel_prompt_limits_copy_to_verified_sources():
     assert "第 1、2、7 頁的 diagram 必須是 null" in text
 
 
+def test_carousel_prompt_makes_cover_heading_a_grounded_curiosity_hook():
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel(
+        "ElevenLabs",
+        "t",
+        "a",
+        verified_sources(),
+    )
+
+    assert "第 1 頁 heading" in text
+    assert "好奇" in text
+    assert "12–24 個中文字" in text
+    assert "不得用來源沒有的事實製造懸念" in text
+
+
 def test_carousel_prompt_states_the_exact_order_not_supported_by_gemini_schema():
     from tests.card_fixtures import verified_sources
 
