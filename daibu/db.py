@@ -10,6 +10,7 @@ from daibu.cards.schema import (
     ContentSection,
     DiagramNode,
     DiagramSpec,
+    EvidenceQuote,
     VerifiedSource,
     validate_draft,
     validate_sources,
@@ -1049,6 +1050,13 @@ def get_carousel_draft(
                 item["label"],
                 item["text"],
                 tuple(item["source_ids"]),
+                tuple(
+                    EvidenceQuote(
+                        evidence["source_id"],
+                        evidence["quote"],
+                    )
+                    for evidence in item.get("evidence_quotes", [])
+                ),
             )
             for item in json.loads(row["sections_json"])
         )

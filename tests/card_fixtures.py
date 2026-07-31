@@ -9,6 +9,7 @@ from daibu.cards.schema import (
     ContentSection,
     DiagramNode,
     DiagramSpec,
+    EvidenceQuote,
     VerifiedSource,
 )
 
@@ -21,6 +22,7 @@ def verified_sources() -> tuple[VerifiedSource, ...]:
             "2026-07-12",
             "https://elevenlabs.io/about",
             "公司開發能保留語氣、節奏與情緒的語音模型，並提供內容製作工具。",
+            "official",
         ),
         VerifiedSource(
             "S2",
@@ -28,6 +30,7 @@ def verified_sources() -> tuple[VerifiedSource, ...]:
             "2026-07-18",
             "https://elevenlabs.io/use-cases",
             "官方列出的使用情境包含有聲書、遊戲、影音內容與多語在地化。",
+            "official",
         ),
         VerifiedSource(
             "S3",
@@ -35,6 +38,7 @@ def verified_sources() -> tuple[VerifiedSource, ...]:
             "2026-07-20",
             "https://news.example/elevenlabs-profile",
             "報導說明專業配音需要錄音、重錄與逐段調整，製作排程會受人力與錄音室限制。",
+            "third_party",
         ),
     )
 
@@ -53,7 +57,16 @@ def solid_png(width: int, height: int) -> bytes:
 
 
 def _section(label: str, text: str, *source_ids: str) -> ContentSection:
-    return ContentSection(label, text, tuple(source_ids))
+    by_id = {source.source_id: source for source in verified_sources()}
+    return ContentSection(
+        label,
+        text,
+        tuple(source_ids),
+        tuple(
+            EvidenceQuote(source_id, by_id[source_id].excerpt)
+            for source_id in source_ids
+        ),
+    )
 
 
 def carousel_draft() -> CarouselDraft:

@@ -16,6 +16,12 @@ def test_complete_seven_page_draft_passes_the_content_contract():
     assert draft.pages[3].diagram.kind == "ai-generate"
 
 
+def test_complete_fixture_passes_the_grounded_evidence_contract():
+    from daibu.cards.schema import validate_grounded_draft
+
+    validate_grounded_draft(carousel_draft())
+
+
 def test_draft_rejects_incomplete_source_metadata():
     from daibu.cards.schema import validate_draft
 
@@ -79,6 +85,26 @@ def test_draft_rejects_unknown_source_kind():
 
     with pytest.raises(ValueError, match="來源類別無效"):
         validate_draft(replace(draft, sources=(bad_source, *draft.sources[1:])))
+
+
+def test_grounded_draft_rejects_a_quote_absent_from_its_source():
+    from daibu.cards.schema import (
+        EvidenceQuote,
+        validate_grounded_draft,
+    )
+
+    draft = carousel_draft()
+    cover = draft.pages[0]
+    unsupported = replace(
+        cover.sections[0],
+        evidence_quotes=(EvidenceQuote("S1", "來源裡不存在"),),
+    )
+    cover = replace(cover, sections=(unsupported, cover.sections[1]))
+
+    with pytest.raises(ValueError, match="查證引文不在 S1 原文"):
+        validate_grounded_draft(
+            replace(draft, pages=(cover, *draft.pages[1:])),
+        )
 
 
 def test_draft_requires_all_seven_pages_in_order():
@@ -205,20 +231,20 @@ def test_draft_rejects_a_main_diagram_on_non_diagram_pages():
         validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
 
 
-def test_draft_enforces_the_inner_page_narrative_density():
-    from daibu.cards.schema import ContentSection, validate_draft
+def test_draft_allows_a_shorter_grounded_inner_page():
+    from daibu.cards.schema import validate_draft
 
     draft = carousel_draft()
+    who_page = draft.pages[1]
     who = replace(
-        draft.pages[1],
+        who_page,
         sections=(
-            ContentSection("白話定位", "太短", ("S1",)),
-            ContentSection("基本資料", "仍然太短", ("S1",)),
+            replace(who_page.sections[0], text="只寫有原文支持的公司定位。"),
+            replace(who_page.sections[1], text="公開資料不足，不為湊字數補造。"),
         ),
     )
 
-    with pytest.raises(ValueError, match="who 文字需為 140–220 字"):
-        validate_draft(replace(draft, pages=(draft.pages[0], who, *draft.pages[2:])))
+    validate_draft(replace(draft, pages=(draft.pages[0], who, *draft.pages[2:])))
 
 
 def test_draft_requires_sources_for_factual_sections():
@@ -275,6 +301,41 @@ def test_page_mapping_uses_verified_sources_to_build_the_source_label():
     assert page.source_label == "來源：ElevenLabs · 2026-07-12"
 
 
+def test_page_mapping_derives_source_ids_from_evidence_quotes():
+    from daibu.cards.schema import EvidenceQuote, page_from_mapping
+
+    draft = carousel_draft()
+    quote = draft.sources[0].excerpt
+    page = page_from_mapping(
+        {
+            "page_no": 1,
+            "page_type": "cover",
+            "heading": "標題",
+            "sections": [
+                {
+                    "label": "一句話定位",
+                    "text": "內容",
+                    "evidence_quotes": [
+                        {"source_id": "S1", "quote": quote},
+                    ],
+                },
+                {
+                    "label": "產業分類",
+                    "text": "語音",
+                    "evidence_quotes": [
+                        {"source_id": "S1", "quote": quote},
+                    ],
+                },
+            ],
+            "diagram": None,
+        },
+        draft.sources,
+    )
+
+    assert page.sections[0].source_ids == ("S1",)
+    assert page.sections[0].evidence_quotes == (EvidenceQuote("S1", quote),)
+
+
 def test_draft_rejects_a_noncanonical_source_label():
     from daibu.cards.schema import validate_draft
 
@@ -324,6 +385,6 @@ def test_draft_reports_all_validation_errors_in_one_review():
     message = str(error.value)
     assert "一句話定位 是事實區塊，必須附來源" in message
     assert "產業分類 是事實區塊，必須附來源" in message
-    assert "who 文字需為 140–220 字" in message
+    assert "who 文字最多 220 字" in message
     assert error.value.page_types == frozenset({"cover", "who"})
     assert error.value.has_global_issues is False

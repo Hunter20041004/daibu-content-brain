@@ -18,10 +18,17 @@ class VerifiedSource:
 
 
 @dataclass(frozen=True)
+class EvidenceQuote:
+    source_id: str
+    quote: str
+
+
+@dataclass(frozen=True)
 class ContentSection:
     label: str
     text: str
     source_ids: tuple[str, ...]
+    evidence_quotes: tuple[EvidenceQuote, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -124,7 +131,7 @@ def page_from_mapping(
     for item in raw_sections:
         if not isinstance(item, Mapping):
             raise ValueError("輪播頁 section 必須是物件")
-        for field in ("label", "text", "source_ids"):
+        for field in ("label", "text"):
             if field not in item:
                 raise ValueError(
                     f"輪播頁 section 缺少必要欄位：{field}"
@@ -134,7 +141,36 @@ def page_from_mapping(
                 raise ValueError(
                     f"輪播頁 section.{field} 必須是字串"
                 )
-        raw_source_ids = item["source_ids"]
+        raw_evidence = item.get("evidence_quotes")
+        evidence_quotes: tuple[EvidenceQuote, ...] = ()
+        if raw_evidence is not None:
+            if not isinstance(raw_evidence, (list, tuple)):
+                raise ValueError(
+                    "輪播頁 section.evidence_quotes 必須是陣列"
+                )
+            parsed_evidence = []
+            for evidence in raw_evidence:
+                if not isinstance(evidence, Mapping):
+                    raise ValueError("輪播頁查證引文必須是物件")
+                source_id = evidence.get("source_id")
+                quote = evidence.get("quote")
+                if not isinstance(source_id, str) or not source_id.strip():
+                    raise ValueError("查證引文 source_id 必須是非空字串")
+                if not isinstance(quote, str) or not quote.strip():
+                    raise ValueError("查證引文 quote 必須是非空字串")
+                parsed_evidence.append(EvidenceQuote(source_id, quote))
+            evidence_quotes = tuple(parsed_evidence)
+            raw_source_ids = list(
+                dict.fromkeys(
+                    evidence.source_id for evidence in evidence_quotes
+                )
+            )
+        else:
+            if "source_ids" not in item:
+                raise ValueError(
+                    "輪播頁 section 缺少必要欄位：source_ids"
+                )
+            raw_source_ids = item["source_ids"]
         if not isinstance(raw_source_ids, (list, tuple)):
             raise ValueError("輪播頁 section.source_ids 必須是陣列")
         if any(
@@ -149,6 +185,7 @@ def page_from_mapping(
                 item["label"],
                 item["text"],
                 tuple(raw_source_ids),
+                evidence_quotes,
             )
         )
     sections = tuple(parsed_sections)
@@ -312,10 +349,10 @@ def validate_draft(draft: CarouselDraft) -> None:
 
         if page.page_type in pages.PAGE_TYPES[1:6]:
             count = narrative_chars(page)
-            if not pages.LIMITS["inner_min"] <= count <= pages.LIMITS["inner_max"]:
+            if count > pages.LIMITS["inner_max"]:
                 record(
-                    f"{page.page_type} 文字需為 "
-                    f"{pages.LIMITS['inner_min']}–{pages.LIMITS['inner_max']} 字，"
+                    f"{page.page_type} 文字最多 "
+                    f"{pages.LIMITS['inner_max']} 字，"
                     f"目前 {count} 字",
                     page.page_type,
                 )
@@ -350,6 +387,61 @@ def validate_draft(draft: CarouselDraft) -> None:
             for word in ("試用", "註冊", "下載", "投資", "官網看看")
         ):
             record("第 7 頁只能邀請按讚或追蹤", "cta")
+
+    if errors:
+        raise DraftValidationError(draft, tuple(errors))
+
+
+def validate_grounded_draft(draft: CarouselDraft) -> None:
+    """Require every factual section to cite a verbatim source excerpt."""
+    validate_draft(draft)
+    sources = {source.source_id: source for source in draft.sources}
+    errors: list[tuple[str | None, str]] = []
+    may_be_unsourced = {"互動邀請", "證據限制", "給讀者的問題"}
+
+    for page in draft.pages:
+        for section in page.sections:
+            if section.label not in may_be_unsourced and not section.evidence_quotes:
+                errors.append(
+                    (
+                        page.page_type,
+                        f"{section.label} 是事實區塊，必須附查證引文",
+                    )
+                )
+                continue
+            evidence_ids = tuple(
+                dict.fromkeys(item.source_id for item in section.evidence_quotes)
+            )
+            if section.evidence_quotes and section.source_ids != evidence_ids:
+                errors.append(
+                    (
+                        page.page_type,
+                        f"{section.label} 的來源 ID 必須由查證引文產生",
+                    )
+                )
+            for evidence in section.evidence_quotes:
+                source = sources.get(evidence.source_id)
+                if source is None:
+                    errors.append(
+                        (
+                            page.page_type,
+                            f"引用不存在的來源：{evidence.source_id}",
+                        )
+                    )
+                elif not evidence.quote.strip():
+                    errors.append(
+                        (
+                            page.page_type,
+                            f"{evidence.source_id} 查證引文不可空白",
+                        )
+                    )
+                elif evidence.quote not in source.excerpt:
+                    errors.append(
+                        (
+                            page.page_type,
+                            f"查證引文不在 {evidence.source_id} 原文",
+                        )
+                    )
 
     if errors:
         raise DraftValidationError(draft, tuple(errors))
