@@ -43,4 +43,4 @@ def test_inner_pages_have_a_narrative_density_target():
 def test_page_labels_match_the_approved_reader_tasks():
     assert pages.label("results") == "誰會用、怎麼用"
     assert pages.label("why-care") == "接下來觀察什麼"
-    assert pages.label("cta") == "三件值得記住的事"
+    assert pages.label("cta") == "收束與互動"
