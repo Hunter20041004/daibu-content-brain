@@ -18,6 +18,15 @@ def test_streamlit_pages_use_current_width_argument():
     assert all("use_container_width" not in source for source in source_texts)
 
 
+def test_main_navigation_uses_product_language():
+    app_source = (ROOT / "app.py").read_text()
+
+    for label in ("工作台", "內容製作", "成效", "系統設定"):
+        assert f'title="{label}"' in app_source
+    assert 'title="概覽"' not in app_source
+    assert 'title="選題"' not in app_source
+
+
 def test_streamlit_theme_supports_brand_light_and_dark_palettes():
     with (ROOT / ".streamlit" / "config.toml").open("rb") as config_file:
         config = tomllib.load(config_file)["theme"]
@@ -122,6 +131,20 @@ def test_mascot_svg_is_compact_for_streamlit_markdown():
     svg = ui.mascot_svg()
 
     assert "\n" not in svg
+
+
+def test_mascot_coach_uses_pose_and_accessible_status_copy():
+    coach = ui.mascot_coach(
+        "point",
+        "今天先做這一步",
+        "挑一則候選，其他工具先不用管。",
+    )
+
+    assert "mascot-coach" in coach
+    assert "今天先做這一步" in coach
+    assert "挑一則候選" in coach
+    assert "aria-label=" in coach
+    assert ui.mascot_svg(pose="point") in coach
 
 
 def test_apply_styles_places_brand_in_sidebar(monkeypatch):

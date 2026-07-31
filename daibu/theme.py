@@ -374,6 +374,137 @@ def css(mode: str | None = None) -> str:
         text-transform: uppercase;
     }}
 
+    .mascot-coach {{
+        align-items: center;
+        background:
+            radial-gradient(circle at 92% 18%, var(--highlight) 0 4px, transparent 5px),
+            var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 6.5rem minmax(0, 1fr);
+        overflow: hidden;
+        padding: 1.1rem 1.25rem;
+        position: relative;
+    }}
+
+    .mascot-coach::after {{
+        border: 1px dashed var(--brand-primary);
+        border-radius: 999px;
+        content: "";
+        height: 5rem;
+        opacity: 0.45;
+        position: absolute;
+        right: -2rem;
+        top: -2rem;
+        width: 5rem;
+    }}
+
+    .mascot-coach--success {{
+        background: color-mix(in srgb, var(--brand-primary) 18%, var(--surface));
+    }}
+
+    .mascot-coach--warning {{
+        background: color-mix(in srgb, var(--highlight) 35%, var(--surface));
+    }}
+
+    .mascot-coach__figure {{
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        min-height: 5.5rem;
+    }}
+
+    .mascot-coach__figure svg {{
+        height: auto;
+        max-height: 6.25rem;
+        width: 100% !important;
+    }}
+
+    .mascot-coach__copy strong {{
+        display: block;
+        font-size: {TYPE_SCALE[2]};
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+    }}
+
+    .mascot-coach__copy p {{
+        line-height: 1.55;
+        margin: 0.45rem 0 0;
+        opacity: 0.72;
+    }}
+
+    .series-row {{
+        align-items: center;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        display: grid;
+        gap: 1.25rem;
+        grid-template-columns: minmax(10rem, 0.75fr) minmax(22rem, 1.6fr);
+        margin-bottom: 0.75rem;
+        padding: 1rem 1.1rem;
+        transition:
+            border-color 160ms ease,
+            transform 160ms var(--ease-out);
+    }}
+
+    .series-row__identity span {{
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.2rem;
+        opacity: 0.58;
+    }}
+
+    .series-row__identity strong {{
+        font-size: 1rem;
+        line-height: 1.35;
+    }}
+
+    .workflow-stepper {{
+        display: grid;
+        gap: 0.45rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }}
+
+    .workflow-step {{
+        align-items: center;
+        border-bottom: 2px solid var(--border);
+        display: flex;
+        font-size: 0.75rem;
+        font-weight: 700;
+        gap: 0.3rem;
+        min-height: 2rem;
+        opacity: 0.48;
+        padding-bottom: 0.35rem;
+    }}
+
+    .workflow-step b {{
+        font-size: 0.85rem;
+    }}
+
+    .workflow-step--complete {{
+        border-color: var(--brand-primary);
+        opacity: 0.78;
+    }}
+
+    .workflow-step--current {{
+        border-color: var(--highlight);
+        opacity: 1;
+    }}
+
+    .workflow-step--current b {{
+        color: var(--brand-secondary) !important;
+    }}
+
+    .workflow-step--upcoming {{
+        opacity: 0.42;
+    }}
+
     .daibu-card,
     .empty-state,
     .suggestion-card {{
@@ -611,6 +742,11 @@ def css(mode: str | None = None) -> str:
     }}
 
     @media (hover: hover) and (pointer: fine) {{
+        .series-row:hover {{
+            border-color: var(--brand-primary);
+            transform: translateY(-1px);
+        }}
+
         .stButton > button:hover,
         [data-testid^="stBaseButton"]:hover {{
             border-color: var(--brand-secondary);
@@ -639,6 +775,33 @@ def css(mode: str | None = None) -> str:
     }}
 
     @media (max-width: 700px) {{
+        .mascot-coach {{
+            gap: 0.75rem;
+            grid-template-columns: 4.5rem minmax(0, 1fr);
+            padding: 0.9rem;
+        }}
+
+        .mascot-coach__figure {{
+            min-height: 4.5rem;
+        }}
+
+        .mascot-coach__copy strong {{
+            font-size: 1.05rem;
+        }}
+
+        .mascot-coach__copy p {{
+            font-size: 0.82rem;
+        }}
+
+        .series-row {{
+            gap: 0.75rem;
+            grid-template-columns: minmax(0, 1fr);
+        }}
+
+        .workflow-step {{
+            font-size: 0.68rem;
+        }}
+
         [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"] {{
             grid-template-columns: minmax(0, 1fr);
             min-width: 0;

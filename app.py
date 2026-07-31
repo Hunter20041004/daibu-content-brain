@@ -10,10 +10,10 @@ st.set_page_config(
 
 navigation = st.navigation(
     [
-        st.Page(render_overview, title="概覽", default=True),
-        st.Page("pages/1_選題.py", title="選題"),
+        st.Page(render_overview, title="工作台", default=True),
+        st.Page("pages/1_選題.py", title="內容製作"),
         st.Page("pages/2_成效.py", title="成效"),
-        st.Page("pages/3_設定.py", title="設定"),
+        st.Page("pages/3_設定.py", title="系統設定"),
     ],
 )
 navigation.run()

@@ -4,11 +4,16 @@ from datetime import date, datetime, timedelta
 
 import streamlit as st
 
-from daibu import db, performance, pipeline
-from daibu.ui import apply_styles, connect_app_db, page_header
+from daibu import db, performance, pipeline, workspace
+from daibu.ui import apply_styles, connect_app_db, mascot_coach, page_header
 
 WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
 CALENDAR_THEME_NAME_LIMIT = 7
+WORKFLOW_STEP_CLASSES = {
+    "complete": "workflow-step--complete",
+    "current": "workflow-step--current",
+    "upcoming": "workflow-step--upcoming",
+}
 
 
 def truncate_calendar_theme_name(name: str) -> str:
@@ -31,9 +36,9 @@ def _published_this_week(published_at: str | None) -> bool:
 def render() -> None:
     apply_styles()
     page_header(
-        "Overview",
-        "情況概覽",
-        "先看下一步，再掌握本週排程、各主題進度與需要處理的提醒。",
+        "DAIBU CONTENT LAB",
+        "內容工作台",
+        "從今天最重要的一步開始，再查看每個內容系列走到哪裡。",
     )
 
     conn = connect_app_db()
@@ -81,6 +86,11 @@ def render() -> None:
         for idea in ideas
     )
 
+    mission = workspace.next_mission(
+        themes,
+        ideas,
+        today_weekday=date.today().weekday(),
+    )
     if status_counts["候選"]:
         next_action = f"你有 {status_counts['候選']} 則候選等你決定"
     elif blank_adopted:
@@ -99,20 +109,21 @@ def render() -> None:
             f"{WEEKDAYS[next_theme.weekday]}的「{next_theme.name}」"
         )
     else:
-        next_action = "目前沒有待辦；先建立第一個主題"
+        next_action = "目前沒有待辦；先建立第一個內容系列"
 
     cta_label = (
         f"去看「{candidate_target.name}」的 {candidate_target_count} 則"
         if candidate_target and candidate_target_count
-        else "前往選題工作台"
+        else "前往內容製作"
     )
+    st.subheader("今日下一步")
     with st.container(key="next-action-card"):
         st.markdown(
-            '<div class="suggestion-card">'
-            '<span class="suggestion-card__label">下一步</span>'
-            '<p class="suggestion-card__message">'
-            f"{html.escape(next_action)}</p>"
-            "</div>",
+            mascot_coach(
+                "point",
+                mission.label,
+                next_action,
+            ),
             unsafe_allow_html=True,
         )
         if st.button(cta_label, type="primary"):
@@ -120,7 +131,49 @@ def render() -> None:
                 st.session_state.selected_theme_id = candidate_target.id
             st.switch_page("pages/1_選題.py")
 
-    st.subheader("待辦數字")
+    st.subheader("我的內容系列")
+    if themes:
+        step_labels = {
+            "research": "找題材",
+            "decide": "選一則",
+            "write": "寫內容",
+            "carousel": "做輪播",
+        }
+        for series in themes:
+            series_ideas = [idea for idea in ideas if idea.theme_id == series.id]
+            state = workspace.derive_workflow(series_ideas)
+            steps = []
+            for step_key in workspace.WORKFLOW_STEPS:
+                if step_key in state.completed:
+                    step_state = "complete"
+                    marker = "✓"
+                elif step_key == state.current:
+                    step_state = "current"
+                    marker = "•"
+                else:
+                    step_state = "upcoming"
+                    marker = ""
+                steps.append(
+                    '<span class="workflow-step '
+                    f'{WORKFLOW_STEP_CLASSES[step_state]}">'
+                    f'<b>{marker}</b>{step_labels[step_key]}</span>'
+                )
+            st.markdown(
+                '<article class="series-row">'
+                '<div class="series-row__identity">'
+                f'<span>{WEEKDAYS[series.weekday]}</span>'
+                f'<strong>{html.escape(series.name)}</strong>'
+                "</div>"
+                '<div class="workflow-stepper">'
+                f'{"".join(steps)}'
+                "</div>"
+                "</article>",
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("先建立第一個內容系列，呆一布就能替你排出製作路線。")
+
+    st.subheader("本週節奏")
     focus_columns = st.columns(3)
     focus_items = (
         ("待你決策", status_counts["候選"]),
@@ -134,7 +187,7 @@ def render() -> None:
     ):
         column.metric(label, value)
 
-    st.subheader("本週主題行事曆")
+    st.markdown("#### 發布安排")
     schedule_columns = st.columns(7)
     for weekday, column in enumerate(schedule_columns):
         scheduled_names = [
@@ -194,12 +247,12 @@ def render() -> None:
         }
         for theme in themes
     ]
-    st.subheader("各主題近況")
-    st.dataframe(
-        theme_status_rows,
-        width="stretch",
-        hide_index=True,
-    )
+    with st.expander("查看內容系列明細"):
+        st.dataframe(
+            theme_status_rows,
+            width="stretch",
+            hide_index=True,
+        )
 
     themes_without_sources = [
         theme.name for theme in themes

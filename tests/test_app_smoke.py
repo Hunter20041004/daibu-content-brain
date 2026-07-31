@@ -23,6 +23,21 @@ def test_app_entry_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_home_is_a_guided_multi_series_workstation(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py")
+    app.run()
+
+    visible_text = " ".join(
+        element.value
+        for element in [*app.markdown, *app.title, *app.subheader]
+    )
+    assert "今日下一步" in visible_text
+    assert "我的內容系列" in visible_text
+    assert "情況概覽" not in visible_text
+
+
 def test_home_leads_with_the_next_action(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))

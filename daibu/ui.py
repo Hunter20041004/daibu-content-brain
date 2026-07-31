@@ -1,3 +1,4 @@
+import html
 import os
 import re
 import sqlite3
@@ -12,6 +13,15 @@ from daibu import db, seeds, theme
 DEFAULT_DB_PATH = "daibu.db"
 PENDING_TOAST_KEY = "_pending_toast"
 MASCOT_PATH = Path(__file__).resolve().parents[1] / "assets" / "mascot.svg"
+MASCOT_POSE_DIR = Path(__file__).resolve().parents[1] / "assets" / "mascot"
+MASCOT_POSES = frozenset(
+    {"wave", "think", "happy", "note", "confused", "lost", "point"}
+)
+MASCOT_COACH_TONES = {
+    "guide": "mascot-coach--guide",
+    "success": "mascot-coach--success",
+    "warning": "mascot-coach--warning",
+}
 
 
 def connect_app_db() -> sqlite3.Connection:
@@ -50,14 +60,44 @@ def apply_styles() -> None:
     )
 
 
-def mascot_svg(size: int = 44) -> str:
-    svg = MASCOT_PATH.read_text(encoding="utf-8")
+def mascot_svg(size: int = 44, pose: str | None = None) -> str:
+    path = (
+        MASCOT_POSE_DIR / f"{pose}.svg"
+        if pose in MASCOT_POSES
+        else MASCOT_PATH
+    )
+    svg = path.read_text(encoding="utf-8")
     svg = re.sub(r"<!--.*?-->", "", svg, flags=re.DOTALL)
     svg = re.sub(r">\s+<", "><", svg.strip())
     return svg.replace(
         "<svg ",
         f'<svg style="width: {size}px" ',
         1,
+    )
+
+
+def mascot_coach(
+    pose: str,
+    title: str,
+    message: str,
+    *,
+    tone: str = "guide",
+) -> str:
+    tone_class = MASCOT_COACH_TONES.get(tone, MASCOT_COACH_TONES["guide"])
+    safe_title = html.escape(title)
+    safe_message = html.escape(message)
+    return (
+        '<aside class="mascot-coach '
+        f'{tone_class}" role="status" '
+        f'aria-label="{safe_title}">'
+        '<div class="mascot-coach__figure" aria-hidden="true">'
+        f"{mascot_svg(pose=pose)}"
+        "</div>"
+        '<div class="mascot-coach__copy">'
+        f"<strong>{safe_title}</strong>"
+        f"<p>{safe_message}</p>"
+        "</div>"
+        "</aside>"
     )
 
 
