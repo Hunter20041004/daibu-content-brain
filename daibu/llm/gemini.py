@@ -9,87 +9,124 @@ from daibu.llm.base import (
     LLMTimeoutError,
     generate_and_parse,
 )
+from daibu.cards import pages as carousel_pages
 from daibu.models import Material
 
 
-CAROUSEL_RESPONSE_SCHEMA = {
-    "type": "array",
-    "minItems": 7,
-    "maxItems": 7,
-    "items": {
-        "type": "object",
-        "required": [
-            "page_no",
-            "page_type",
-            "heading",
-            "sections",
-            "diagram",
-        ],
-        "properties": {
-            "page_no": {"type": "integer", "minimum": 1, "maximum": 7},
-            "page_type": {
-                "type": "string",
-                "enum": [
-                    "cover",
-                    "who",
-                    "problem",
-                    "how-ai",
-                    "results",
-                    "why-care",
-                    "cta",
-                ],
+def _evidence_schema(required: bool) -> dict[str, object]:
+    return {
+        "type": "array",
+        "minItems": 1 if required else 0,
+        "maxItems": 3,
+        "items": {
+            "type": "object",
+            "required": ["source_id", "quote"],
+            "properties": {
+                "source_id": {"type": "string"},
+                "quote": {"type": "string"},
             },
-            "heading": {"type": "string"},
-            "sections": {
+            "additionalProperties": False,
+        },
+    }
+
+
+def _section_schema(label: str) -> dict[str, object]:
+    may_be_unsourced = label in {
+        "證據限制",
+        "給讀者的問題",
+        "互動邀請",
+    }
+    return {
+        "type": "object",
+        "required": ["label", "text", "evidence_quotes"],
+        "properties": {
+            "label": {"type": "string", "enum": [label]},
+            "text": {"type": "string"},
+            "evidence_quotes": _evidence_schema(not may_be_unsourced),
+        },
+        "additionalProperties": False,
+    }
+
+
+def _diagram_schema(page_type: str) -> dict[str, object]:
+    kinds = carousel_pages.DIAGRAM_FOR.get(page_type)
+    if kinds is None:
+        return {"type": "null"}
+    return {
+        "type": "object",
+        "required": ["kind", "nodes"],
+        "properties": {
+            "kind": {"type": "string", "enum": sorted(kinds)},
+            "nodes": {
                 "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
                 "items": {
                     "type": "object",
-                    "required": ["label", "text", "source_ids"],
+                    "required": ["title", "text", "expression"],
                     "properties": {
-                        "label": {"type": "string"},
+                        "title": {"type": "string"},
                         "text": {"type": "string"},
-                        "source_ids": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
+                        "expression": {"type": "string"},
                     },
                     "additionalProperties": False,
                 },
             },
-            "diagram": {
-                "anyOf": [
-                    {"type": "null"},
-                    {
-                        "type": "object",
-                        "required": ["kind", "nodes"],
-                        "properties": {
-                            "kind": {"type": "string"},
-                            "nodes": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "required": [
-                                        "title",
-                                        "text",
-                                        "expression",
-                                    ],
-                                    "properties": {
-                                        "title": {"type": "string"},
-                                        "text": {"type": "string"},
-                                        "expression": {"type": "string"},
-                                    },
-                                    "additionalProperties": False,
-                                },
-                            },
-                        },
-                        "additionalProperties": False,
-                    },
-                ],
-            },
         },
         "additionalProperties": False,
-    },
-}
+    }
+
+
+def build_carousel_schema() -> dict[str, object]:
+    labels_by_page = {
+        **carousel_pages.SECTION_LABELS,
+        "why-care": (
+            "觀察訊號 1",
+            "觀察訊號 2",
+            "觀察訊號 3",
+            "證據限制",
+        ),
+        "cta": ("收束結論", "給讀者的問題", "互動邀請"),
+    }
+    page_schemas = []
+    for page_no, page_type in enumerate(carousel_pages.PAGE_TYPES, start=1):
+        labels = labels_by_page[page_type]
+        page_schemas.append(
+            {
+                "type": "object",
+                "required": [
+                    "page_no",
+                    "page_type",
+                    "heading",
+                    "sections",
+                    "diagram",
+                ],
+                "properties": {
+                    "page_no": {"type": "integer", "enum": [page_no]},
+                    "page_type": {"type": "string", "enum": [page_type]},
+                    "heading": {"type": "string"},
+                    "sections": {
+                        "type": "array",
+                        "prefixItems": [
+                            _section_schema(label) for label in labels
+                        ],
+                        "minItems": len(labels),
+                        "maxItems": len(labels),
+                    },
+                    "diagram": _diagram_schema(page_type),
+                },
+                "additionalProperties": False,
+            }
+        )
+    return {
+        "type": "array",
+        "prefixItems": page_schemas,
+        "minItems": 7,
+        "maxItems": 7,
+    }
+
+
+CAROUSEL_RESPONSE_SCHEMA = build_carousel_schema()
 
 
 class GeminiProvider:

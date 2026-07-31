@@ -18,7 +18,7 @@ class Idea:
 
 class LLMResponseError(ValueError):
     def __init__(self, raw_response: str) -> None:
-        super().__init__("LLM 連續兩次回傳無法解析的內容")
+        super().__init__("LLM 回傳內容無法解析")
         self.raw_response = raw_response
 
 

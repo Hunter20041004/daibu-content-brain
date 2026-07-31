@@ -205,14 +205,22 @@ def test_gemini_carousel_generation_requests_json_schema(monkeypatch):
     assert config["response_mime_type"] == "application/json"
     assert config["thinking_config"] == {"thinking_level": "medium"}
     assert schema["minItems"] == schema["maxItems"] == 7
-    assert {"page_no", "page_type", "heading", "sections", "diagram"} == set(
-        schema["items"]["required"]
-    )
-    assert {
+    page_schemas = schema["prefixItems"]
+    assert [
+        page["properties"]["page_type"]["enum"][0]
+        for page in page_schemas
+    ] == ["cover", "who", "problem", "how-ai", "results", "why-care", "cta"]
+    assert [
+        page["properties"]["page_no"]["enum"][0]
+        for page in page_schemas
+    ] == list(range(1, 8))
+    first_section = page_schemas[0]["properties"]["sections"]["prefixItems"][0]
+    assert set(first_section["required"]) == {
         "label",
         "text",
-        "source_ids",
-    } == set(schema["items"]["properties"]["sections"]["items"]["required"])
+        "evidence_quotes",
+    }
+    assert first_section["properties"]["label"]["enum"] == ["一句話定位"]
 
 
 def test_gemini_carousel_generation_uses_configured_timeout(monkeypatch):
@@ -391,13 +399,16 @@ def test_carousel_prompt_limits_copy_to_verified_sources():
         verified_sources(),
     )
 
-    assert "140–220" in text
+    assert "140–220 字是建議目標" in text
+    assert "不為湊字數" in text
     assert "ai-infrastructure" in text
     assert "來源中沒有的公司、人物、客戶、數字或能力" in text
     assert "目前公開證據有限" in text
+    assert "evidence_quotes" in text
+    assert "quote 必須從對應 excerpt 逐字抄錄" in text
 
 
-def test_carousel_prompt_spells_out_exact_section_labels():
+def test_carousel_prompt_defers_exact_shape_to_the_api_schema():
     from tests.card_fixtures import verified_sources
 
     text = prompt.build_carousel(
@@ -407,12 +418,26 @@ def test_carousel_prompt_spells_out_exact_section_labels():
         verified_sources(),
     )
 
-    assert "sections.label 必須逐字使用" in text
-    assert '"cover": ["一句話定位", "產業分類"]' in text
-    assert '"problem": ["誰受影響", "原本的代價"]' in text
+    assert "精確欄位、頁序與區塊名稱由 API 提供的 JSON Schema 約束" in text
+    assert '"page_no": 1, "page_type": "cover"' not in text
+    assert '"cover": ["一句話定位", "產業分類"]' not in text
 
 
-def test_carousel_prompt_lists_both_valid_why_care_label_sequences():
+def test_carousel_schema_fixes_the_why_care_label_sequence():
+    from daibu.llm.gemini import build_carousel_schema
+
+    why_care = build_carousel_schema()["prefixItems"][5]
+    sections = why_care["properties"]["sections"]["prefixItems"]
+
+    assert [item["properties"]["label"]["enum"][0] for item in sections] == [
+        "觀察訊號 1",
+        "觀察訊號 2",
+        "觀察訊號 3",
+        "證據限制",
+    ]
+
+
+def test_carousel_prompt_checks_company_subject_and_verbatim_evidence():
     from tests.card_fixtures import verified_sources
 
     text = prompt.build_carousel(
@@ -422,14 +447,12 @@ def test_carousel_prompt_lists_both_valid_why_care_label_sequences():
         verified_sources(),
     )
 
-    assert (
-        '"why-care": [["觀察訊號 1", "觀察訊號 2", "證據限制"], '
-        '["觀察訊號 1", "觀察訊號 2", "觀察訊號 3", "證據限制"]]'
-        in text
-    )
+    assert "第 4–7 頁的 heading" in text
+    assert "ElevenLabs" in text
+    assert "事實都有逐字引句" in text
 
 
-def test_carousel_prompt_gives_the_model_a_buffered_output_checklist():
+def test_carousel_prompt_does_not_force_per_section_length_targets():
     from tests.card_fixtures import verified_sources
 
     text = prompt.build_carousel(
@@ -439,50 +462,13 @@ def test_carousel_prompt_gives_the_model_a_buffered_output_checklist():
         verified_sources(),
     )
 
-    assert '"page_no": 1, "page_type": "cover"' in text
-    assert '"page_no": 7, "page_type": "cta"' in text
-    assert "170–190" in text
-    assert "輸出前逐頁檢查" in text
+    assert "140–220 字是建議目標" in text
+    assert "每段 85–95 字" not in text
+    assert "每段 55–65 字" not in text
 
 
-def test_carousel_prompt_assigns_section_length_targets():
-    from tests.card_fixtures import verified_sources
-
-    text = prompt.build_carousel(
-        "ElevenLabs",
-        "t",
-        "a",
-        verified_sources(),
-    )
-
-    assert '"who": "每段 85–95 字"' in text
-    assert '"results": "每段 55–65 字"' in text
-    assert '"how-ai": "每段 40–48 字"' in text
-
-
-def test_carousel_repair_prompt_preserves_the_contract_and_reports_the_error():
-    from tests.card_fixtures import verified_sources
-
-    original = prompt.build_carousel(
-        "ElevenLabs",
-        "t",
-        "a",
-        verified_sources(),
-    )
-
-    text = prompt.build_carousel_repair(
-        original,
-        '{"page_no": 1, "page_type": "cover"}',
-        ValueError("產業分類 是事實區塊，必須附來源"),
-    )
-
-    assert '"original_instructions"' in text
-    assert "sections.label 必須逐字使用" in text
-    assert '"failed_response"' in text
-    assert "page_no" in text and "cover" in text
-    assert "產業分類 是事實區塊，必須附來源" in text
-    assert "不得新增來源包沒有的事實" in text
-    assert "只輸出修正後的完整 JSON 陣列" in text
+def test_carousel_prompt_has_no_second_call_repair_builder():
+    assert not hasattr(prompt, "build_carousel_repair")
 
 
 def test_carousel_parser_builds_a_validated_sourced_draft():
