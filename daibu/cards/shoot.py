@@ -17,6 +17,8 @@ class LayoutReport:
     content_overflow: bool
     source_bottom: float
     logo_visible: bool
+    mascot_visible: bool
+    source_overlap: bool
 
 
 def _open_html(page: Page, path: Path) -> None:
@@ -38,8 +40,21 @@ def _report(page: Page) -> LayoutReport:
           const card = document.querySelector(".card");
           const source = document.querySelector(".source-label");
           const logo = document.querySelector(".company-logo");
+          const mascot = document.querySelector(".story-mascot");
           const children = [...card.querySelectorAll("*")];
           const cardRect = card.getBoundingClientRect();
+          const intersects = (left, right) => Boolean(
+            left && right &&
+            left.left < right.right && left.right > right.left &&
+            left.top < right.bottom && left.bottom > right.top
+          );
+          const sourceRect = source?.getBoundingClientRect();
+          const mascotRect = mascot?.getBoundingClientRect();
+          const contentRects = [
+            ...card.querySelectorAll(
+              ".content-stack > h1, .section-list, .diagram"
+            )
+          ].map(element => element.getBoundingClientRect());
           return {
             canvasOverflow:
               canvas.scrollWidth > canvas.clientWidth ||
@@ -55,6 +70,16 @@ def _report(page: Page) -> LayoutReport:
               logo && logo.getBoundingClientRect().width > 20 &&
               logo.getBoundingClientRect().height > 20
             ),
+            mascotVisible: Boolean(
+              mascotRect && mascotRect.width > 120 && mascotRect.height > 120 &&
+              intersects(mascotRect, cardRect)
+            ),
+            sourceOverlap: Boolean(
+              sourceRect && (
+                intersects(sourceRect, mascotRect) ||
+                contentRects.some(rect => intersects(sourceRect, rect))
+              )
+            ),
           };
         }"""
     )
@@ -63,6 +88,8 @@ def _report(page: Page) -> LayoutReport:
         raw["contentOverflow"],
         float(raw["sourceBottom"]),
         raw["logoVisible"],
+        raw["mascotVisible"],
+        raw["sourceOverlap"],
     )
 
 

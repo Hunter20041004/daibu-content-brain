@@ -100,7 +100,7 @@ def test_card_uses_approved_geometry(tmp_path):
     for declaration in (
         "inset: 48px 48px 64px",
         "border-radius: 40px",
-        "0 6px 36px rgba(38,38,65,.06)",
+        "0 6px 36px rgba(38, 38, 65, .06)",
     ):
         assert declaration in output
 
@@ -142,13 +142,13 @@ def test_feed_microcopy_is_large_and_high_contrast(tmp_path):
 
     output = _render(tmp_path)
     page_tag_rule = re.search(r"\.page-tag \{(?P<body>.*?)\}", output, re.S)
-    source_rule = re.search(r"\.source-label \{(?P<body>.*?)\}", output, re.S)
+    source_rule = re.search(r"\.page-source \{(?P<body>.*?)\}", output, re.S)
 
-    assert "font-size: 35px" in page_tag_rule.group("body")
-    assert "font-size: 35px" in source_rule.group("body")
-    assert theme.contrast_ratio("#5F6070", "#FBFCFE") >= 4.5
-    assert "color: #5F6070" in page_tag_rule.group("body")
-    assert "color: #5F6070" in source_rule.group("body")
+    assert "font-size: 24px" in page_tag_rule.group("body")
+    assert "font-size: 30px" in source_rule.group("body")
+    assert theme.contrast_ratio("#4F5362", "#FBFCFE") >= 4.5
+    assert "color: var(--muted)" in page_tag_rule.group("body")
+    assert "color: var(--muted)" in source_rule.group("body")
 
 
 def test_type_hierarchy_uses_approved_weights(tmp_path):
@@ -186,10 +186,11 @@ def test_handle_sits_in_the_frame_below_the_card(tmp_path):
     assert "bottom: 16px" in output
 
 
-def test_html_has_no_theme_dependent_colors(tmp_path):
+def test_html_uses_local_tokens_without_theme_dependent_colors(tmp_path):
     output = _render(tmp_path)
 
-    assert "var(--" not in output
+    assert ":root" in output
+    assert "--paper: #FBFCFE" in output
     assert "light-dark(" not in output
     assert "prefers-color-scheme" not in output
 
@@ -240,3 +241,17 @@ def test_every_page_uses_its_storytelling_mascot_and_chinese_lab_signature(
         assert "呆一布 AI 實驗室" in output
     assert "DAIBU AI LAB" not in "".join(outputs)
     assert "CASE FILE" not in "".join(outputs)
+
+
+def test_story_css_prioritizes_series_source_readability_and_full_outline_blocks(
+    tmp_path,
+):
+    output = _render(tmp_path)
+
+    assert ".series-lockup" in output
+    assert "font-size: 80px" in output
+    assert ".page-source" in output
+    assert "font-size: 30px" in output
+    assert ".story-mascot" in output
+    assert "border-left:" not in output
+    assert "text-transform: uppercase" not in output
