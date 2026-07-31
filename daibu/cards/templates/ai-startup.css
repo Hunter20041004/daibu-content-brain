@@ -61,7 +61,6 @@ body { background: var(--frame); }
   letter-spacing: .1em;
 }
 
-.frame-pattern { display: none; }
 .card {
   position: absolute;
   inset: 48px 48px 64px;
@@ -179,6 +178,7 @@ h1 {
   object-fit: contain;
   pointer-events: none;
 }
+.mascot--point { transform: scaleX(-1); }
 
 .diagram {
   display: grid;
@@ -300,7 +300,7 @@ h1 {
 }
 .page--cover .story-mascot {
   right: -2px;
-  bottom: 24px;
+  bottom: 80px;
   width: 330px;
   height: 300px;
 }
@@ -325,6 +325,11 @@ h1 {
 }
 .page--who .section-list { gap: 22px; }
 .page--who .content-block { padding: 26px 26px 30px; }
+.page--who .story-mascot {
+  inset: auto 28px 116px auto;
+  width: 260px;
+  height: 234px;
+}
 .page--problem .content-stack { padding-right: 0; }
 .page--problem .section-list { width: 620px; }
 .page--problem .diagram { margin-top: 4px; padding: 14px; }
@@ -364,7 +369,17 @@ h1 {
 .page--why-care h1 { font-size: 52px; }
 .page--results .section-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .page--results .diagram--before-after .state-card { min-height: 146px; }
+.page--results .story-mascot {
+  inset: auto 26px 150px auto;
+  width: 260px;
+  height: 234px;
+}
 .page--why-care .diagram--signals .metric-card { min-height: 142px; }
+.page--why-care .story-mascot {
+  inset: auto 24px 148px auto;
+  width: 240px;
+  height: 216px;
+}
 
 /* 第七張沿用 Hero 氣氛，但保留可追溯來源。 */
 .page--cta .content-stack {

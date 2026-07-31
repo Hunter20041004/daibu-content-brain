@@ -171,11 +171,12 @@ def test_ai_role_diagram_keeps_readable_step_type(tmp_path):
     )[1].split("}", 1)[0]
 
 
-def test_html_includes_approved_frame_decorations(tmp_path):
+def test_html_replaces_generic_patterns_with_one_lab_signature(tmp_path):
     output = _render(tmp_path)
 
-    assert 'class="frame-pattern frame-pattern--stripes"' in output
-    assert 'class="frame-pattern frame-pattern--dots"' in output
+    assert "呆一布 AI 實驗室" in output
+    assert 'class="frame-pattern frame-pattern--stripes"' not in output
+    assert 'class="frame-pattern frame-pattern--dots"' not in output
 
 
 def test_handle_sits_in_the_frame_below_the_card(tmp_path):
@@ -255,3 +256,38 @@ def test_story_css_prioritizes_series_source_readability_and_full_outline_blocks
     assert ".story-mascot" in output
     assert "border-left:" not in output
     assert "text-transform: uppercase" not in output
+
+
+def test_story_mascots_face_the_content_and_fill_deliberate_lower_zones(
+    tmp_path,
+):
+    output = _render(tmp_path)
+
+    point_rule = re.search(r"\.mascot--point \{(?P<body>.*?)\}", output, re.S)
+    cover_rule = re.search(
+        r"\.page--cover \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+    who_rule = re.search(
+        r"\.page--who \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+    results_rule = re.search(
+        r"\.page--results \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+    why_care_rule = re.search(
+        r"\.page--why-care \.story-mascot \{(?P<body>.*?)\}",
+        output,
+        re.S,
+    )
+
+    assert "transform: scaleX(-1)" in point_rule.group("body")
+    assert "bottom: 80px" in cover_rule.group("body")
+    assert "inset: auto" in who_rule.group("body")
+    assert "top:" not in who_rule.group("body")
+    assert "inset: auto" in results_rule.group("body")
+    assert "inset: auto" in why_care_rule.group("body")

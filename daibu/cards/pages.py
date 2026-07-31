@@ -13,7 +13,7 @@ PAGE_TYPES = (
 POSES = ("wave", "think", "happy", "point", "note", "confused", "lost")
 
 MASCOT_FOR = {
-    "cover": "wave",
+    "cover": "think",
     "who": "point",
     "problem": "think",
     "how-ai": "point",
