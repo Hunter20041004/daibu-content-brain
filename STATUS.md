@@ -113,7 +113,7 @@ TechCrunch 公開頁面驗證通過。
 
 ```
 cp daibu.db /tmp/daibu-test.db
-DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run app.py --server.port 8502
+DAIBU_DB_PATH=/tmp/daibu-test.db .venv/bin/streamlit run server.py --server.port 8502
 ```
 
 使用者自己常開著一個 Streamlit 在 8501，測試時挑別的 port。
