@@ -13,11 +13,9 @@ from daibu.cards import pages as carousel_pages
 from daibu.models import Material
 
 
-def _evidence_schema(required: bool) -> dict[str, object]:
+def _evidence_schema() -> dict[str, object]:
     return {
         "type": "array",
-        "minItems": 1 if required else 0,
-        "maxItems": 3,
         "items": {
             "type": "object",
             "required": ["source_id", "quote"],
@@ -30,50 +28,52 @@ def _evidence_schema(required: bool) -> dict[str, object]:
     }
 
 
-def _section_schema(label: str) -> dict[str, object]:
-    may_be_unsourced = label in {
-        "證據限制",
-        "給讀者的問題",
-        "互動邀請",
-    }
+def _section_schema(labels: list[str]) -> dict[str, object]:
     return {
         "type": "object",
         "required": ["label", "text", "evidence_quotes"],
         "properties": {
-            "label": {"type": "string", "enum": [label]},
+            "label": {"type": "string", "enum": labels},
             "text": {"type": "string"},
-            "evidence_quotes": _evidence_schema(not may_be_unsourced),
+            "evidence_quotes": _evidence_schema(),
         },
         "additionalProperties": False,
     }
 
 
-def _diagram_schema(page_type: str) -> dict[str, object]:
-    kinds = carousel_pages.DIAGRAM_FOR.get(page_type)
-    if kinds is None:
-        return {"type": "null"}
+def _diagram_schema() -> dict[str, object]:
+    kinds = sorted(
+        {
+            kind
+            for allowed in carousel_pages.DIAGRAM_FOR.values()
+            for kind in allowed
+        }
+    )
     return {
-        "type": "object",
-        "required": ["kind", "nodes"],
-        "properties": {
-            "kind": {"type": "string", "enum": sorted(kinds)},
-            "nodes": {
-                "type": "array",
-                "minItems": 3,
-                "maxItems": 3,
-                "items": {
-                    "type": "object",
-                    "required": ["title", "text", "expression"],
-                    "properties": {
-                        "title": {"type": "string"},
-                        "text": {"type": "string"},
-                        "expression": {"type": "string"},
+        "anyOf": [
+            {"type": "null"},
+            {
+                "type": "object",
+                "required": ["kind", "nodes"],
+                "properties": {
+                    "kind": {"type": "string", "enum": kinds},
+                    "nodes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["title", "text", "expression"],
+                            "properties": {
+                                "title": {"type": "string"},
+                                "text": {"type": "string"},
+                                "expression": {"type": "string"},
+                            },
+                            "additionalProperties": False,
+                        },
                     },
-                    "additionalProperties": False,
                 },
+                "additionalProperties": False,
             },
-        },
-        "additionalProperties": False,
+        ],
     }
 
 
@@ -88,41 +88,41 @@ def build_carousel_schema() -> dict[str, object]:
         ),
         "cta": ("收束結論", "給讀者的問題", "互動邀請"),
     }
-    page_schemas = []
-    for page_no, page_type in enumerate(carousel_pages.PAGE_TYPES, start=1):
-        labels = labels_by_page[page_type]
-        page_schemas.append(
-            {
-                "type": "object",
-                "required": [
-                    "page_no",
-                    "page_type",
-                    "heading",
-                    "sections",
-                    "diagram",
-                ],
-                "properties": {
-                    "page_no": {"type": "integer", "enum": [page_no]},
-                    "page_type": {"type": "string", "enum": [page_type]},
-                    "heading": {"type": "string"},
-                    "sections": {
-                        "type": "array",
-                        "prefixItems": [
-                            _section_schema(label) for label in labels
-                        ],
-                        "minItems": len(labels),
-                        "maxItems": len(labels),
-                    },
-                    "diagram": _diagram_schema(page_type),
-                },
-                "additionalProperties": False,
-            }
+    labels = list(
+        dict.fromkeys(
+            label
+            for page_labels in labels_by_page.values()
+            for label in page_labels
         )
+    )
     return {
         "type": "array",
-        "prefixItems": page_schemas,
         "minItems": 7,
         "maxItems": 7,
+        "items": {
+            "type": "object",
+            "required": [
+                "page_no",
+                "page_type",
+                "heading",
+                "sections",
+                "diagram",
+            ],
+            "properties": {
+                "page_no": {"type": "integer", "minimum": 1, "maximum": 7},
+                "page_type": {
+                    "type": "string",
+                    "enum": list(carousel_pages.PAGE_TYPES),
+                },
+                "heading": {"type": "string"},
+                "sections": {
+                    "type": "array",
+                    "items": _section_schema(labels),
+                },
+                "diagram": _diagram_schema(),
+            },
+            "additionalProperties": False,
+        },
     }
 
 

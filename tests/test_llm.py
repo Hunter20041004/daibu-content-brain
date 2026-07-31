@@ -205,22 +205,28 @@ def test_gemini_carousel_generation_requests_json_schema(monkeypatch):
     assert config["response_mime_type"] == "application/json"
     assert config["thinking_config"] == {"thinking_level": "medium"}
     assert schema["minItems"] == schema["maxItems"] == 7
-    page_schemas = schema["prefixItems"]
-    assert [
-        page["properties"]["page_type"]["enum"][0]
-        for page in page_schemas
-    ] == ["cover", "who", "problem", "how-ai", "results", "why-care", "cta"]
-    assert [
-        page["properties"]["page_no"]["enum"][0]
-        for page in page_schemas
-    ] == list(range(1, 8))
-    first_section = page_schemas[0]["properties"]["sections"]["prefixItems"][0]
-    assert set(first_section["required"]) == {
+    page_schema = schema["items"]
+    assert page_schema["properties"]["page_type"]["enum"] == [
+        "cover",
+        "who",
+        "problem",
+        "how-ai",
+        "results",
+        "why-care",
+        "cta",
+    ]
+    assert page_schema["properties"]["page_no"] == {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 7,
+    }
+    section_schema = page_schema["properties"]["sections"]["items"]
+    assert set(section_schema["required"]) == {
         "label",
         "text",
         "evidence_quotes",
     }
-    assert first_section["properties"]["label"]["enum"] == ["一句話定位"]
+    assert "一句話定位" in section_schema["properties"]["label"]["enum"]
 
 
 def test_gemini_carousel_generation_uses_configured_timeout(monkeypatch):
@@ -406,9 +412,11 @@ def test_carousel_prompt_limits_copy_to_verified_sources():
     assert "目前公開證據有限" in text
     assert "evidence_quotes" in text
     assert "quote 必須從對應 excerpt 逐字抄錄" in text
+    assert "必須各有剛好 3 個 nodes" in text
+    assert "第 1、2、7 頁的 diagram 必須是 null" in text
 
 
-def test_carousel_prompt_defers_exact_shape_to_the_api_schema():
+def test_carousel_prompt_states_the_exact_order_not_supported_by_gemini_schema():
     from tests.card_fixtures import verified_sources
 
     text = prompt.build_carousel(
@@ -418,22 +426,25 @@ def test_carousel_prompt_defers_exact_shape_to_the_api_schema():
         verified_sources(),
     )
 
-    assert "精確欄位、頁序與區塊名稱由 API 提供的 JSON Schema 約束" in text
+    assert "1 cover：一句話定位、產業分類" in text
+    assert "7 cta：收束結論、給讀者的問題、互動邀請" in text
+    assert "應用程式會再逐項驗證頁序" in text
     assert '"page_no": 1, "page_type": "cover"' not in text
     assert '"cover": ["一句話定位", "產業分類"]' not in text
 
 
-def test_carousel_schema_fixes_the_why_care_label_sequence():
+def test_carousel_schema_uses_the_gemini_supported_array_subset():
     from daibu.llm.gemini import build_carousel_schema
 
-    why_care = build_carousel_schema()["prefixItems"][5]
-    sections = why_care["properties"]["sections"]["prefixItems"]
+    schema = build_carousel_schema()
+    page = schema["items"]
+    section = page["properties"]["sections"]["items"]
 
-    assert [item["properties"]["label"]["enum"][0] for item in sections] == [
-        "觀察訊號 1",
-        "觀察訊號 2",
-        "觀察訊號 3",
-        "證據限制",
+    assert "prefixItems" not in str(schema)
+    assert schema["minItems"] == schema["maxItems"] == 7
+    assert section["required"] == ["label", "text", "evidence_quotes"]
+    assert "source_id" in section["properties"]["evidence_quotes"]["items"][
+        "properties"
     ]
 
 

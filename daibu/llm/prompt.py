@@ -135,6 +135,9 @@ def build_carousel(
 第 4 頁只選最符合來源的 AI 角色：分析、生成、預測、自動執行或基礎設施；
 對應 diagram.kind 只能是 ai-analyze、ai-generate、ai-predict、
 ai-automate 或 ai-infrastructure。
+第 1、2、7 頁的 diagram 必須是 null。第 3、4、5、6 頁的 diagram
+必須各有剛好 3 個 nodes，每個 node 都要有 title、text、expression；
+第 3、5、6 頁的 kind 依序只能是 problem-chain、before-after、signals。
 
 每個事實 section 都要附 evidence_quotes。每筆 evidence_quote 只含 source_id 與 quote；
 source_id 必須來自上方來源，quote 必須從對應 excerpt 逐字抄錄，不可改寫。
@@ -148,5 +151,14 @@ source_id 必須來自上方來源，quote 必須從對應 excerpt 逐字抄錄�
 語氣要淺顯、講因果、降低焦慮，不寫「不學就被取代」或「不懂就落伍」。
 
 輸出前檢查七頁都完成各自閱讀任務，事實都有逐字引句，然後只輸出 JSON，
-不要 Markdown 或額外說明。精確欄位、頁序與區塊名稱由 API 提供的 JSON Schema 約束。
+頁序與區塊名稱必須照這份清單：
+1 cover：一句話定位、產業分類
+2 who：白話定位、基本資料
+3 problem：誰受影響、原本的代價
+4 how-ai：傳統做法、AI 的角色、人仍負責、本頁要記住
+5 results：代表使用者、使用前後、購買關係
+6 why-care：觀察訊號 1、觀察訊號 2、觀察訊號 3、證據限制
+7 cta：收束結論、給讀者的問題、互動邀請
+不要 Markdown 或額外說明。API 的 JSON Schema 會約束欄位型別與七頁數量，
+應用程式會再逐項驗證頁序、區塊、公司主詞與逐字證據。
 """.strip()
