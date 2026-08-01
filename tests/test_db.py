@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 
 from daibu import db, performance, pipeline
@@ -70,6 +72,44 @@ def test_update_theme_replaces_its_bound_sources(tmp_path):
     )
 
     assert db.get_themes(conn)[0].source_ids == [source_b]
+
+
+def test_theme_content_kind_defaults_and_survives_rename(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    general_id = db.add_theme(conn, Theme(None, "一般系列", 0, [], 2))
+    company_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            3,
+            content_kind="company_profile",
+        ),
+    )
+
+    themes = {theme.id: theme for theme in db.get_themes(conn)}
+    assert themes[general_id].content_kind == "general"
+    company_theme = themes[company_id]
+    assert company_theme.content_kind == "company_profile"
+
+    db.update_theme(
+        conn,
+        Theme(
+            company_theme.id,
+            "改過名字的公司系列",
+            company_theme.weekday,
+            company_theme.source_ids,
+            company_theme.n_ideas,
+            content_kind=company_theme.content_kind,
+        ),
+    )
+
+    renamed = {theme.id: theme for theme in db.get_themes(conn)}[company_id]
+    assert renamed.name == "改過名字的公司系列"
+    assert renamed.content_kind == "company_profile"
 
 
 def test_add_and_get_sources_without_layers(tmp_path):
@@ -247,6 +287,71 @@ def test_idea_source_pack_round_trip_and_cascade_delete(tmp_path):
     assert conn.execute(
         "SELECT COUNT(*) FROM idea_sources"
     ).fetchone()[0] == 0
+
+
+def test_save_copy_draft_replaces_body_and_sources_together(tmp_path):
+    from tests.card_fixtures import verified_sources
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea("t", "a", "", company="ElevenLabs"),
+        status="採用",
+    )
+    pipeline.update_body(conn, idea_id, "舊正文")
+    db.save_idea_sources(conn, idea_id, verified_sources()[:1])
+
+    db.save_copy_draft(
+        conn,
+        idea_id,
+        verified_sources()[1:],
+        "新正文" * 120,
+    )
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert stored.body == "新正文" * 120
+    assert db.get_idea_sources(conn, idea_id) == verified_sources()[1:]
+
+
+def test_save_copy_draft_rolls_back_sources_when_body_write_fails(tmp_path):
+    from tests.card_fixtures import verified_sources
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea("t", "a", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original_sources = verified_sources()[:1]
+    pipeline.update_body(conn, idea_id, "舊正文")
+    db.save_idea_sources(conn, idea_id, original_sources)
+    conn.execute(
+        """
+        CREATE TRIGGER reject_copy_body
+        BEFORE UPDATE OF body ON ideas
+        WHEN NEW.body = '觸發失敗'
+        BEGIN
+            SELECT RAISE(ABORT, '模擬正文寫入失敗');
+        END
+        """
+    )
+    conn.commit()
+
+    with pytest.raises(sqlite3.IntegrityError):
+        db.save_copy_draft(
+            conn,
+            idea_id,
+            verified_sources()[1:],
+            "觸發失敗",
+        )
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert stored.body == "舊正文"
+    assert db.get_idea_sources(conn, idea_id) == original_sources
 
 
 def test_source_kind_round_trips_through_pack_and_snapshot(tmp_path):

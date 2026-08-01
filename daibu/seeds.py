@@ -11,6 +11,7 @@ class ThemeSeed:
     weekday: int
     n_ideas: int
     source_names: list[str]
+    content_kind: str = "general"
 
 
 DEFAULT_THEMES = [
@@ -62,6 +63,7 @@ DEFAULT_THEMES = [
             "TechCrunch",
             "INSIDE",
         ],
+        content_kind="company_profile",
     ),
 ]
 
@@ -149,6 +151,7 @@ def load(conn: sqlite3.Connection) -> None:
                         for name in seed.source_names
                     ],
                     seed.n_ideas,
+                    content_kind=seed.content_kind,
                 ),
             )
     db.set_config(conn, "seeds_loaded", "1")

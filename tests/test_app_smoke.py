@@ -5,7 +5,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from daibu import db, performance, pipeline, seeds, selection
+from daibu import copywriting, db, performance, pipeline, seeds, selection
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.llm.base import Idea
@@ -408,6 +408,37 @@ def test_selection_shows_the_selected_theme_workspace(monkeypatch, tmp_path):
     assert source_checkbox.value is True
 
 
+def test_company_series_keeps_its_internal_kind_after_settings_save(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            3,
+            content_kind="company_profile",
+        ),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "儲存內容系列設定"
+    ).click().run()
+
+    stored = {theme.id: theme for theme in db.get_themes(conn)}[theme_id]
+    assert stored.name == "AI 新創介紹"
+    assert stored.content_kind == "company_profile"
+
+
 def test_selecting_theme_requests_scroll_to_its_workspace(
     monkeypatch,
     tmp_path,
@@ -762,6 +793,294 @@ def test_selection_lists_adopted_ideas_with_body_editor(monkeypatch, tmp_path):
         text_area.label == "正文"
         for text_area in app.text_area
     )
+    assert not any(
+        button.label == "AI 幫我寫初稿" for button in app.button
+    )
+
+
+def test_blank_adopted_company_shows_primary_ai_copy_button(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            1,
+            content_kind="company_profile",
+        ),
+    )
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "用 AI 整理客服信件",
+            "工作流程正在改變",
+            "https://example.com/acme",
+            company="Acme",
+        ),
+        status="採用",
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    ai_button = next(
+        button for button in app.button
+        if button.label == "AI 幫我寫初稿"
+    )
+    save_button = next(
+        button for button in app.button
+        if button.label == "儲存並繼續做輪播"
+    )
+    assert ai_button.disabled is False
+    assert ai_button.proto.type == "primary"
+    assert save_button.proto.type == "secondary"
+
+
+def test_ai_copy_generation_loads_and_saves_the_new_draft(
+    monkeypatch,
+    tmp_path,
+):
+    from tests.card_fixtures import verified_sources
+
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    source_id = db.add_source(
+        conn,
+        Source(
+            None,
+            "TechCrunch",
+            "https://techcrunch.com/feed",
+            "rss",
+            True,
+        ),
+    )
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [source_id],
+            1,
+            content_kind="company_profile",
+        ),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "用 AI 整理客服信件",
+            "工作流程正在改變",
+            "https://example.com/acme",
+            company="Acme",
+        ),
+        status="採用",
+    )
+    calls = []
+
+    def fake_generate(
+        service_conn,
+        idea,
+        configured_domains,
+        generate_text,
+        **kwargs,
+    ):
+        calls.append((tuple(configured_domains), kwargs))
+        assert callable(generate_text)
+        body = "文" * 350
+        db.save_copy_draft(
+            service_conn,
+            idea.id,
+            verified_sources(),
+            body,
+        )
+        return body
+
+    monkeypatch.setattr(copywriting, "generate", fake_generate)
+    monkeypatch.setattr(
+        base,
+        "get_provider",
+        lambda _config: type(
+            "Provider",
+            (),
+            {"generate_text": lambda self, _prompt: "文" * 350},
+        )(),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "AI 幫我寫初稿"
+    ).click().run()
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert calls == [(('techcrunch.com',), {"official_domains": ()})]
+    assert stored.body == "文" * 350
+    assert next(area for area in app.text_area if area.label == "正文").value == (
+        "文" * 350
+    )
+    rendered = " ".join(block.value for block in app.markdown)
+    assert "初稿準備好了" in rendered
+
+
+def test_ai_copy_error_keeps_current_data_and_shows_recovery(
+    monkeypatch,
+    tmp_path,
+):
+    from tests.card_fixtures import verified_sources
+
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            1,
+            content_kind="company_profile",
+        ),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("公司定位", "角度", "", company="Acme"),
+        status="採用",
+    )
+    original_sources = verified_sources()[:1]
+    db.save_idea_sources(conn, idea_id, original_sources)
+    monkeypatch.setattr(
+        copywriting,
+        "generate",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("可信網域沒有資料")
+        ),
+    )
+    monkeypatch.setattr(
+        base,
+        "get_provider",
+        lambda _config: type(
+            "Provider",
+            (),
+            {"generate_text": lambda self, _prompt: ""},
+        )(),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button
+        if button.label == "AI 幫我寫初稿"
+    ).click().run()
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert stored.body == ""
+    assert db.get_idea_sources(conn, idea_id) == original_sources
+    assert any("可信網域沒有資料" in error.value for error in app.error)
+    rendered = " ".join(block.value for block in app.markdown)
+    assert "這次沒有寫進去" in rendered
+
+
+def test_existing_copy_requires_confirmation_before_regeneration(
+    monkeypatch,
+    tmp_path,
+):
+    from tests.card_fixtures import verified_sources
+
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            1,
+            content_kind="company_profile",
+        ),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("公司定位", "角度", "", company="Acme"),
+        status="採用",
+    )
+    pipeline.update_body(conn, idea_id, "原本正文")
+    calls = []
+
+    def fake_generate(
+        service_conn,
+        idea,
+        configured_domains,
+        generate_text,
+        **kwargs,
+    ):
+        del configured_domains, generate_text, kwargs
+        calls.append(idea.id)
+        body = "新" * 350
+        db.save_copy_draft(
+            service_conn,
+            idea.id,
+            verified_sources(),
+            body,
+        )
+        return body
+
+    monkeypatch.setattr(copywriting, "generate", fake_generate)
+    monkeypatch.setattr(
+        base,
+        "get_provider",
+        lambda _config: type(
+            "Provider",
+            (),
+            {"generate_text": lambda self, _prompt: "新" * 350},
+        )(),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    assert not any(
+        button.label == "AI 幫我寫初稿" for button in app.button
+    )
+    assert "重新產生初稿" in {
+        expander.label for expander in app.expander
+    }
+    confirm = next(
+        checkbox for checkbox in app.checkbox
+        if checkbox.label.startswith("我知道會覆蓋目前正文")
+    )
+    regenerate = next(
+        button for button in app.button
+        if button.label == "確認重新產生初稿"
+    )
+    assert regenerate.disabled
+    assert calls == []
+
+    confirm.set_value(True).run()
+    assert calls == []
+    next(
+        button for button in app.button
+        if button.label == "確認重新產生初稿"
+    ).click().run()
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert calls == [idea_id]
+    assert stored.body == "新" * 350
 
 
 def test_writing_workspace_opens_one_adopted_idea_at_a_time(
@@ -1453,7 +1772,10 @@ def test_performance_chart_axes_are_chinese(monkeypatch, tmp_path):
     assert spec["encoding"]["y"]["title"] == "平均互動"
 
 
-def test_candidate_shows_company_name(tmp_path, monkeypatch):
+def test_company_candidate_decision_view_shows_only_company_and_description(
+    tmp_path,
+    monkeypatch,
+):
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
     conn = db.connect(str(path))
@@ -1466,6 +1788,7 @@ def test_candidate_shows_company_name(tmp_path, monkeypatch):
             weekday=4,
             source_ids=[],
             n_ideas=3,
+            content_kind="company_profile",
         ),
     )
     db.add_idea(
@@ -1483,11 +1806,17 @@ def test_candidate_shows_company_name(tmp_path, monkeypatch):
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     rendered = " ".join(block.value for block in app.markdown)
+    button_labels = {button.label for button in app.button}
 
     assert "ElevenLabs" in rendered
+    assert "讓文字開口說話" in rendered
+    assert "配音成本被改寫" not in rendered
+    assert "未指定公司" not in rendered
+    assert "ElevenLabs｜讓文字開口說話" in button_labels
+    assert {"採用並繼續寫內容", "淘汰"} <= button_labels
 
 
-def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
+def test_general_candidate_view_keeps_title_and_angle(tmp_path, monkeypatch):
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
     conn = db.connect(str(path))
@@ -1496,7 +1825,7 @@ def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
         conn,
         Theme(
             id=None,
-            name="AI 新創介紹",
+            name="一般系列",
             weekday=4,
             source_ids=[],
             n_ideas=3,
@@ -1512,6 +1841,8 @@ def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     rendered = " ".join(block.value for block in app.markdown)
 
+    assert "舊題目" in rendered
+    assert "舊切角" in rendered
     assert "未指定公司" in rendered
 
 

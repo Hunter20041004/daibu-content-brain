@@ -379,20 +379,34 @@ def test_parse_ideas_reads_company_and_excerpt():
     assert ideas[0].source_excerpt == "2022 年於倫敦成立。"
 
 
-def test_build_prompt_demands_a_named_company():
+def test_build_prompt_applies_company_rules_only_to_company_profiles():
     materials = [
         Material(title="t", url="https://example.com/a", snippet="s")
     ]
 
-    text = prompt.build("AI 新創介紹", materials, 3)
+    company_text = prompt.build(
+        "AI 新創介紹",
+        materials,
+        3,
+        content_kind="company_profile",
+    )
+    general_text = prompt.build(
+        "未來的其他系列",
+        materials,
+        3,
+        content_kind="general",
+    )
 
-    assert "公司" in text
-    assert "company" in text
-    assert "source_excerpt" in text
+    assert "公司" in company_text
+    assert "company" in company_text
+    assert "source_excerpt" in company_text
     # 明確禁止產出無公司名的通用觀點文
-    assert "沒有公司名" in text
+    assert "沒有公司名" in company_text
     # 寧可少產也不要湊數
-    assert "寧可少產" in text
+    assert "寧可少產" in company_text
+    assert "每一則候選必須是**一家具體的公司**" not in general_text
+    assert "沒有公司名" not in general_text
+    assert "company、title" not in general_text
 
 
 def test_carousel_prompt_limits_copy_to_verified_sources():

@@ -3,6 +3,7 @@
 This local single-user tool does not block private network addresses.
 """
 
+import json
 import ssl
 from datetime import date
 from html.parser import HTMLParser
@@ -62,6 +63,13 @@ class _PageParser(HTMLParser):
                 self.published_at = values.get("content", "") or ""
         elif tag == "time" and not self.published_at:
             self.published_at = values.get("datetime", "") or ""
+        if not self.published_at and values.get("data-page"):
+            try:
+                payload = json.loads(values["data-page"] or "{}")
+                post = payload.get("props", {}).get("post", {})
+                self.published_at = post.get("published_at", "") or ""
+            except (AttributeError, json.JSONDecodeError, TypeError):
+                pass
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _SKIPPED_ELEMENTS and self._skip_depth:

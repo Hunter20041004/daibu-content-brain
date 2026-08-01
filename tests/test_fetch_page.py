@@ -29,6 +29,16 @@ PR_NEWSWIRE_HTML = """
 </body></html>
 """
 
+DATA_PAGE_HTML = """
+<html><body>
+<div data-page="{&quot;props&quot;:{&quot;post&quot;:{
+  &quot;published_at&quot;:&quot;2026-01-23T07:59:00.000-08:00&quot;
+}}}">
+<article><p>EquipmentShare built an operating system for construction.</p></article>
+</div>
+</body></html>
+"""
+
 
 def test_suggestion_prefills_publisher_date_and_excerpt():
     result = page.fetch_suggestion(
@@ -77,6 +87,15 @@ def test_article_excerpt_stops_at_the_last_complete_sentence():
     )
 
     assert extracted == "第一句有完整證據。"
+
+
+def test_suggestion_reads_date_from_embedded_page_data():
+    result = page.fetch_suggestion(
+        "https://www.ycombinator.com/blog/company",
+        download=lambda _url: DATA_PAGE_HTML,
+    )
+
+    assert result.published_at == "2026-01-23"
 
 
 @pytest.mark.contract

@@ -1,0 +1,148 @@
+"""Create grounded, editable social copy for an adopted company idea."""
+
+import json
+import re
+import sqlite3
+from collections.abc import Callable, Iterable
+from dataclasses import asdict
+from urllib.parse import urlsplit
+
+from daibu import db
+from daibu.cards.schema import VerifiedSource, validate_sources
+from daibu.fetch import company_research, page
+from daibu.models import Material, SourceSuggestion, StoredIdea
+
+MIN_DRAFT_CHARS = 350
+MAX_DRAFT_CHARS = 500
+
+
+class CopyDraftError(ValueError):
+    pass
+
+
+def _normalized(value: str) -> str:
+    return re.sub(r"[^a-z0-9一-鿿]+", "", value.casefold())
+
+
+def _candidate_seed(
+    idea: StoredIdea,
+    official_domains: Iterable[str],
+    fetch_fn: Callable[[str], SourceSuggestion] | None,
+) -> tuple[VerifiedSource, ...]:
+    parsed = urlsplit(idea.source_url)
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or not idea.source_excerpt.strip()
+    ):
+        return ()
+    try:
+        suggestion = (fetch_fn or page.fetch_suggestion)(idea.source_url)
+    except (OSError, RuntimeError, ValueError):
+        return ()
+    company = _normalized(idea.company)
+    evidence = _normalized(
+        f"{idea.source_excerpt} {suggestion.excerpt}"
+    )
+    if not company or company not in evidence:
+        return ()
+    if not suggestion.publisher.strip() or not suggestion.published_at.strip():
+        return ()
+    hostname = (parsed.hostname or "").lower().removeprefix("www.")
+    official = {
+        (urlsplit(value if "://" in value else f"https://{value}").hostname or "")
+        .lower()
+        .removeprefix("www.")
+        for value in official_domains
+    }
+    return (
+        VerifiedSource(
+            "S1",
+            suggestion.publisher.strip(),
+            suggestion.published_at.strip()[:10],
+            idea.source_url,
+            idea.source_excerpt.strip(),
+            "official" if hostname in official else "third_party",
+        ),
+    )
+
+
+def build_prompt(
+    idea: StoredIdea,
+    sources: tuple[VerifiedSource, ...],
+) -> str:
+    if not idea.company.strip():
+        raise ValueError("這則題目沒有公司名，無法產生初稿。")
+    if not sources:
+        raise ValueError("至少需要一筆已驗證來源才能產生初稿。")
+    validate_sources(sources)
+    source_payload = [asdict(source) for source in sources]
+    return f"""
+你是「呆一布 AI 共學實驗室」的社群編輯。
+請為下列已採用公司寫一份可繼續編輯的社群初稿。
+
+公司：{idea.company}
+這家公司在做什麼：{idea.title}
+內部選題角度：{idea.angle}
+
+你只能根據下列已驗證來源陳述公司事實：
+{json.dumps(source_payload, ensure_ascii=False)}
+
+要求：
+- 使用繁體中文，全文 350–500 個字元。
+- 開頭用一句清楚鉤子，但不誇張、不製造焦慮。
+- 白話說明公司在做什麼、解決誰的什麼問題，以及 AI 扮演什麼角色。
+- 證據不足的地方明說，不用模型常識補齊。
+- 不加入投資建議、未查證數字、客戶或人物。
+- 結尾提出一個讓讀者思考或留言的問題。
+- 只輸出初稿純文字，不要 JSON、Markdown 標題或來源清單。
+""".strip()
+
+
+def generate_draft(
+    idea: StoredIdea,
+    sources: tuple[VerifiedSource, ...],
+    generate_text: Callable[[str], str],
+) -> str:
+    prompt_text = build_prompt(idea, sources)
+    last_length = 0
+    for _attempt in range(2):
+        result = generate_text(prompt_text).strip()
+        last_length = len(result)
+        if MIN_DRAFT_CHARS <= last_length <= MAX_DRAFT_CHARS:
+            return result
+    raise CopyDraftError(
+        "AI 兩次都沒有產出 350–500 字的初稿"
+        f"（最後一次為 {last_length} 字），原文沒有變更。"
+    )
+
+
+def generate(
+    conn: sqlite3.Connection,
+    idea: StoredIdea,
+    configured_domains: Iterable[str],
+    generate_text: Callable[[str], str],
+    *,
+    official_domains: Iterable[str] = (),
+    search_fn: Callable[..., list[Material]] | None = None,
+    fetch_fn: Callable[[str], SourceSuggestion] | None = None,
+) -> str:
+    official_domains = tuple(official_domains)
+    seed_sources = db.get_idea_sources(conn, idea.id)
+    if not seed_sources:
+        seed_sources = _candidate_seed(
+            idea,
+            official_domains,
+            fetch_fn,
+        )
+    researched = company_research.research(
+        idea.company,
+        seed_sources,
+        configured_domains,
+        official_domains,
+        search_fn=search_fn,
+        fetch_fn=fetch_fn,
+    )
+    body = generate_draft(idea, researched.sources, generate_text)
+    db.save_copy_draft(conn, idea.id, researched.sources, body)
+    return body

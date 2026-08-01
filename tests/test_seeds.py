@@ -58,6 +58,17 @@ def test_load_seeds_themes_without_duplicates(tmp_path):
     assert len(db.get_themes(conn)) == len(themes)
 
 
+def test_ai_startup_seed_is_a_company_profile_series(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+
+    seeds.load(conn)
+
+    themes = {theme.name: theme for theme in db.get_themes(conn)}
+    assert themes["AI 新創介紹"].content_kind == "company_profile"
+    assert themes["AI 近期大事"].content_kind == "general"
+
+
 def test_load_seeds_only_when_database_is_brand_new(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

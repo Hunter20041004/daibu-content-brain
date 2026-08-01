@@ -208,7 +208,8 @@ def init_schema(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             weekday INTEGER NOT NULL,
-            n_ideas INTEGER NOT NULL
+            n_ideas INTEGER NOT NULL,
+            content_kind TEXT NOT NULL DEFAULT 'general'
         );
 
         CREATE TABLE IF NOT EXISTS sources (
@@ -308,6 +309,19 @@ def init_schema(conn: sqlite3.Connection) -> None:
         );
         """
     )
+    theme_columns = _table_columns(conn, "themes")
+    if "content_kind" not in theme_columns:
+        conn.execute(
+            "ALTER TABLE themes ADD COLUMN content_kind "
+            "TEXT NOT NULL DEFAULT 'general'"
+        )
+        conn.execute(
+            """
+            UPDATE themes
+            SET content_kind = 'company_profile'
+            WHERE name = 'AI 新創介紹'
+            """
+        )
     idea_columns = _table_columns(conn, "ideas")
     for column in ("company", "source_excerpt"):
         if column not in idea_columns:
@@ -429,13 +443,14 @@ def init_schema(conn: sqlite3.Connection) -> None:
 def add_theme(conn: sqlite3.Connection, theme: Theme) -> int:
     cursor = conn.execute(
         """
-        INSERT INTO themes (name, weekday, n_ideas)
-        VALUES (?, ?, ?)
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES (?, ?, ?, ?)
         """,
         (
             theme.name,
             theme.weekday,
             theme.n_ideas,
+            theme.content_kind,
         ),
     )
     theme_id = cursor.lastrowid
@@ -471,6 +486,7 @@ def get_themes(conn: sqlite3.Connection) -> list[Theme]:
             weekday=row["weekday"],
             source_ids=source_ids_by_theme.get(row["id"], []),
             n_ideas=row["n_ideas"],
+            content_kind=row["content_kind"],
         )
         for row in rows
     ]
@@ -482,13 +498,14 @@ def update_theme(conn: sqlite3.Connection, theme: Theme) -> None:
     conn.execute(
         """
         UPDATE themes
-        SET name = ?, weekday = ?, n_ideas = ?
+        SET name = ?, weekday = ?, n_ideas = ?, content_kind = ?
         WHERE id = ?
         """,
         (
             theme.name,
             theme.weekday,
             theme.n_ideas,
+            theme.content_kind,
             theme.id,
         ),
     )
@@ -797,6 +814,23 @@ def save_idea_sources(
     validate_sources(sources)
     with conn:
         _replace_idea_sources(conn, idea_id, sources)
+
+
+def save_copy_draft(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    sources: tuple[VerifiedSource, ...],
+    body: str,
+) -> None:
+    validate_sources(sources)
+    if not body.strip():
+        raise ValueError("初稿不可空白")
+    with conn:
+        _replace_idea_sources(conn, idea_id, sources)
+        conn.execute(
+            "UPDATE ideas SET body = ? WHERE id = ?",
+            (body, idea_id),
+        )
 
 
 def _replace_idea_sources(

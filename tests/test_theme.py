@@ -115,6 +115,24 @@ def test_css_defines_dark_palette_in_media_query():
     assert f"--ink: {theme.DARK['INK']}" in dark_section[1]
 
 
+def test_theme_switcher_is_touch_and_keyboard_accessible():
+    styles = theme.css("light")
+
+    assert ".theme-switcher__button" in styles
+    assert "min-height: 44px" in styles
+    assert ".theme-switcher__button:focus-visible" in styles
+    assert "@media (hover: hover) and (pointer: fine)" in styles
+    assert "prefers-reduced-motion" in styles
+
+
+def test_theme_switcher_icons_use_vector_masks():
+    styles = theme.css("light")
+
+    assert ".theme-switcher__icon--moon" in styles
+    assert ".theme-switcher__icon--sun" in styles
+    assert 'mask-image: url("data:image/svg+xml' in styles
+
+
 def test_palette_variables_are_defined_on_root_not_app():
     styles = theme.css()
     root_section = styles.split(":root {", maxsplit=1)[1].split("}", maxsplit=1)[0]
