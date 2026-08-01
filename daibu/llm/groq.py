@@ -31,11 +31,13 @@ class GroqProvider:
         materials: list[Material],
         n: int,
         avoid_titles: list[str] | None = None,
+        content_kind: str = "general",
     ) -> list[Idea]:
         text = prompt.build(
             theme_name,
             materials,
             n,
             avoid_titles,
+            content_kind,
         )
         return generate_and_parse(self.generate_text, text)
