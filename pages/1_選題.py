@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import streamlit as st
 
-from daibu import clock, db, pipeline, selection, workspace
+from daibu import clock, copywriting, db, pipeline, selection, workspace
 from daibu.cards import assets as carousel_assets
 from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
@@ -19,7 +19,7 @@ from daibu.cards import workbench as carousel_workbench
 from daibu.cards.schema import validate_company_headings, validate_draft
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
-from daibu.models import Source, Theme
+from daibu.models import Source, StoredIdea, Theme
 from daibu.ui import (
     apply_styles,
     connect_app_db,
@@ -144,6 +144,64 @@ def trusted_domains_for(
             if domain
         )
     )
+
+
+def generate_copy_for(
+    idea: StoredIdea,
+    selected_theme: Theme,
+    sources: list[Source],
+    provider_config: dict[str, str],
+) -> None:
+    try:
+        provider = base.get_provider(provider_config)
+        configured_domains = trusted_domains_for(selected_theme, sources)
+        brand_asset = db.get_brand_asset(conn, idea.company)
+        official_hostname = (
+            urlparse(brand_asset.official_source_url).hostname
+            if brand_asset is not None
+            else None
+        )
+        official_domains = (
+            (official_hostname,) if official_hostname else ()
+        )
+        with st.status(
+            "呆一布正在查資料與寫初稿…",
+            expanded=True,
+        ) as copy_status:
+            st.markdown(
+                mascot_coach(
+                    "think",
+                    "正在找能核對的資料",
+                    "只會使用系列設定與可信網域，完成前不會改動正文。",
+                ),
+                unsafe_allow_html=True,
+            )
+            copywriting.generate(
+                conn,
+                idea,
+                configured_domains,
+                provider.generate_text,
+                official_domains=official_domains,
+            )
+            copy_status.update(
+                label="查證完成，初稿已儲存",
+                state="complete",
+                expanded=False,
+            )
+        st.session_state[f"copy-generated-{idea.id}"] = True
+        queue_toast(st.session_state, "AI 初稿已產生。")
+        st.rerun()
+    except (OSError, RuntimeError, ValueError) as error:
+        st.markdown(
+            mascot_coach(
+                "confused",
+                "這次沒有寫進去",
+                "原本正文與來源都還在；檢查連線或模型設定後可以再試。",
+                tone="warning",
+            ),
+            unsafe_allow_html=True,
+        )
+        st.error(f"初稿產生失敗：{error}")
 
 
 def workflow_journey(current: str, completed: tuple[str, ...]) -> str:
@@ -549,6 +607,7 @@ with candidate_column:
                             WEEKDAYS.index(edited_theme_weekday),
                             selected_theme.source_ids,
                             int(edited_theme_count),
+                            content_kind=selected_theme.content_kind,
                         ),
                     )
                     st.rerun()
@@ -609,6 +668,7 @@ with candidate_column:
                             selected_theme.weekday,
                             selected_source_ids,
                             selected_theme.n_ideas,
+                            content_kind=selected_theme.content_kind,
                         ),
                     )
                     queue_toast(st.session_state, "來源綁定已儲存。")
@@ -900,6 +960,60 @@ with candidate_column:
             expanded=journey.current in {"write", "carousel"},
         ):
             st.caption(idea.angle)
+            is_company_profile = (
+                selected_theme.content_kind == "company_profile"
+            )
+            if st.session_state.pop(f"copy-generated-{idea.id}", False):
+                st.markdown(
+                    mascot_coach(
+                        "happy",
+                        "初稿準備好了",
+                        "我已把查證來源和初稿一起存好，你可以直接在下方修改。",
+                        tone="success",
+                    ),
+                    unsafe_allow_html=True,
+                )
+            if is_company_profile and not idea.body.strip():
+                st.caption(
+                    "先查可信網域，再產生一份 350–500 字繁中初稿；"
+                    "完成後仍可自由修改。"
+                )
+                generate_copy_clicked = st.button(
+                    "AI 幫我寫初稿",
+                    key=f"generate-copy-{idea.id}",
+                    type="primary",
+                    width="stretch",
+                )
+                if generate_copy_clicked:
+                    generate_copy_for(
+                        idea,
+                        selected_theme,
+                        sources,
+                        provider_config,
+                    )
+            elif is_company_profile:
+                with st.expander("重新產生初稿"):
+                    st.warning(
+                        "重新產生會先再次查證資料，並在成功後覆蓋目前正文；"
+                        "也會再次使用免費模型額度。"
+                    )
+                    confirm_regeneration = st.checkbox(
+                        "我知道會覆蓋目前正文並再次使用免費額度",
+                        key=f"confirm-copy-regeneration-{idea.id}",
+                    )
+                    if st.button(
+                        "確認重新產生初稿",
+                        key=f"regenerate-copy-{idea.id}",
+                        disabled=not confirm_regeneration,
+                        type="secondary",
+                        width="stretch",
+                    ):
+                        generate_copy_for(
+                            idea,
+                            selected_theme,
+                            sources,
+                            provider_config,
+                        )
             body_key = f"body-{idea.id}"
             body = st.text_area(
                 "正文",
@@ -1536,6 +1650,7 @@ with candidate_column:
                 type=(
                     "primary"
                     if journey.current == "write"
+                    and (body.strip() or not is_company_profile)
                     else "secondary"
                 ),
                 disabled=not body.strip(),
