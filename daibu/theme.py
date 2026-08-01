@@ -386,6 +386,93 @@ def css(mode: str | None = None) -> str:
         text-transform: uppercase;
     }}
 
+    .theme-switcher {{
+        border-top: 1px dashed var(--border);
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+    }}
+
+    .theme-switcher__eyebrow,
+    .theme-switcher__status {{
+        color: var(--brand-secondary) !important;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.35;
+        margin: 0 0 0.4rem;
+    }}
+
+    .theme-switcher__button {{
+        align-items: center;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: flex;
+        font-size: 0.875rem;
+        font-weight: 800;
+        gap: 0.65rem;
+        justify-content: flex-start;
+        min-height: 44px;
+        padding: 0.65rem 0.8rem;
+        transition:
+            background-color 160ms var(--ease-out),
+            border-color 160ms var(--ease-out),
+            color 160ms var(--ease-out),
+            transform 140ms var(--ease-out);
+        width: 100%;
+    }}
+
+    .theme-switcher__icon {{
+        background: var(--brand-secondary);
+        display: block;
+        flex: 0 0 1.15rem;
+        height: 1.15rem;
+        -webkit-mask-position: center;
+        -webkit-mask-repeat: no-repeat;
+        -webkit-mask-size: contain;
+        mask-position: center;
+        mask-repeat: no-repeat;
+        mask-size: contain;
+        width: 1.15rem;
+    }}
+
+    .theme-switcher__icon--moon {{
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www%2Ew3%2Eorg/2000/svg'%3E%3Cpath d='M20.2 15.4A8.4 8.4 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www%2Ew3%2Eorg/2000/svg'%3E%3Cpath d='M20.2 15.4A8.4 8.4 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z'/%3E%3C/svg%3E");
+    }}
+
+    .theme-switcher__icon--sun {{
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www%2Ew3%2Eorg/2000/svg'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M11 1h2v4h-2zM11 19h2v4h-2zM1 11h4v2H1zM19 11h4v2h-4zM3.5 4.9l1.4-1.4 2.8 2.8-1.4 1.4zM16.3 17.7l1.4-1.4 2.8 2.8-1.4 1.4zM3.5 19.1l2.8-2.8 1.4 1.4-2.8 2.8zM16.3 6.3l2.8-2.8 1.4 1.4-2.8 2.8z'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www%2Ew3%2Eorg/2000/svg'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M11 1h2v4h-2zM11 19h2v4h-2zM1 11h4v2H1zM19 11h4v2h-4zM3.5 4.9l1.4-1.4 2.8 2.8-1.4 1.4zM16.3 17.7l1.4-1.4 2.8 2.8-1.4 1.4zM3.5 19.1l2.8-2.8 1.4 1.4-2.8 2.8zM16.3 6.3l2.8-2.8 1.4 1.4-2.8 2.8z'/%3E%3C/svg%3E");
+    }}
+
+    .theme-switcher__button:focus-visible {{
+        outline: 3px solid var(--brand-primary);
+        outline-offset: 2px;
+    }}
+
+    .theme-switcher__button:disabled {{
+        cursor: wait;
+        opacity: 0.6;
+    }}
+
+    .theme-switcher__status {{
+        margin: 0.4rem 0 0;
+        min-height: 1rem;
+    }}
+
+    @media (hover: hover) and (pointer: fine) {{
+        .theme-switcher__button:hover {{
+            background: color-mix(in srgb, var(--brand-primary) 16%, var(--surface));
+            border-color: var(--brand-primary);
+        }}
+
+        .theme-switcher__button:active {{
+            transform: scale(0.98);
+        }}
+    }}
+
     .mascot-coach {{
         align-items: center;
         background:
@@ -957,7 +1044,8 @@ def css(mode: str | None = None) -> str:
 
     @media (prefers-reduced-motion: reduce) {{
         .stButton > button,
-        [data-testid^="stBaseButton"] {{
+        [data-testid^="stBaseButton"],
+        .theme-switcher__button {{
             transform: none !important;
             transition:
                 border-color 160ms ease,

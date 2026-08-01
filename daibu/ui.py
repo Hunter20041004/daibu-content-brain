@@ -22,6 +22,86 @@ MASCOT_COACH_TONES = {
     "success": "mascot-coach--success",
     "warning": "mascot-coach--warning",
 }
+THEME_PREFERENCE_KEY = "daibuColorMode-v1"
+THEME_ICON_CLASSES = {
+    "light": "theme-switcher__icon--moon",
+    "dark": "theme-switcher__icon--sun",
+}
+
+
+def theme_switcher_html(mode: str) -> str:
+    if mode not in {"light", "dark"}:
+        raise ValueError(f"Unsupported theme mode: {mode}")
+    is_dark = mode == "dark"
+    current_label = "深色" if is_dark else "淺色"
+    next_label = "淺色" if is_dark else "深色"
+    current_native = "Dark" if is_dark else "Light"
+    next_native = "Light" if is_dark else "Dark"
+    icon_class = THEME_ICON_CLASSES[mode]
+    return f"""
+    <div class="theme-switcher" data-current-theme="{mode}">
+      <p class="theme-switcher__eyebrow">目前：{current_label}模式</p>
+      <button
+        id="daibu-theme-switcher"
+        class="theme-switcher__button"
+        type="button"
+        aria-label="切換成{next_label}模式"
+        aria-pressed="{str(is_dark).lower()}"
+      >
+        <span class="theme-switcher__icon {icon_class}"
+              aria-hidden="true"></span>
+        <span>切換成{next_label}</span>
+      </button>
+      <p class="theme-switcher__status" aria-live="polite"></p>
+    </div>
+    <script>
+    (() => {{
+      const preferenceKey = "{THEME_PREFERENCE_KEY}";
+      const currentTheme = "{current_native}";
+      const nextTheme = "{next_native}";
+      const activeKey = path => `stActiveTheme-${{path}}-v2`;
+      const storeTheme = (path, value) =>
+        window.localStorage.setItem(activeKey(path), JSON.stringify(value));
+      const control = document.getElementById("daibu-theme-switcher");
+      const status = document.querySelector(".theme-switcher__status");
+
+      try {{
+        const preferred = JSON.parse(
+          window.localStorage.getItem(preferenceKey) || "null"
+        );
+        const storedHere = JSON.parse(
+          window.localStorage.getItem(activeKey(window.location.pathname))
+          || '"System"'
+        );
+        if (preferred && preferred !== storedHere) {{
+          storeTheme(window.location.pathname, preferred);
+          window.location.reload();
+          return;
+        }}
+
+        control.addEventListener("click", () => {{
+          control.disabled = true;
+          status.textContent = "切換中…";
+          const paths = new Set([
+            window.location.pathname,
+            ...Array.from(
+              document.querySelectorAll('[data-testid="stSidebarNav"] a[href]')
+            ).map(link => new URL(link.href).pathname),
+          ]);
+          window.localStorage.setItem(
+            preferenceKey,
+            JSON.stringify(nextTheme),
+          );
+          paths.forEach(path => storeTheme(path, nextTheme));
+          window.requestAnimationFrame(() => window.location.reload());
+        }});
+      }} catch (error) {{
+        control.disabled = true;
+        status.textContent = "瀏覽器未允許儲存主題偏好。";
+      }}
+    }})();
+    </script>
+    """
 
 
 def connect_app_db() -> sqlite3.Connection:
@@ -49,7 +129,7 @@ def show_queued_toast(
 
 
 def apply_styles() -> None:
-    theme_mode = st.context.theme.type
+    theme_mode = st.context.theme.type or "light"
     st.markdown(
         f"<style>{theme.css(theme_mode)}</style>",
         unsafe_allow_html=True,
@@ -57,6 +137,10 @@ def apply_styles() -> None:
     st.sidebar.markdown(
         brand_lockup(),
         unsafe_allow_html=True,
+    )
+    st.sidebar.html(
+        theme_switcher_html(theme_mode),
+        unsafe_allow_javascript=True,
     )
 
 

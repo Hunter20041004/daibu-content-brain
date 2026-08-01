@@ -44,6 +44,32 @@ def test_toolbar_mode_is_minimal():
     assert config["client"]["toolbarMode"] == "minimal"
 
 
+def test_theme_switcher_offers_dark_mode_with_accessible_native_storage():
+    markup = ui.theme_switcher_html("light")
+
+    assert "目前：淺色模式" in markup
+    assert "切換成深色" in markup
+    assert 'aria-pressed="false"' in markup
+    assert "daibuColorMode-v1" in markup
+    assert "stActiveTheme-" in markup
+
+
+def test_theme_switcher_offers_light_mode_when_dark():
+    markup = ui.theme_switcher_html("dark")
+
+    assert "目前：深色模式" in markup
+    assert "切換成淺色" in markup
+    assert 'aria-pressed="true"' in markup
+
+
+def test_theme_switcher_uses_sanitizer_safe_vector_icon_hook():
+    markup = ui.theme_switcher_html("light")
+
+    assert 'class="theme-switcher__icon theme-switcher__icon--moon"' in markup
+    assert 'aria-hidden="true"' in markup
+    assert "<svg" not in markup
+
+
 def test_ui_has_no_retired_gate_line_default():
     assert not hasattr(ui, "DEFAULT_GATE_LINE")
 
@@ -168,6 +194,26 @@ def test_apply_styles_places_brand_in_sidebar(monkeypatch):
     ui.apply_styles()
 
     assert "呆一布" in rendered[0]
+
+
+def test_apply_styles_places_theme_switcher_in_sidebar(monkeypatch):
+    rendered = []
+    monkeypatch.setattr(ui.st, "markdown", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        ui.st.sidebar,
+        "markdown",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        ui.st.sidebar,
+        "html",
+        lambda body, **kwargs: rendered.append((body, kwargs)),
+    )
+
+    ui.apply_styles()
+
+    assert "theme-switcher" in rendered[0][0]
+    assert rendered[0][1]["unsafe_allow_javascript"] is True
 
 
 def test_queued_toast_is_shown_once_on_the_next_run():
