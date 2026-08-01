@@ -5,7 +5,7 @@ import pytest
 from daibu import copywriting, db
 from daibu.fetch.company_research import ResearchResult
 from daibu.llm.base import Idea
-from daibu.models import StoredIdea
+from daibu.models import SourceSuggestion, StoredIdea
 from tests.card_fixtures import verified_sources
 
 
@@ -94,7 +94,12 @@ def test_copy_service_researches_then_saves_one_complete_snapshot(
         ),
         status="採用",
     )
-    idea = replace(adopted_company(), id=idea_id)
+    idea = replace(
+        adopted_company(),
+        id=idea_id,
+        source_url="",
+        source_excerpt="",
+    )
     events = []
 
     def fake_research(
@@ -130,6 +135,62 @@ def test_copy_service_researches_then_saves_one_complete_snapshot(
     stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
     assert stored.body == body
     assert db.get_idea_sources(conn, idea_id) == verified_sources()
+
+
+def test_copy_service_turns_candidate_evidence_into_a_research_seed(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(
+            "建築工地的作業系統",
+            "角度",
+            "https://www.ycombinator.com/blog/equipmentshare",
+            company="EquipmentShare",
+            source_excerpt="EquipmentShare built an operating system for construction.",
+        ),
+        status="採用",
+    )
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    seen_seeds = []
+
+    def fake_fetch(url):
+        return SourceSuggestion(
+            "Y Combinator",
+            "2026-01-23",
+            url,
+            "EquipmentShare built an operating system for construction.",
+        )
+
+    def fake_research(_company, seed_sources, *_args, **_kwargs):
+        seen_seeds.append(seed_sources)
+        return ResearchResult(seed_sources, ())
+
+    monkeypatch.setattr(
+        copywriting.company_research,
+        "research",
+        fake_research,
+    )
+
+    copywriting.generate(
+        conn,
+        idea,
+        ("ycombinator.com",),
+        lambda _prompt: "文" * 350,
+        fetch_fn=fake_fetch,
+    )
+
+    assert len(seen_seeds) == 1
+    assert len(seen_seeds[0]) == 1
+    seed = seen_seeds[0][0]
+    assert seed.publisher == "Y Combinator"
+    assert seed.published_at == "2026-01-23"
+    assert seed.url == idea.source_url
+    assert seed.excerpt == idea.source_excerpt
 
 
 def test_copy_service_research_failure_keeps_body_and_sources(

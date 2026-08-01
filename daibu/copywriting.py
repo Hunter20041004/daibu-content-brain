@@ -1,13 +1,15 @@
 """Create grounded, editable social copy for an adopted company idea."""
 
 import json
+import re
 import sqlite3
 from collections.abc import Callable, Iterable
 from dataclasses import asdict
+from urllib.parse import urlsplit
 
 from daibu import db
 from daibu.cards.schema import VerifiedSource, validate_sources
-from daibu.fetch import company_research
+from daibu.fetch import company_research, page
 from daibu.models import Material, SourceSuggestion, StoredIdea
 
 MIN_DRAFT_CHARS = 350
@@ -16,6 +18,53 @@ MAX_DRAFT_CHARS = 500
 
 class CopyDraftError(ValueError):
     pass
+
+
+def _normalized(value: str) -> str:
+    return re.sub(r"[^a-z0-9一-鿿]+", "", value.casefold())
+
+
+def _candidate_seed(
+    idea: StoredIdea,
+    official_domains: Iterable[str],
+    fetch_fn: Callable[[str], SourceSuggestion] | None,
+) -> tuple[VerifiedSource, ...]:
+    parsed = urlsplit(idea.source_url)
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or not idea.source_excerpt.strip()
+    ):
+        return ()
+    try:
+        suggestion = (fetch_fn or page.fetch_suggestion)(idea.source_url)
+    except (OSError, RuntimeError, ValueError):
+        return ()
+    company = _normalized(idea.company)
+    evidence = _normalized(
+        f"{idea.source_excerpt} {suggestion.excerpt}"
+    )
+    if not company or company not in evidence:
+        return ()
+    if not suggestion.publisher.strip() or not suggestion.published_at.strip():
+        return ()
+    hostname = (parsed.hostname or "").lower().removeprefix("www.")
+    official = {
+        (urlsplit(value if "://" in value else f"https://{value}").hostname or "")
+        .lower()
+        .removeprefix("www.")
+        for value in official_domains
+    }
+    return (
+        VerifiedSource(
+            "S1",
+            suggestion.publisher.strip(),
+            suggestion.published_at.strip()[:10],
+            idea.source_url,
+            idea.source_excerpt.strip(),
+            "official" if hostname in official else "third_party",
+        ),
+    )
 
 
 def build_prompt(
@@ -78,9 +127,17 @@ def generate(
     search_fn: Callable[..., list[Material]] | None = None,
     fetch_fn: Callable[[str], SourceSuggestion] | None = None,
 ) -> str:
+    official_domains = tuple(official_domains)
+    seed_sources = db.get_idea_sources(conn, idea.id)
+    if not seed_sources:
+        seed_sources = _candidate_seed(
+            idea,
+            official_domains,
+            fetch_fn,
+        )
     researched = company_research.research(
         idea.company,
-        db.get_idea_sources(conn, idea.id),
+        seed_sources,
         configured_domains,
         official_domains,
         search_fn=search_fn,
