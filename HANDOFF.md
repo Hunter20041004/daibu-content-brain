@@ -20,7 +20,7 @@ AI 新創介紹只產具體公司候選，採用後可產 350–500 字繁中初
 - **主題切換**：保留 `toolbarMode = "minimal"`，在側邊品牌區加入「目前：淺／深色模式」與切換按鈕。沿用 Streamlit 原生主題鍵並保存跨頁偏好；SVG 以 CSS mask 呈現，支援鍵盤、45px 觸控、focus、disabled、切換中與 localStorage 失敗狀態。
 - **瀏覽驗收**：8502 實走淺→深→內容製作→reload→淺；四頁偏好同步，鍵盤第 5 次 Tab 可達，全新根網址 session 為 `0 errors / 0 warnings`。直接 reload `/選題` 仍有 Streamlit 既有相對 health URL 404，但頁面可用。
 - **視覺驗收**：完成兩輪 1280×800 與 375×812；最終深色圖為 `.screenshots/desktop.png`、`.screenshots/mobile.png`。層次、留白、字體、配色、對齊、響應式、狀態與動效均通過。
-- **測試**：主題／UI／導覽回歸 `68 passed, 77 deselected`；feature branch 全套 `430 passed, 11 deselected, 1 warning in 37.22s`。唯一警告是既有 Starlette/httpx 棄用提示；`git diff --check` 通過。
+- **測試與交付**：主題／UI／導覽回歸 `68 passed, 77 deselected`；合併後 `main` 全套 `430 passed, 11 deselected, 1 warning in 37.42s`，已推送 `origin/main`。唯一警告是既有 Starlette/httpx 棄用提示；`git diff --check` 通過。
 - **資料安全**：舊候選與本輪 QA 資料只從 `/tmp/daibu-workstation-redesign.db` 移除；最後備份為 `/tmp/daibu-company-qa-cleanup-final.7ORTUk/daibu-workstation-redesign.before-final-qa-cleanup.db`。真實 `daibu.db` mtime 前後均為 `1785433278`。
 
 ## 最容易踩的坑
