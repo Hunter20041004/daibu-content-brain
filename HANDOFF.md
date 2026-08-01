@@ -1,6 +1,6 @@
 # HANDOFF — 呆一布內容工作站
 
-> 2026-07-31 更新。多系列內容工作站前端重構已完成，待合併 `main`。
+> 2026-07-31 更新。多系列內容工作站前端重構已完成、合併 `main` 並推送。
 
 ## 本輪目標與驗收
 
@@ -20,12 +20,12 @@
 - **按鈕與名稱**：日常畫面只保留當前步驟的主要 CTA；素材管理收進「素材來源庫／系列素材來源／管理內容系列」。
 - **角色狀態**：沿用 `assets/mascot/`，point 提示下一步、think 表示等待／判斷、confused 表示可恢復錯誤、happy 表示完成；都有文字狀態與 `aria-label`。
 - **視覺自檢**：桌機 `1280×800` 與手機 `375×812` 最終圖為 `.screenshots/desktop.png`、`.screenshots/mobile.png`。層次、留白、字體、配色、對齊、響應式、狀態、動效皆通過；新瀏覽器 session 的首頁→內容製作 console 為 `0 errors / 0 warnings`。
-- **測試**：AppTest `82 passed`；feature branch 全套 `403 passed, 11 deselected, 1 warning in 40.64s`。唯一警告為既有 Starlette/httpx 棄用提示；`git diff --check` 通過。
+- **測試**：AppTest `82 passed`；feature branch 全套 `403 passed, 11 deselected, 1 warning in 40.64s`；合併後 `main` 全套 `403 passed, 11 deselected, 1 warning in 44.18s`。唯一警告為既有 Starlette/httpx 棄用提示；`git diff --check` 通過。
 - **資料安全**：瀏覽驗收使用 `/tmp/daibu-workstation-redesign.db` 與 port 8502；真實 `daibu.db` mtime 驗收前後均為 `1785433278`。
 
 ## 下一步
 
-- 合併 `main`、在 `main` 重跑全套測試、推送既有 `origin`。
+- `main` 已推送至既有 `origin`，遠端已包含本輪提交。
 - 專案沒有 production 部署流程；本機預覽為 <http://localhost:8502/>。
 - 下一階段請另開 task，從本交接單繼續。
 
