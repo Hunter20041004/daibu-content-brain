@@ -8,6 +8,7 @@ class Theme:
     weekday: int
     source_ids: list[int]
     n_ideas: int
+    content_kind: str = "general"
 
 
 @dataclass(frozen=True)

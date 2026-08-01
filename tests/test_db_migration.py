@@ -348,6 +348,65 @@ def test_adds_company_and_excerpt_columns_to_existing_db(tmp_path):
     conn.close()
 
 
+def test_migration_adds_content_kind_without_changing_existing_data(tmp_path):
+    path = tmp_path / "content-kind.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    conn.executemany(
+        "INSERT INTO themes (name, weekday, n_ideas) VALUES (?, ?, ?)",
+        [
+            ("AI 新創介紹", 4, 3),
+            ("AI 近期大事", 0, 3),
+        ],
+    )
+    startup_id = conn.execute(
+        "SELECT id FROM themes WHERE name = 'AI 新創介紹'"
+    ).fetchone()["id"]
+    conn.executemany(
+        """
+        INSERT INTO ideas (theme_id, title, angle, status, body)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [
+            (startup_id, "候選公司", "角度", "候選", ""),
+            (startup_id, "已採用公司", "角度", "採用", "保留正文"),
+        ],
+    )
+    conn.execute("ALTER TABLE themes DROP COLUMN content_kind")
+    conn.commit()
+    before = [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT title, status, body FROM ideas ORDER BY id"
+        )
+    ]
+    conn.close()
+
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+
+    columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(themes)")
+    }
+    kinds = {
+        row["name"]: row["content_kind"]
+        for row in conn.execute("SELECT name, content_kind FROM themes")
+    }
+    after = [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT title, status, body FROM ideas ORDER BY id"
+        )
+    ]
+    assert "content_kind" in columns
+    assert kinds == {
+        "AI 新創介紹": "company_profile",
+        "AI 近期大事": "general",
+    }
+    assert after == before
+    conn.close()
+
+
 def test_migration_adds_structured_carousel_storage_idempotently(tmp_path):
     path = tmp_path / "carousel.db"
     conn = db.connect(str(path))

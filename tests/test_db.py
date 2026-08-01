@@ -72,6 +72,44 @@ def test_update_theme_replaces_its_bound_sources(tmp_path):
     assert db.get_themes(conn)[0].source_ids == [source_b]
 
 
+def test_theme_content_kind_defaults_and_survives_rename(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    general_id = db.add_theme(conn, Theme(None, "一般系列", 0, [], 2))
+    company_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            3,
+            content_kind="company_profile",
+        ),
+    )
+
+    themes = {theme.id: theme for theme in db.get_themes(conn)}
+    assert themes[general_id].content_kind == "general"
+    company_theme = themes[company_id]
+    assert company_theme.content_kind == "company_profile"
+
+    db.update_theme(
+        conn,
+        Theme(
+            company_theme.id,
+            "改過名字的公司系列",
+            company_theme.weekday,
+            company_theme.source_ids,
+            company_theme.n_ideas,
+            content_kind=company_theme.content_kind,
+        ),
+    )
+
+    renamed = {theme.id: theme for theme in db.get_themes(conn)}[company_id]
+    assert renamed.name == "改過名字的公司系列"
+    assert renamed.content_kind == "company_profile"
+
+
 def test_add_and_get_sources_without_layers(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)
