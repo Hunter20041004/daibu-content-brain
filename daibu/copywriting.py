@@ -1,11 +1,14 @@
 """Create grounded, editable social copy for an adopted company idea."""
 
 import json
-from collections.abc import Callable
+import sqlite3
+from collections.abc import Callable, Iterable
 from dataclasses import asdict
 
+from daibu import db
 from daibu.cards.schema import VerifiedSource, validate_sources
-from daibu.models import StoredIdea
+from daibu.fetch import company_research
+from daibu.models import Material, SourceSuggestion, StoredIdea
 
 MIN_DRAFT_CHARS = 350
 MAX_DRAFT_CHARS = 500
@@ -63,3 +66,26 @@ def generate_draft(
         "AI 兩次都沒有產出 350–500 字的初稿"
         f"（最後一次為 {last_length} 字），原文沒有變更。"
     )
+
+
+def generate(
+    conn: sqlite3.Connection,
+    idea: StoredIdea,
+    configured_domains: Iterable[str],
+    generate_text: Callable[[str], str],
+    *,
+    official_domains: Iterable[str] = (),
+    search_fn: Callable[..., list[Material]] | None = None,
+    fetch_fn: Callable[[str], SourceSuggestion] | None = None,
+) -> str:
+    researched = company_research.research(
+        idea.company,
+        db.get_idea_sources(conn, idea.id),
+        configured_domains,
+        official_domains,
+        search_fn=search_fn,
+        fetch_fn=fetch_fn,
+    )
+    body = generate_draft(idea, researched.sources, generate_text)
+    db.save_copy_draft(conn, idea.id, researched.sources, body)
+    return body

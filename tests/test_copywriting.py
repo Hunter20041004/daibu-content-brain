@@ -1,6 +1,10 @@
+from dataclasses import replace
+
 import pytest
 
-from daibu import copywriting
+from daibu import copywriting, db
+from daibu.fetch.company_research import ResearchResult
+from daibu.llm.base import Idea
 from daibu.models import StoredIdea
 from tests.card_fixtures import verified_sources
 
@@ -71,3 +75,140 @@ def test_copy_generation_stops_after_two_invalid_responses():
         )
 
     assert len(calls) == 2
+
+
+def test_copy_service_researches_then_saves_one_complete_snapshot(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        3,
+        Idea(
+            adopted_company().title,
+            adopted_company().angle,
+            adopted_company().source_url,
+            company=adopted_company().company,
+        ),
+        status="採用",
+    )
+    idea = replace(adopted_company(), id=idea_id)
+    events = []
+
+    def fake_research(
+        company,
+        seed_sources,
+        configured_domains,
+        official_domains,
+        **_kwargs,
+    ):
+        events.append("research")
+        assert company == "ElevenLabs"
+        assert seed_sources == ()
+        assert tuple(configured_domains) == ("techcrunch.com",)
+        assert tuple(official_domains) == ("elevenlabs.io",)
+        return ResearchResult(verified_sources(), ())
+
+    monkeypatch.setattr(
+        copywriting.company_research,
+        "research",
+        fake_research,
+    )
+
+    body = copywriting.generate(
+        conn,
+        idea,
+        ("techcrunch.com",),
+        lambda _prompt: events.append("model") or "文" * 350,
+        official_domains=("elevenlabs.io",),
+    )
+
+    assert events == ["research", "model"]
+    assert body == "文" * 350
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert stored.body == body
+    assert db.get_idea_sources(conn, idea_id) == verified_sources()
+
+
+def test_copy_service_research_failure_keeps_body_and_sources(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea("原標題", "原角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    db.save_copy_draft(
+        conn,
+        idea_id,
+        verified_sources()[:1],
+        "舊正文",
+    )
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    model_calls = []
+
+    monkeypatch.setattr(
+        copywriting.company_research,
+        "research",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("找不到可信資料")
+        ),
+    )
+
+    with pytest.raises(ValueError, match="找不到可信資料"):
+        copywriting.generate(
+            conn,
+            idea,
+            (),
+            lambda prompt: model_calls.append(prompt) or "文" * 350,
+        )
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert model_calls == []
+    assert stored.body == "舊正文"
+    assert db.get_idea_sources(conn, idea_id) == verified_sources()[:1]
+
+
+def test_copy_service_generation_failure_keeps_body_and_sources(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea("原標題", "原角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original_sources = verified_sources()[:1]
+    db.save_copy_draft(conn, idea_id, original_sources, "舊正文")
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    monkeypatch.setattr(
+        copywriting.company_research,
+        "research",
+        lambda *_args, **_kwargs: ResearchResult(
+            verified_sources()[1:],
+            (),
+        ),
+    )
+    model_calls = []
+
+    with pytest.raises(copywriting.CopyDraftError):
+        copywriting.generate(
+            conn,
+            idea,
+            (),
+            lambda prompt: model_calls.append(prompt) or "太短",
+        )
+
+    stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    assert len(model_calls) == 2
+    assert stored.body == "舊正文"
+    assert db.get_idea_sources(conn, idea_id) == original_sources

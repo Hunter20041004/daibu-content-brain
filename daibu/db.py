@@ -816,6 +816,23 @@ def save_idea_sources(
         _replace_idea_sources(conn, idea_id, sources)
 
 
+def save_copy_draft(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    sources: tuple[VerifiedSource, ...],
+    body: str,
+) -> None:
+    validate_sources(sources)
+    if not body.strip():
+        raise ValueError("初稿不可空白")
+    with conn:
+        _replace_idea_sources(conn, idea_id, sources)
+        conn.execute(
+            "UPDATE ideas SET body = ? WHERE id = ?",
+            (body, idea_id),
+        )
+
+
 def _replace_idea_sources(
     conn: sqlite3.Connection,
     idea_id: int,
