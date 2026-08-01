@@ -228,7 +228,7 @@ def render() -> None:
     }
     theme_status_rows = [
         {
-            "主題": theme.name,
+            "內容系列": theme.name,
             "星期": WEEKDAYS[theme.weekday],
             "來源數": len(theme.source_ids),
             "候選": sum(
@@ -273,12 +273,12 @@ def render() -> None:
         if themes_without_sources:
             st.warning(
                 f"{'、'.join(themes_without_sources)} 未綁來源；"
-                "生成時會只靠主題名發想。"
+                "生成時會只依內容系列名稱發想。"
             )
         if not os.getenv(provider_key_name):
             st.warning(
                 f"尚未設定 {provider_key_name}，"
-                "產生候選前請到設定頁補上。"
+                "開始找題材前請到系統設定補上。"
             )
 
     st.caption("資料只保存在這台電腦；API key 不寫入資料庫。")

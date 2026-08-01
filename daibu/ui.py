@@ -107,7 +107,7 @@ def brand_lockup(size: int = 44) -> str:
         f"{mascot_svg(size)}"
         '<span class="brand-lockup__name">'
         "呆一布"
-        '<span class="brand-lockup__meta">選題大腦</span>'
+        '<span class="brand-lockup__meta">內容工作站</span>'
         "</span>"
         "</div>"
     )

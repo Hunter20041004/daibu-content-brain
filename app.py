@@ -3,7 +3,7 @@ import streamlit as st
 from daibu.overview import render as render_overview
 
 st.set_page_config(
-    page_title="呆一布 選題大腦",
+    page_title="呆一布 內容工作站",
     page_icon="◉",
     layout="wide",
 )

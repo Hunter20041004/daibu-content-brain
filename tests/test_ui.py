@@ -85,6 +85,15 @@ def test_carousel_workbench_uses_branded_hierarchy_styles():
     assert "border: 1px solid var(--border)" in styles
 
 
+def test_carousel_checklist_replaces_decorative_side_stripes():
+    styles = theme.css("light")
+
+    assert ".carousel-checklist" in styles
+    assert ".carousel-checklist__item--current" in styles
+    assert "border-left: 4px solid var(--highlight)" not in styles
+    assert "border-left: 3px solid var(--brand-primary)" not in styles
+
+
 def test_carousel_preview_uses_one_responsive_ordered_grid():
     page_source = (ROOT / "pages" / "1_選題.py").read_text()
     styles = theme.css("light")

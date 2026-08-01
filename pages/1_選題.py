@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import streamlit as st
 
-from daibu import clock, db, pipeline, selection
+from daibu import clock, db, pipeline, selection, workspace
 from daibu.cards import assets as carousel_assets
 from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
@@ -23,6 +23,7 @@ from daibu.models import Source, Theme
 from daibu.ui import (
     apply_styles,
     connect_app_db,
+    mascot_coach,
     page_header,
     queue_toast,
     show_queued_toast,
@@ -32,13 +33,13 @@ WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日"
 THREADS_CHARACTER_LIMIT = 500
 INSTAGRAM_CHARACTER_LIMIT = 2200
 
-st.set_page_config(page_title="選題｜呆一布", page_icon="◉", layout="wide")
+st.set_page_config(page_title="內容製作｜呆一布", page_icon="◉", layout="wide")
 apply_styles()
 show_queued_toast(st.session_state, st.toast)
 page_header(
-    "Radar",
-    "選題工作台",
-    "以主題為中心管理來源、產生候選，並把採用內容一路寫到發布。",
+    "CONTENT FLOW",
+    "內容製作",
+    "選一個內容系列，沿著四個步驟完成一篇貼文；每次只處理眼前這一步。",
 )
 
 conn = connect_app_db()
@@ -145,6 +146,66 @@ def trusted_domains_for(
     )
 
 
+def workflow_journey(current: str, completed: tuple[str, ...]) -> str:
+    labels = {
+        "research": "找題材",
+        "decide": "選一則",
+        "write": "寫內容",
+        "carousel": "做輪播",
+    }
+    state_classes = {
+        "complete": "workflow-step--complete",
+        "current": "workflow-step--current",
+        "upcoming": "workflow-step--upcoming",
+    }
+    steps = []
+    for key in workspace.WORKFLOW_STEPS:
+        if key in completed:
+            state = "complete"
+            marker = "✓"
+        elif key == current:
+            state = "current"
+            marker = "•"
+        else:
+            state = "upcoming"
+            marker = ""
+        steps.append(
+            '<span class="workflow-step '
+            f'{state_classes[state]}"><b>{marker}</b>{labels[key]}</span>'
+        )
+    return '<nav class="workflow-stepper" aria-label="內容製作進度">' + (
+        "".join(steps)
+    ) + "</nav>"
+
+
+def carousel_checklist_markup(items: tuple[workspace.ChecklistItem, ...]) -> str:
+    state_classes = {
+        "complete": "carousel-checklist__item--complete",
+        "current": "carousel-checklist__item--current",
+        "blocked": "carousel-checklist__item--blocked",
+    }
+    state_labels = {
+        "complete": "完成",
+        "current": "現在",
+        "blocked": "等待",
+    }
+    rows = []
+    for index, item in enumerate(items, start=1):
+        rows.append(
+            '<li class="carousel-checklist__item '
+            f'{state_classes[item.state]}">'
+            f"<span>{index:02d}</span>"
+            f"<strong>{html.escape(item.label)}</strong>"
+            f"<small>{state_labels[item.state]}</small>"
+            "</li>"
+        )
+    return (
+        '<ol class="carousel-checklist" aria-label="輪播前置條件">'
+        + "".join(rows)
+        + "</ol>"
+    )
+
+
 themes = db.get_themes(conn)
 sources = db.get_sources(conn)
 candidates = db.get_ideas(conn, status="候選")
@@ -166,7 +227,7 @@ context_column, candidate_column = st.columns([1, 2], gap="medium")
 context_panel = context_column.container(key="context-column")
 
 with context_panel:
-    st.subheader("我的主題")
+    st.subheader("我的內容系列")
     if themes and st.session_state.get("selected_theme_id") not in {
         theme.id for theme in themes
     }:
@@ -176,14 +237,13 @@ with context_panel:
             idea.theme_id == theme.id for idea in candidates
         )
         with st.container(key=f"theme-item-{theme.id}"):
+            is_current_theme = (
+                theme.id == st.session_state.selected_theme_id
+            )
             if st.button(
                 theme.name,
                 key=f"select-theme-{theme.id}",
-                type=(
-                    "primary"
-                    if theme.id == st.session_state.selected_theme_id
-                    else "secondary"
-                ),
+                type="secondary",
                 width="stretch",
             ):
                 st.session_state.selected_theme_id = theme.id
@@ -191,15 +251,21 @@ with context_panel:
                 st.rerun()
             st.markdown(
                 '<p class="theme-item__meta">'
-                f"{WEEKDAYS[theme.weekday]} · "
+                + (
+                    '<span class="theme-item__current">'
+                    f"目前 · {html.escape(theme.name)}</span>"
+                    if is_current_theme
+                    else ""
+                )
+                + f"{WEEKDAYS[theme.weekday]} · "
                 f"{len(theme.source_ids)} 來源 · {theme_candidates} 候選"
                 "</p>",
                 unsafe_allow_html=True,
             )
 
-    with st.popover("＋ 新增主題", width="stretch"):
+    with st.popover("＋ 新增內容系列", width="stretch"):
         with st.form("new-theme"):
-            new_theme_name = st.text_input("主題名稱")
+            new_theme_name = st.text_input("內容系列名稱")
             new_theme_weekday = st.selectbox("提醒星期", WEEKDAYS)
             new_theme_count = st.number_input(
                 "每次產生幾則",
@@ -207,9 +273,9 @@ with context_panel:
                 max_value=12,
                 value=3,
             )
-            if st.form_submit_button("建立主題", type="primary"):
+            if st.form_submit_button("建立內容系列"):
                 if not new_theme_name.strip():
-                    st.error("請輸入主題名稱。")
+                    st.error("請輸入內容系列名稱。")
                 else:
                     theme_id = db.add_theme(
                         conn,
@@ -224,8 +290,8 @@ with context_panel:
                     st.session_state.selected_theme_id = theme_id
                     st.rerun()
 
-    with st.expander("來源庫"):
-        st.caption("來源可被多個主題共用；停用後不會再抓取。")
+    with st.expander("素材來源庫"):
+        st.caption("來源可被多個內容系列共用；停用後不會再抓取。")
         with st.form("new-source"):
             new_source_name = st.text_input("新來源名稱")
             new_source_url = st.text_input("新來源網址")
@@ -275,7 +341,7 @@ with context_panel:
                     f"{html.escape(source.fetch_type.upper())}"
                     "</span>"
                     '<span class="source-row__usage">'
-                    f"{usage_count} 個主題在用"
+                    f"{usage_count} 個內容系列在用"
                     "</span>"
                     '<span class="source-row__domain">'
                     f"{html.escape(source_domain)}"
@@ -317,11 +383,11 @@ with context_panel:
                         )
                         st.rerun()
                 st.warning(
-                    f"這個來源正被 {usage_count} 個主題使用；"
-                    "刪除後會解除這些主題的來源綁定。"
+                    f"這個來源正被 {usage_count} 個內容系列使用；"
+                    "刪除後會解除這些內容系列的來源綁定。"
                 )
                 confirm_delete_source = st.checkbox(
-                    "確認從來源庫刪除",
+                    "確認從素材來源庫刪除",
                     key=f"confirm-delete-source-{source.id}",
                 )
                 if st.button(
@@ -391,10 +457,76 @@ with candidate_column:
     if selected_theme:
         st.subheader(f"{selected_theme.name}工作區")
 
-        with st.expander("主題設定"):
+        series_ideas = [
+            idea
+            for idea in [*candidates, *adopted_ideas]
+            if idea.theme_id == selected_theme.id
+        ]
+        journey = workspace.derive_workflow(series_ideas)
+        st.markdown(
+            workflow_journey(journey.current, journey.completed),
+            unsafe_allow_html=True,
+        )
+        coach_copy = {
+            "research": (
+                "point",
+                "先替這個系列找題材",
+                "系統會閱讀已設定的可信網域；手動來源只在需要時補充。",
+            ),
+            "decide": (
+                "think",
+                "一次比較一則候選",
+                "看不懂或不通順就微調；內容值不值得發，由你決定。",
+            ),
+            "write": (
+                "note",
+                "已採用，接著把內容寫完整",
+                "正文會自動保存；完成後沿同一條路進入輪播。",
+            ),
+            "carousel": (
+                "point",
+                "正文完成，接著準備輪播",
+                "照五項檢查清單往下走，不必猜哪個工具要先用。",
+            ),
+        }
+        generated_ids = st.session_state.get("new_candidate_ids", [])
+        just_generated_here = any(
+            idea.id in generated_ids and idea.theme_id == selected_theme.id
+            for idea in candidates
+        )
+        just_completed_step = st.session_state.get("just_completed_step")
+        if just_generated_here:
+            pose = "happy"
+            coach_title = "候選整理好了"
+            coach_message = "從比較清單挑一則來看；是否採用，最後由你決定。"
+            coach_tone = "success"
+        elif just_completed_step == "decide" and journey.current == "write":
+            pose = "happy"
+            coach_title = "決定好了，現在接著寫"
+            coach_message = "剛採用的題目已經打開，不用再回頭找。"
+            coach_tone = "success"
+        elif just_completed_step == "write" and journey.current == "carousel":
+            pose = "happy"
+            coach_title = "正文存好了"
+            coach_message = "接著照輪播清單補齊資料，就能產出七張圖。"
+            coach_tone = "success"
+        else:
+            pose, coach_title, coach_message = coach_copy[journey.current]
+            coach_tone = "guide"
+        st.markdown(
+            mascot_coach(
+                pose,
+                coach_title,
+                coach_message,
+                tone=coach_tone,
+            ),
+            unsafe_allow_html=True,
+        )
+
+        with st.expander("管理內容系列"):
             with st.form(f"theme-settings-{selected_theme.id}"):
                 edited_theme_name = st.text_input(
-                    "主題名稱",
+                    "內容系列名稱",
                     value=selected_theme.name,
                 )
                 edited_theme_weekday = st.selectbox(
@@ -408,7 +540,7 @@ with candidate_column:
                     max_value=12,
                     value=selected_theme.n_ideas,
                 )
-                if st.form_submit_button("儲存主題設定"):
+                if st.form_submit_button("儲存內容系列設定"):
                     db.update_theme(
                         conn,
                         Theme(
@@ -437,15 +569,15 @@ with candidate_column:
             warning_message = (
                 f"這會一併刪掉 {content_summary}，且無法復原。"
                 if content_summary
-                else "這會刪除主題，且無法復原。"
+                else "這會刪除內容系列，且無法復原。"
             )
             st.warning(warning_message)
             confirm_delete_theme = st.checkbox(
-                "確認刪除這個主題",
+                "確認刪除這個內容系列",
                 key=f"confirm-delete-theme-{selected_theme.id}",
             )
             if st.button(
-                "刪除主題",
+                "刪除內容系列",
                 key=f"delete-theme-{selected_theme.id}",
                 disabled=not confirm_delete_theme,
             ):
@@ -453,7 +585,7 @@ with candidate_column:
                 st.session_state.pop("selected_theme_id", None)
                 st.rerun()
 
-        with st.expander("這個主題抓哪些來源"):
+        with st.expander("系列素材來源"):
             with st.form(f"theme-sources-{selected_theme.id}"):
                 selected_source_ids = []
                 for source in sources:
@@ -468,7 +600,7 @@ with candidate_column:
                         key=f"theme-source-{selected_theme.id}-{source.id}",
                     ):
                         selected_source_ids.append(source.id)
-                if st.form_submit_button("儲存來源綁定"):
+                if st.form_submit_button("儲存系列素材來源"):
                     db.update_theme(
                         conn,
                         Theme(
@@ -482,16 +614,32 @@ with candidate_column:
                     queue_toast(st.session_state, "來源綁定已儲存。")
                     st.rerun()
         if not selected_theme.source_ids:
-            st.warning("這個主題沒綁來源，AI 會只靠主題名發想。")
+            st.warning("這個內容系列未設定素材來源，AI 會只依系列名稱發想。")
 
         if st.button(
-            "產生候選",
-            type="primary",
+            (
+                f"再產生 {selected_theme.n_ideas} 則"
+                if any(idea.theme_id == selected_theme.id for idea in candidates)
+                else "開始找題材"
+            ),
+            type=(
+                "primary"
+                if journey.current == "research"
+                else "secondary"
+            ),
             width="stretch",
         ):
             try:
                 provider = base.get_provider(provider_config)
                 with st.spinner("正在閱讀來源並整理候選…"):
+                    st.markdown(
+                        mascot_coach(
+                            "think",
+                            "呆一布正在讀資料",
+                            "正在比對可信網域與文章內容，完成後會帶你逐則比較。",
+                        ),
+                        unsafe_allow_html=True,
+                    )
                     generated_idea_ids = selection.generate_for_theme(
                         conn,
                         selected_theme,
@@ -502,11 +650,20 @@ with candidate_column:
                 queue_toast(st.session_state, "候選已產生。")
                 st.rerun()
             except Exception as error:
+                st.markdown(
+                    mascot_coach(
+                        "confused",
+                        "這次沒有成功，但原本內容都還在",
+                        "可以檢查連線或模型設定後再試一次。",
+                        tone="warning",
+                    ),
+                    unsafe_allow_html=True,
+                )
                 st.error(f"產生失敗：{error}")
     else:
         st.markdown(
             '<div class="empty-state">'
-            "先在左欄新增一個主題，再開始建立選題。"
+            "先建立一個內容系列，再開始找題材。"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -536,13 +693,44 @@ with candidate_column:
     if not selected_candidates:
         st.markdown(
             '<div class="empty-state">'
-            "<p>這個主題尚無候選，按上方的「產生候選」"
+            "<p>這個內容系列尚無候選，按上方的「開始找題材」"
             "讓 AI 先整理一輪。</p>"
             "</div>",
             unsafe_allow_html=True,
         )
 
-    for idea in selected_candidates:
+    selected_candidate_ids = {idea.id for idea in selected_candidates}
+    if selected_candidates and st.session_state.get(
+        "selected_candidate_id"
+    ) not in selected_candidate_ids:
+        st.session_state.selected_candidate_id = selected_candidates[0].id
+
+    if selected_candidates:
+        with st.container(key="candidate-comparison"):
+            st.caption("先比較標題與公司，再一次專心判斷一則。")
+            comparison_columns = st.columns(
+                min(len(selected_candidates), 3),
+                gap="small",
+            )
+            for index, candidate in enumerate(selected_candidates):
+                if comparison_columns[index % len(comparison_columns)].button(
+                    f"比較｜{candidate.title}",
+                    key=f"compare-candidate-{candidate.id}",
+                    type="secondary",
+                    width="stretch",
+                ):
+                    st.session_state.selected_candidate_id = candidate.id
+                    st.rerun()
+
+    selected_candidate = next(
+        (
+            idea
+            for idea in selected_candidates
+            if idea.id == st.session_state.get("selected_candidate_id")
+        ),
+        None,
+    )
+    for idea in [selected_candidate] if selected_candidate else []:
         with st.container(border=True):
             new_badge = (
                 '<span class="candidate-card__new">新</span>'
@@ -574,12 +762,19 @@ with candidate_column:
 
             adopt_column, tweak_column, reject_column = st.columns(3)
             if adopt_column.button(
-                "採用",
+                "採用並繼續寫內容",
                 key=f"adopt-{idea.id}",
-                type="primary",
+                type=(
+                    "primary"
+                    if journey.current == "decide"
+                    else "secondary"
+                ),
                 width="stretch",
             ):
                 pipeline.set_status(conn, idea.id, "採用")
+                st.session_state.selected_adopted_id = idea.id
+                st.session_state.workflow_step = "write"
+                st.session_state.just_completed_step = "decide"
                 queue_toast(
                     st.session_state,
                     f"已採用「{idea.title}」。",
@@ -631,8 +826,36 @@ with candidate_column:
     ]
     st.subheader(f"已採用（{len(selected_adopted)}）")
     if not selected_adopted:
-        st.caption("這個主題還沒有已採用的題目。")
-    for idea in selected_adopted:
+        st.caption("這個內容系列還沒有已採用的題目。")
+    selected_adopted_ids = {idea.id for idea in selected_adopted}
+    if selected_adopted and st.session_state.get(
+        "selected_adopted_id"
+    ) not in selected_adopted_ids:
+        st.session_state.selected_adopted_id = selected_adopted[0].id
+    if selected_adopted:
+        with st.container(key="writing-queue"):
+            writing_columns = st.columns(
+                min(len(selected_adopted), 3),
+                gap="small",
+            )
+            for index, adopted_idea in enumerate(selected_adopted):
+                if writing_columns[index % len(writing_columns)].button(
+                    f"編輯｜{adopted_idea.title}",
+                    key=f"edit-adopted-{adopted_idea.id}",
+                    type="secondary",
+                    width="stretch",
+                ):
+                    st.session_state.selected_adopted_id = adopted_idea.id
+                    st.rerun()
+    selected_adopted_idea = next(
+        (
+            idea
+            for idea in selected_adopted
+            if idea.id == st.session_state.get("selected_adopted_id")
+        ),
+        None,
+    )
+    for idea in [selected_adopted_idea] if selected_adopted_idea else []:
         with st.expander(idea.title):
             st.caption(idea.angle)
             body_key = f"body-{idea.id}"
@@ -655,32 +878,40 @@ with candidate_column:
             saved_at = st.session_state.get(f"body-saved-at-{idea.id}")
             if saved_at:
                 st.caption(f"已自動儲存於 {saved_at}")
-            with st.expander("輪播圖"):
+            with st.expander(
+                "輪播製作",
+                expanded=st.session_state.get("workflow_step") == "carousel",
+            ):
                 source_pack = db.get_idea_sources(conn, idea.id)
                 brand_asset = (
                     db.get_brand_asset(conn, idea.company)
                     if idea.company.strip()
                     else None
                 )
-                missing = carousel_workbench.missing_requirements(
-                    idea,
-                    source_pack,
-                    brand_asset,
-                )
-                if missing:
-                    st.markdown(
-                        '<div class="carousel-status carousel-status--missing">'
-                        "<strong>資料還沒齊</strong>"
-                        + "".join(
-                            f"<p>{html.escape(message)}</p>"
-                            for message in missing
-                        )
-                        + "</div>",
-                        unsafe_allow_html=True,
+                checklist_draft = db.get_carousel_draft(conn, idea.id)
+                checklist_pngs = (
+                    carousel_workbench.cached_pngs(
+                        st.session_state,
+                        idea.id,
+                        checklist_draft,
                     )
+                    if checklist_draft is not None
+                    else None
+                )
+                checklist_items = workspace.carousel_checklist(
+                    has_company=bool(idea.company.strip()),
+                    source_count=len(source_pack),
+                    has_logo=brand_asset is not None,
+                    has_draft=checklist_draft is not None,
+                    has_pngs=checklist_pngs is not None,
+                )
+                st.markdown(
+                    carousel_checklist_markup(checklist_items),
+                    unsafe_allow_html=True,
+                )
                 if idea.company.strip() and not source_pack:
                     st.info(
-                        "尚未建立來源快照。按「產生輪播草稿」後，"
+                        "尚未建立查證證據。按「產生輪播草稿」後，"
                         "系統會先搜尋可信網域、驗證內文，再產生草稿。"
                     )
                 if not idea.company.strip():
@@ -704,7 +935,7 @@ with candidate_column:
                                     "公司名稱已儲存。",
                                 )
                                 st.rerun()
-                st.markdown("#### 已查證來源")
+                st.markdown("#### 這篇內容的查證證據")
                 st.caption(
                     "每則題目可存 1–8 筆；加入前請確認出版方、日期與引文。"
                 )
@@ -782,7 +1013,7 @@ with candidate_column:
                         - third_party_count
                     )
                     st.caption(
-                        f"來源快照共 {len(source_pack)} 筆："
+                        f"查證證據共 {len(source_pack)} 筆："
                         f"官方 {official_count}、第三方 {third_party_count}、"
                         f"手動 {manual_count}。"
                     )
@@ -920,7 +1151,11 @@ with candidate_column:
                     if st.button(
                         "產生輪播草稿",
                         key=f"generate-carousel-draft-{idea.id}",
-                        type="primary",
+                        type=(
+                            "primary"
+                            if journey.current == "carousel"
+                            else "secondary"
+                        ),
                         disabled=not idea.company.strip(),
                         width="stretch",
                     ):
@@ -1025,7 +1260,7 @@ with candidate_column:
                     if st.button(
                         "儲存草稿",
                         key=f"save-carousel-draft-{idea.id}",
-                        type="primary",
+                        type="secondary",
                     ):
                         edited_pages = tuple(
                             replace(
@@ -1115,7 +1350,7 @@ with candidate_column:
                                 )
                     with st.popover("重新搜尋公司資料"):
                         st.caption(
-                            "會重新搜尋可信網域並覆蓋目前的來源快照與七頁草稿；"
+                            "會重新搜尋可信網域並覆蓋目前的查證證據與七頁草稿；"
                             "只有整套新資料成功時才會換掉舊版本。"
                         )
                         if st.button(
@@ -1145,7 +1380,7 @@ with candidate_column:
                                         reuse_existing_sources=False,
                                     )
                                     research_status.update(
-                                        label="來源快照與七頁草稿已換新",
+                                        label="查證證據與七頁草稿已換新",
                                         state="complete",
                                         expanded=False,
                                     )
@@ -1183,6 +1418,12 @@ with candidate_column:
                     "產生七張圖",
                     key=f"render-carousel-{idea.id}",
                     disabled=render_disabled,
+                    type=(
+                        "primary"
+                        if journey.current == "carousel"
+                        and checklist_pngs is None
+                        else "secondary"
+                    ),
                     width="stretch",
                 ):
                     try:
@@ -1248,13 +1489,24 @@ with candidate_column:
                     )
             save_column, return_column, publish_column = st.columns(3)
             if save_column.button(
-                "儲存正文",
+                "儲存並繼續做輪播",
                 key=f"save-body-{idea.id}",
-                type="primary",
+                type=(
+                    "primary"
+                    if journey.current == "write"
+                    else "secondary"
+                ),
+                disabled=not body.strip(),
                 width="stretch",
             ):
                 save_body_draft(idea.id, body_key)
-                queue_toast(st.session_state, "正文已儲存。")
+                st.session_state.workflow_step = "carousel"
+                st.session_state.selected_adopted_id = idea.id
+                st.session_state.just_completed_step = "write"
+                queue_toast(
+                    st.session_state,
+                    "正文已儲存，接著完成輪播清單。",
+                )
                 st.rerun()
             if return_column.button(
                 "退回候選",

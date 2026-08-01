@@ -264,6 +264,18 @@ def css(mode: str | None = None) -> str:
         opacity: 0.62;
     }}
 
+    .theme-item__current {{
+        background: color-mix(in srgb, var(--brand-primary) 24%, var(--surface));
+        border-radius: 999px;
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 800;
+        margin-bottom: 0.35rem;
+        opacity: 1;
+        padding: 0.25rem 0.5rem;
+        width: fit-content;
+    }}
+
     [data-testid="stVerticalBlock"][class*="st-key-source-row-"] {{
         gap: 0 !important;
         padding: 0.3rem 0;
@@ -639,10 +651,64 @@ def css(mode: str | None = None) -> str:
     .carousel-status {{
         background: var(--surface);
         border: 1px solid var(--border);
-        border-left: 4px solid var(--highlight);
         border-radius: 12px;
         margin: 0.5rem 0 1rem;
         padding: 0.9rem 1rem;
+    }}
+
+    .carousel-checklist {{
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        list-style: none;
+        margin: 0 0 1rem;
+        padding: 0;
+    }}
+
+    .carousel-checklist__item {{
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        display: grid;
+        gap: 0.2rem;
+        min-width: 0;
+        padding: 0.75rem;
+    }}
+
+    .carousel-checklist__item > span {{
+        font-size: 0.68rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        opacity: 0.5;
+    }}
+
+    .carousel-checklist__item strong {{
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }}
+
+    .carousel-checklist__item small {{
+        font-size: 0.68rem;
+        font-weight: 700;
+        opacity: 0.55;
+    }}
+
+    .carousel-checklist__item--complete {{
+        background: color-mix(in srgb, var(--brand-primary) 14%, var(--surface));
+    }}
+
+    .carousel-checklist__item--current {{
+        background: color-mix(in srgb, var(--highlight) 42%, var(--surface));
+        border-color: var(--highlight);
+        transform: translateY(-2px);
+    }}
+
+    .carousel-checklist__item--current small {{
+        opacity: 1;
+    }}
+
+    .carousel-checklist__item--blocked {{
+        opacity: 0.48;
     }}
 
     .carousel-status strong {{
@@ -738,7 +804,6 @@ def css(mode: str | None = None) -> str:
 
     [data-testid="stVerticalBlock"][class*="st-key-carousel-page-"] {{
         background: var(--surface);
-        border-left: 3px solid var(--brand-primary);
     }}
 
     @media (hover: hover) and (pointer: fine) {{
@@ -800,6 +865,21 @@ def css(mode: str | None = None) -> str:
 
         .workflow-step {{
             font-size: 0.68rem;
+        }}
+
+        .carousel-checklist {{
+            grid-template-columns: minmax(0, 1fr);
+        }}
+
+        .carousel-checklist__item {{
+            align-items: center;
+            gap: 0.65rem;
+            grid-template-columns: 2rem minmax(0, 1fr) auto;
+            padding: 0.65rem 0.75rem;
+        }}
+
+        .carousel-checklist__item--current {{
+            transform: none;
         }}
 
         [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"] {{

@@ -140,7 +140,7 @@ def test_empty_candidate_state_points_at_the_right_button(
         if "尚無候選" in markdown.value
     )
     assert "左邊" not in empty_state
-    assert "上方的「產生候選」" in empty_state
+    assert "上方的「開始找題材」" in empty_state
 
 
 def test_home_shows_the_week_schedule(monkeypatch, tmp_path):
@@ -178,7 +178,9 @@ def test_home_lists_each_theme_status(monkeypatch, tmp_path):
     app.run()
 
     status_rows = app.dataframe[0].value.to_dict("records")
-    row = next(item for item in status_rows if item["主題"] == "近況主題")
+    row = next(
+        item for item in status_rows if item["內容系列"] == "近況主題"
+    )
     assert row["來源數"] == 1
     assert row["已發"] == 1
 
@@ -300,6 +302,72 @@ def test_selection_page_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_candidate_comparison_shows_one_detail_at_a_time(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "AI 新創介紹", 0, [], 2))
+    db.add_idea(conn, theme_id, Idea("候選甲", "角度甲", ""))
+    db.add_idea(conn, theme_id, Idea("候選乙", "角度乙", ""))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    candidate_details = [
+        markdown.value
+        for markdown in app.markdown
+        if markdown.value.startswith('<h3 class="candidate-card__title">')
+    ]
+    assert len(candidate_details) == 1
+    comparison_buttons = {
+        button.label
+        for button in app.button
+        if button.label.startswith("比較｜")
+    }
+    assert comparison_buttons == {"比較｜候選甲", "比較｜候選乙"}
+
+
+def test_candidate_stage_has_one_primary_decision(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "決策系列", 0, [], 1))
+    db.add_idea(conn, theme_id, Idea("只判斷這則", "角度", ""))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    assert [
+        button.label
+        for button in app.button
+        if button.proto.type == "primary"
+    ] == ["採用並繼續寫內容"]
+
+
+def test_content_workstation_names_the_four_step_journey(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    visible_text = " ".join(
+        element.value
+        for elements in (app.markdown, app.title, app.subheader)
+        for element in elements
+    )
+    visible_text += " " + " ".join(expander.label for expander in app.expander)
+    for step in ("找題材", "選一則", "寫內容", "做輪播"):
+        assert step in visible_text
+    assert "我的內容系列" in visible_text
+    assert "素材來源庫" in visible_text
+    assert "選題工作台" not in visible_text
+
+
 def test_selection_lists_my_themes_in_the_left_column(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
@@ -417,10 +485,65 @@ def test_selection_generates_for_the_selected_theme_only(monkeypatch, tmp_path):
     app.run()
     next(
         button for button in app.button
-        if button.label == "產生候選"
+        if button.label == "開始找題材"
     ).click().run()
 
     assert generated_theme_ids == [first_id]
+
+
+def test_generated_candidates_get_a_mascot_completion_state(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "完成提示", 0, [], 1))
+    monkeypatch.setattr(base, "get_provider", lambda config: object())
+
+    def generate(conn, theme, provider, sources):
+        return [db.add_idea(conn, theme.id, Idea("整理完成", "角度", ""))]
+
+    monkeypatch.setattr(selection, "generate_for_theme", generate)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button if button.label == "開始找題材"
+    ).click().run()
+
+    success_coach = " ".join(
+        markdown.value
+        for markdown in app.markdown
+        if "mascot-coach--success" in markdown.value
+    )
+    assert "候選整理好了" in success_coach
+
+
+def test_generation_error_uses_mascot_recovery_state(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "失敗提示", 0, [], 1))
+    monkeypatch.setattr(base, "get_provider", lambda config: object())
+    monkeypatch.setattr(
+        selection,
+        "generate_for_theme",
+        lambda *args: (_ for _ in ()).throw(RuntimeError("暫時連不上")),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button if button.label == "開始找題材"
+    ).click().run()
+
+    recovery = " ".join(
+        markdown.value
+        for markdown in app.markdown
+        if "mascot-coach--warning" in markdown.value
+    )
+    assert "這次沒有成功，但原本內容都還在" in recovery
 
 
 def test_selection_only_shows_candidates_of_the_selected_theme(
@@ -506,7 +629,7 @@ def test_selection_warns_when_theme_has_no_sources(monkeypatch, tmp_path):
     app.run()
 
     assert any(
-        "只靠主題名發想" in warning.value
+        "只依系列名稱發想" in warning.value
         for warning in app.warning
     )
 
@@ -538,7 +661,7 @@ def test_source_library_shows_usage_count(monkeypatch, tmp_path):
         for element in elements
     )
     assert "共用來源" in visible_text
-    assert "2 個主題在用" in visible_text
+    assert "2 個內容系列在用" in visible_text
 
 
 def test_source_library_summary_shows_domain_without_path(
@@ -587,7 +710,7 @@ def test_delete_source_warns_usage_count(monkeypatch, tmp_path):
     app.run()
 
     warning_text = " ".join(warning.value for warning in app.warning)
-    assert "這個來源正被 2 個主題使用" in warning_text
+    assert "這個來源正被 2 個內容系列使用" in warning_text
 
 
 def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
@@ -641,6 +764,63 @@ def test_selection_lists_adopted_ideas_with_body_editor(monkeypatch, tmp_path):
     )
 
 
+def test_writing_workspace_opens_one_adopted_idea_at_a_time(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "寫作系列", 0, [], 2))
+    db.add_idea(
+        conn, theme_id, Idea("正文甲", "角度甲", ""), status="採用"
+    )
+    db.add_idea(
+        conn, theme_id, Idea("正文乙", "角度乙", ""), status="採用"
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    assert len([area for area in app.text_area if area.label == "正文"]) == 1
+    assert {
+        button.label
+        for button in app.button
+        if button.label.startswith("編輯｜")
+    } == {"編輯｜正文甲", "編輯｜正文乙"}
+
+
+def test_carousel_prerequisites_are_one_linear_checklist(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "輪播系列", 0, [], 1))
+    db.add_idea(
+        conn, theme_id, Idea("準備輪播", "角度", ""), status="採用"
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    checklist = next(
+        markdown.value
+        for markdown in app.markdown
+        if 'class="carousel-checklist"' in markdown.value
+    )
+    for label in (
+        "公司名稱",
+        "這篇內容的查證證據",
+        "官方 Logo",
+        "七頁草稿",
+        "七張圖片",
+    ):
+        assert label in checklist
+    assert checklist.count("carousel-checklist__item--current") == 1
+
+
 def test_publish_is_disabled_when_body_is_empty(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
@@ -667,7 +847,7 @@ def test_publish_is_disabled_when_body_is_empty(monkeypatch, tmp_path):
     assert publish_button.disabled
 
 
-def test_save_body_is_the_primary_editor_action(monkeypatch, tmp_path):
+def test_save_and_continue_is_the_primary_editor_action(monkeypatch, tmp_path):
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
     conn = db.connect(str(database_path))
@@ -688,7 +868,7 @@ def test_save_body_is_the_primary_editor_action(monkeypatch, tmp_path):
 
     save_button = next(
         button for button in app.button
-        if button.label == "儲存正文"
+        if button.label == "儲存並繼續做輪播"
     )
     publish_button = next(
         button for button in app.button
@@ -828,14 +1008,12 @@ def test_selected_theme_is_visually_marked(monkeypatch, tmp_path):
         if button.label == "主題 B"
     ).click().run()
 
-    theme_buttons = [
-        button for button in app.button
-        if button.label in {"主題 A", "主題 B"}
-    ]
-    assert [
-        button.label for button in theme_buttons
-        if button.proto.type == "primary"
-    ] == ["主題 B"]
+    current_marker = " ".join(
+        markdown.value
+        for markdown in app.markdown
+        if "theme-item__current" in markdown.value
+    )
+    assert "目前 · 主題 B" in current_marker
 
 
 def test_adopting_shows_a_toast(monkeypatch, tmp_path):
@@ -853,7 +1031,7 @@ def test_adopting_shows_a_toast(monkeypatch, tmp_path):
     app.run()
     next(
         button for button in app.button
-        if button.label == "採用"
+        if button.label == "採用並繼續寫內容"
     ).click().run()
 
     assert any(
@@ -911,7 +1089,7 @@ def test_selection_uses_configured_llm_provider(monkeypatch, tmp_path):
     next(
         button
         for button in app.button
-        if button.label == "產生候選"
+            if button.label == "開始找題材"
     ).click().run()
 
     assert received_configs[0]["LLM_PROVIDER"] == "groq"
@@ -948,7 +1126,7 @@ def test_newly_generated_candidates_are_marked(monkeypatch, tmp_path):
     app.run()
     next(
         button for button in app.button
-        if button.label == "產生候選"
+        if button.label == "開始找題材"
     ).click().run()
 
     assert any(
@@ -1337,7 +1515,8 @@ def test_adopted_idea_carousel_reports_missing_company(
     rendered = " ".join(block.value for block in app.markdown)
 
     assert not app.exception
-    assert "這則題目還沒有公司名" in rendered
+    assert "公司名稱" in rendered
+    assert "carousel-checklist__item--current" in rendered
 
 
 def test_adopted_idea_carousel_can_save_company_name(
