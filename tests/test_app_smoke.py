@@ -790,6 +790,29 @@ def test_writing_workspace_opens_one_adopted_idea_at_a_time(
     } == {"編輯｜正文甲", "編輯｜正文乙"}
 
 
+def test_writing_stage_hides_earlier_research_and_candidate_tools(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "連續寫作", 0, [], 2))
+    db.add_idea(conn, theme_id, Idea("稍後再選", "角度", ""))
+    db.add_idea(
+        conn, theme_id, Idea("現在寫這則", "角度", ""), status="採用"
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    assert not any(
+        button.label.startswith(("比較｜", "再產生", "開始找題材"))
+        for button in app.button
+    )
+    assert any(area.label == "正文" for area in app.text_area)
+
+
 def test_carousel_prerequisites_are_one_linear_checklist(
     monkeypatch,
     tmp_path,

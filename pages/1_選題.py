@@ -616,19 +616,25 @@ with candidate_column:
         if not selected_theme.source_ids:
             st.warning("這個內容系列未設定素材來源，AI 會只依系列名稱發想。")
 
-        if st.button(
-            (
-                f"再產生 {selected_theme.n_ideas} 則"
-                if any(idea.theme_id == selected_theme.id for idea in candidates)
-                else "開始找題材"
-            ),
-            type=(
-                "primary"
-                if journey.current == "research"
-                else "secondary"
-            ),
-            width="stretch",
-        ):
+        find_topics_clicked = False
+        if journey.current in {"research", "decide"}:
+            find_topics_clicked = st.button(
+                (
+                    f"再產生 {selected_theme.n_ideas} 則"
+                    if any(
+                        idea.theme_id == selected_theme.id
+                        for idea in candidates
+                    )
+                    else "開始找題材"
+                ),
+                type=(
+                    "primary"
+                    if journey.current == "research"
+                    else "secondary"
+                ),
+                width="stretch",
+            )
+        if find_topics_clicked:
             try:
                 provider = base.get_provider(provider_config)
                 with st.spinner("正在閱讀來源並整理候選…"):
@@ -672,10 +678,18 @@ with candidate_column:
         idea for idea in candidates
         if selected_theme and idea.theme_id == selected_theme.id
     ]
-    st.subheader(f"候選（{len(selected_candidates)}）")
+    show_candidate_stage = bool(
+        selected_theme
+        and journey.current in {"research", "decide"}
+    )
+    decision_candidates = (
+        selected_candidates if show_candidate_stage else []
+    )
+    if show_candidate_stage:
+        st.subheader(f"候選（{len(selected_candidates)}）")
     last_rejected = st.session_state.get("last_rejected_idea")
     if (
-        selected_theme
+        show_candidate_stage
         and last_rejected
         and last_rejected["theme_id"] == selected_theme.id
     ):
@@ -690,7 +704,7 @@ with candidate_column:
                 f"已復原「{last_rejected['title']}」。",
             )
             st.rerun()
-    if not selected_candidates:
+    if show_candidate_stage and not selected_candidates:
         st.markdown(
             '<div class="empty-state">'
             "<p>這個內容系列尚無候選，按上方的「開始找題材」"
@@ -699,20 +713,20 @@ with candidate_column:
             unsafe_allow_html=True,
         )
 
-    selected_candidate_ids = {idea.id for idea in selected_candidates}
-    if selected_candidates and st.session_state.get(
+    selected_candidate_ids = {idea.id for idea in decision_candidates}
+    if decision_candidates and st.session_state.get(
         "selected_candidate_id"
     ) not in selected_candidate_ids:
-        st.session_state.selected_candidate_id = selected_candidates[0].id
+        st.session_state.selected_candidate_id = decision_candidates[0].id
 
-    if selected_candidates:
+    if decision_candidates:
         with st.container(key="candidate-comparison"):
             st.caption("先比較標題與公司，再一次專心判斷一則。")
             comparison_columns = st.columns(
-                min(len(selected_candidates), 3),
+                min(len(decision_candidates), 3),
                 gap="small",
             )
-            for index, candidate in enumerate(selected_candidates):
+            for index, candidate in enumerate(decision_candidates):
                 if comparison_columns[index % len(comparison_columns)].button(
                     f"比較｜{candidate.title}",
                     key=f"compare-candidate-{candidate.id}",
@@ -725,7 +739,7 @@ with candidate_column:
     selected_candidate = next(
         (
             idea
-            for idea in selected_candidates
+            for idea in decision_candidates
             if idea.id == st.session_state.get("selected_candidate_id")
         ),
         None,
@@ -856,7 +870,10 @@ with candidate_column:
         None,
     )
     for idea in [selected_adopted_idea] if selected_adopted_idea else []:
-        with st.expander(idea.title):
+        with st.expander(
+            idea.title,
+            expanded=journey.current in {"write", "carousel"},
+        ):
             st.caption(idea.angle)
             body_key = f"body-{idea.id}"
             body = st.text_area(
