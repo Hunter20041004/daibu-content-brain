@@ -1453,7 +1453,10 @@ def test_performance_chart_axes_are_chinese(monkeypatch, tmp_path):
     assert spec["encoding"]["y"]["title"] == "平均互動"
 
 
-def test_candidate_shows_company_name(tmp_path, monkeypatch):
+def test_company_candidate_decision_view_shows_only_company_and_description(
+    tmp_path,
+    monkeypatch,
+):
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
     conn = db.connect(str(path))
@@ -1466,6 +1469,7 @@ def test_candidate_shows_company_name(tmp_path, monkeypatch):
             weekday=4,
             source_ids=[],
             n_ideas=3,
+            content_kind="company_profile",
         ),
     )
     db.add_idea(
@@ -1483,11 +1487,17 @@ def test_candidate_shows_company_name(tmp_path, monkeypatch):
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     rendered = " ".join(block.value for block in app.markdown)
+    button_labels = {button.label for button in app.button}
 
     assert "ElevenLabs" in rendered
+    assert "讓文字開口說話" in rendered
+    assert "配音成本被改寫" not in rendered
+    assert "未指定公司" not in rendered
+    assert "ElevenLabs｜讓文字開口說話" in button_labels
+    assert {"採用並繼續寫內容", "淘汰"} <= button_labels
 
 
-def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
+def test_general_candidate_view_keeps_title_and_angle(tmp_path, monkeypatch):
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
     conn = db.connect(str(path))
@@ -1496,7 +1506,7 @@ def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
         conn,
         Theme(
             id=None,
-            name="AI 新創介紹",
+            name="一般系列",
             weekday=4,
             source_ids=[],
             n_ideas=3,
@@ -1512,6 +1522,8 @@ def test_candidate_without_company_shows_placeholder(tmp_path, monkeypatch):
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     rendered = " ".join(block.value for block in app.markdown)
 
+    assert "舊題目" in rendered
+    assert "舊切角" in rendered
     assert "未指定公司" in rendered
 
 

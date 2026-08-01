@@ -720,15 +720,27 @@ with candidate_column:
         st.session_state.selected_candidate_id = decision_candidates[0].id
 
     if decision_candidates:
+        is_company_profile = (
+            selected_theme.content_kind == "company_profile"
+        )
         with st.container(key="candidate-comparison"):
-            st.caption("先比較標題與公司，再一次專心判斷一則。")
+            st.caption(
+                "先比較公司與它在做什麼，再一次專心判斷一則。"
+                if is_company_profile
+                else "先比較標題與公司，再一次專心判斷一則。"
+            )
             comparison_columns = st.columns(
                 min(len(decision_candidates), 3),
                 gap="small",
             )
             for index, candidate in enumerate(decision_candidates):
+                comparison_label = (
+                    f"{candidate.company.strip()}｜{candidate.title}"
+                    if is_company_profile and candidate.company.strip()
+                    else f"比較｜{candidate.title}"
+                )
                 if comparison_columns[index % len(comparison_columns)].button(
-                    f"比較｜{candidate.title}",
+                    comparison_label,
                     key=f"compare-candidate-{candidate.id}",
                     type="secondary",
                     width="stretch",
@@ -745,19 +757,27 @@ with candidate_column:
         None,
     )
     for idea in [selected_candidate] if selected_candidate else []:
+        is_company_profile = (
+            selected_theme.content_kind == "company_profile"
+        )
         with st.container(border=True):
             new_badge = (
                 '<span class="candidate-card__new">新</span>'
                 if idea.id in st.session_state.get("new_candidate_ids", [])
                 else ""
             )
-            company_label = idea.company or "未指定公司"
-            st.markdown(
-                '<div class="idea-company">'
-                f"{html.escape(company_label)}"
-                "</div>",
-                unsafe_allow_html=True,
-            )
+            if is_company_profile and not idea.company.strip():
+                st.error(
+                    "這則舊候選缺少公司名稱，請淘汰後重新找題材。"
+                )
+            else:
+                company_label = idea.company or "未指定公司"
+                st.markdown(
+                    '<div class="idea-company">'
+                    f"{html.escape(company_label)}"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
             st.markdown(
                 '<h3 class="candidate-card__title">'
                 f"{new_badge}"
@@ -765,12 +785,13 @@ with candidate_column:
                 "</h3>",
                 unsafe_allow_html=True,
             )
-            st.markdown(
-                '<p class="candidate-card__angle">'
-                f"{html.escape(idea.angle)}"
-                "</p>",
-                unsafe_allow_html=True,
-            )
+            if not is_company_profile:
+                st.markdown(
+                    '<p class="candidate-card__angle">'
+                    f"{html.escape(idea.angle)}"
+                    "</p>",
+                    unsafe_allow_html=True,
+                )
             if idea.source_url:
                 st.link_button("查看來源", idea.source_url)
 
@@ -798,7 +819,11 @@ with candidate_column:
             with tweak_column.popover("微調", width="stretch"):
                 with st.form(f"tweak-{idea.id}"):
                     tweaked_title = st.text_input(
-                        "標題",
+                        (
+                            "這家公司在做什麼"
+                            if is_company_profile
+                            else "標題"
+                        ),
                         value=idea.title,
                         key=f"tweak-title-{idea.id}",
                     )
