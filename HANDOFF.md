@@ -1,30 +1,30 @@
 # HANDOFF — 呆一布內容工作站
 
-> 2026-08-01 更新。正文可見性、官方 Logo 候選確認與 BillionToOne 七頁草稿已完成 feature branch 驗證。
+> 2026-08-01 更新。永久收斂成「AI 新創介紹」單一預設系列，並移除儀表板手動新增入口。
 
 ## 本輪目標與驗收
 
-依以下文件完成兩項修正；正式 `daibu.db` 不得被驗收修改：
+依下列文件完成一次性清理與預設值調整：
 
-- `docs/superpowers/specs/2026-08-01-官方-logo-候選與正文可見性-design.md`
-- `docs/superpowers/plans/2026-08-01-官方-logo-候選與正文可見性.md`
+- `docs/superpowers/specs/2026-08-01-單一內容系列清理-design.md`
+- `docs/superpowers/plans/2026-08-01-單一內容系列清理.md`
 
-正文在深／淺色都必須可讀；公司正文完成後自動從一般網頁搜尋定位官網，只解析官網或官網品牌頁直接引用的 Logo。候選先預覽，使用者確認後才能存檔。Logo 不阻擋七頁文字草稿。
+既有資料庫永久刪除「AI 新創介紹」以外的系列及其完整依賴資料；新資料庫只預設 AI 新創介紹；前端不再允許手動新增系列，但仍泛用顯示日後由程式新增的系列。
 
 ## 本輪狀態
 
-- **正文**：Streamlit textarea 的容器、文字與游標已改用品牌語意 token，修正切換主題時「有 478 字但看起來全白」的狀況。
-- **官方 Logo 候選**：新增 `search_web()` 與 `logo_discovery`。排除社群、媒體與不相關搜尋結果；最多讀 3 個官方頁，只下載頁面直接引用的 HTTPS SVG／PNG，沿用 2 MB、尺寸與 SVG 腳本安全驗證。白色版與一般版並存時優先一般深色版。
-- **人工確認**：候選只放 Streamlit session；畫面提供官方頁、原檔連結、確認、拒絕與重試。只有確認會呼叫既有 `store_logo()` 寫入；拒絕不落盤並排除舊候選。手動上傳保留為收合備援。
-- **BillionToOne 草稿**：`/tmp/daibu-workstation-redesign.db` 的 idea 15 已由免費 Gemini 依既有 S1（Y Combinator）原子產生 1–7 頁。標題依序為「1/11 的美國新生兒都在用…」、「認識 BillionToOne」、「解決了什麼問題？」、「AI 角色」、「成果」、「為什麼重要？」、「給我們的啟示」。
-- **真實官網驗證**：由 `https://www.billiontoone.com/` 實際解析並驗證官方 CDN 的 `bto_logo_new.svg`；尚未存入資料庫，需使用者看圖確認。本機沒有 `TAVILY_API_KEY`，UI 會顯示可恢復錯誤與手動備援；真實 Tavily contract 因此 skip。
-- **視覺驗收**：完成兩輪 1280×800 與 375×812；第一輪將過高的手動 Logo 表單改為收合，第二輪層次、留白、字體、三色內配色、對齊、375px 無溢位、狀態與微動效全數通過。最終圖：`.screenshots/desktop.png`、`.screenshots/mobile.png`。
-- **測試與交付**：相關回歸 `28 passed, 110 deselected`；安全審查再補冒牌官網案例後，feature branch 全套 `442 passed, 12 deselected, 1 warning in 50.26s`，合併後 `main` 全套 `442 passed, 12 deselected, 1 warning in 50.90s`。已推送 `origin/main`；唯一警告是既有 Starlette/httpx 棄用提示。專案沒有正式部署流程，8502 為本機預覽。
-- **資料安全**：只操作 `/tmp/daibu-workstation-redesign.db` 與 `/tmp/daibu-workstation-redesign-logos`。真實 `daibu.db` mtime 仍為 `1785433278`（2026-07-30 10:41:18 -0700）。
+- **一次性資料遷移**：`db.init_schema()` 新增 `single_series_cleanup_v1` 標記。僅在「AI 新創介紹」恰好一筆時，以同一 SQLite savepoint 依序清除其他系列的 `performance`、`carousel_pages`、`carousel_sources`、`idea_sources`、`ideas`、`theme_sources`、`themes`；目標缺失或重複時完全不刪且不寫標記。標記存在後，未來透過 `db.add_theme()` 新增的系列不會再被清掉。
+- **永久清理結果**：真實 `daibu.db` 從 3 系列／8 題變成 1 系列／6 題；保留的 6 題仍全為「候選」，id、系列關聯、標題、角度、來源網址、狀態、正文與建立時間逐欄相同。共享來源保留，資料庫 `PRAGMA integrity_check = ok`。
+- **預覽庫結果**：`/tmp/daibu-workstation-redesign.db` 從 3 系列／6 題變成 1 系列／4 題（3 候選、1 採用）。BillionToOne idea 15 仍有正文 478 字、查證來源 1 筆、輪播 7 張；來源庫仍 16 筆。
+- **可復原備份**：`/tmp/daibu-single-series-cleanup.ZmrTxe/daibu-before.db` 保留真實庫清理前 3 系列／8 題；`/tmp/daibu-single-series-cleanup.ZmrTxe/workstation-before.db` 保留預覽庫清理前 3 系列／6 題。兩份皆由 SQLite Backup API 建立且完整性為 `ok`。
+- **預設值**：`seeds.DEFAULT_THEMES` 只保留 `AI 新創介紹`（`company_profile`，原五個指定來源）；`DEFAULT_SOURCES` 全部保留。
+- **前端**：移除「＋ 新增內容系列」popover 與「建立內容系列」表單；既有系列的編輯、來源設定與確認刪除仍在。選題頁及首頁無系列時統一顯示「目前沒有內容系列；請透過專案設定新增。」
+- **視覺驗收**：最終桌機 1280×800 與手機 375×812 均顯示單一系列和完整工作區，沒有新增入口；兩個寬度 `scrollWidth == clientWidth`，正常側欄導覽進入時 console 0 錯誤。最終圖：`.screenshots/desktop.png`、`.screenshots/mobile.png`。
+- **測試**：相關 121 項通過；feature branch 全套 `449 passed, 12 deselected, 1 warning in 45.43s`；唯一警告是既有 Starlette/httpx 棄用提示。`git diff --check` 通過。
 
 ## 最容易踩的坑
 
-- 不得把 Logo 候選自動視為正式資產；必須等使用者確認。
-- 沒有 Tavily key 時不要改用圖片搜尋；顯示重試與官網手動上傳即可。
-- 七頁草稿目前只有 S1 證據，文字與引文必須維持可追溯，不可自行補無來源主張。
+- `single_series_cleanup_v1` 是一次性安全閘門，不可刪除或重新命名，否則可能讓舊清理再次執行。
+- 後續新增內容系列請改 `seeds.DEFAULT_THEMES` 或透過程式呼叫 `db.add_theme()`；不要把手動新增表單加回儀表板。
+- 清理程式刻意保留共享 `sources`、全部 `brand_assets` 及沒有綁系列的題目；不可擴大刪除範圍。
 - 本機入口為 `http://localhost:8502/選題`；專案沒有正式部署流程。
