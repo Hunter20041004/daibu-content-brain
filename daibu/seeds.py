@@ -16,43 +16,6 @@ class ThemeSeed:
 
 DEFAULT_THEMES = [
     ThemeSeed(
-        "AI 近期大事",
-        0,
-        3,
-        [
-            "TechCrunch",
-            "iThome AI",
-            "科技新報 TechNews",
-            "OpenAI News",
-            "Anthropic News",
-            "Google DeepMind Blog",
-            "Y Combinator Blog",
-            "Anthropic Skills Releases",
-            "Hacker News",
-            "GitHub",
-            "Product Hunt AI",
-            "Reddit r/ClaudeAI",
-            "Reddit r/LocalLLaMA",
-        ],
-    ),
-    ThemeSeed(
-        "本週熱門 Claude/Codex Skill",
-        2,
-        3,
-        [
-            "OpenAI News",
-            "Anthropic News",
-            "Google DeepMind Blog",
-            "Y Combinator Blog",
-            "Anthropic Skills Releases",
-            "Hacker News",
-            "GitHub",
-            "Product Hunt AI",
-            "Reddit r/ClaudeAI",
-            "Reddit r/LocalLLaMA",
-        ],
-    ),
-    ThemeSeed(
         "AI 新創介紹",
         4,
         3,
