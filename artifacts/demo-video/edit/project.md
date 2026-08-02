@@ -15,3 +15,15 @@
 **Verification:** H.264 1280×720@30、yuv420p、無音訊、完整解碼通過；12 個剪接點與抽樣畫面通過三輪自評；真實 `daibu.db` 修改時間未變；文字 secret scan clean；最終全套測試 449 passed、12 deselected。
 
 **Outstanding:** 等使用者觀看 `final.mp4` 後提出內容或節奏調整。
+
+## Session 2 — 2026-08-02
+
+**Strategy:** 依使用者回報只修正第一個案例的正文展示，不重跑搜尋或生成；保留原片總長、字幕節點與後半段流程。
+
+**Root cause:** Warp 正文在測試資料庫與 DOM 中皆有 478 字，但原 `06-body.webm` 沒有錄到 textarea 的可視文字；先前只核對字數，沒有驗證成片的文字像素。
+
+**Fix:** 重錄 36.2–45.2 秒的正文片段，錄影前強制 textarea 回到文章開頭並等待重繪，片段中再輕微往下捲；字幕仍在片段所有畫面操作後最後燒入。
+
+**Verification:** 新增 `check-body-visible.py`，修正前可視深色像素比例 0.0000（FAIL）、修正後 0.1481（PASS）；成片仍為 115.4 秒、3,462 幀，完整解碼與黑格檢查通過。真實 `daibu.db` mtime 仍為 `1785650884`。
+
+**Outstanding:** Warp 官方 Logo 候選仍未經使用者確認，影片後段維持已驗證的 BillionToOne 備援案例。

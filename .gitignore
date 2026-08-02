@@ -16,4 +16,5 @@ artifacts/demo-video/edit/*.zip
 artifacts/demo-video/edit/segments.txt
 artifacts/demo-video/edit/verify/*.png
 artifacts/demo-video/edit/clips/
+artifacts/demo-video/edit/patch/
 artifacts/demo-video/edit/verify/

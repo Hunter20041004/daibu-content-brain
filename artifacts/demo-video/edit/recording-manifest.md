@@ -24,7 +24,8 @@
 - Approved fallback: downstream carousel recording switched to the already verified BillionToOne idea 15.
 - Download: seven PNG files in `BillionToOne-carousel.zip`; `unzip -t` reported no errors.
 - Final video: H.264, 1280×720, yuv420p, 30fps, 115.4 seconds, 4,925,747 bytes, no audio stream.
-- Final SHA-256: `385c2abcb743b887819c766e1993a97971bfc7b79b29c36fd78ec767a686073f`.
+- Final SHA-256 after the visible-body correction: `8c687b587baf5fea87ff79f7b7ddf9dab9fecbc736e9d7ba45415dbda15dc16c`.
 - Secret scan: clean; no Tavily or Gemini key pattern in text artifacts.
 - Visual review: three edit passes; all 12 cut boundaries, title, midpoint samples, transition, captions, preview and end card passed.
+- 2026-08-02 correction: replaced only 36.2–45.2 seconds so the existing 478-character Warp body is visibly rendered and scrolled; no API was rerun. Automated visible-text ratio changed from 0.0000 (fail) to 0.1481 (pass).
 - Browser console: two non-blocking 404s for multipage-relative `_stcore/health` and `_stcore/host-config`; no visible failure in the recorded workflow.
