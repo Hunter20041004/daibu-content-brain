@@ -20,7 +20,7 @@
 - **驗收證據**：`artifacts/demo-video/edit/verify/boundaries.png`、`samples.png`。三輪自評後，12 個剪接點無黑格；字幕不遮主要操作；3 秒標題、Logo 轉場與結尾卡正常。
 - **技術驗證**：完整解碼成功；ZIP 內 7 張 PNG 均通過完整性檢查；文字產物沒有 Tavily／Gemini key；影片與字幕皆未經過設定頁。
 - **資料安全**：8502 實際使用 `/private/tmp/daibu-workstation-redesign.db`。真實 `daibu.db` 錄製前後 mtime 都是 `1785650884`，未變。
-- **測試**：隔離分支基線 `449 passed, 12 deselected, 1 warning in 58.20s`；最終全套 `449 passed, 12 deselected, 1 warning in 68.23s`。產品程式碼未變；唯一 warning 是既有 Starlette/httpx 棄用提示。
+- **測試**：隔離分支基線 `449 passed, 12 deselected, 1 warning in 58.20s`；分支最終 `449 passed, 12 deselected, 1 warning in 68.23s`；合併回 `main` 後 `449 passed, 12 deselected, 1 warning in 62.70s`。產品程式碼未變；唯一 warning 是既有 Starlette/httpx 棄用提示。
 - **已知非阻擋訊息**：Playwright console 有兩個 multipage-relative `_stcore/health`／`host-config` 404；錄影流程與畫面未受影響。
 
 ## 下一步
