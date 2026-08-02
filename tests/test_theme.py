@@ -133,6 +133,23 @@ def test_theme_switcher_icons_use_vector_masks():
     assert 'mask-image: url("data:image/svg+xml' in styles
 
 
+def test_textarea_uses_brand_tokens_for_text_and_surface():
+    styles = theme.css("light")
+    textarea_rule = styles.split(
+        '[data-testid="stTextArea"] textarea {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    surface_rule = styles.split(
+        '[data-testid="stTextArea"] [data-baseweb="textarea"] {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "color: var(--ink) !important" in textarea_rule
+    assert "-webkit-text-fill-color: var(--ink) !important" in textarea_rule
+    assert "caret-color: var(--brand-secondary)" in textarea_rule
+    assert "background: var(--surface)" in surface_rule
+
+
 def test_palette_variables_are_defined_on_root_not_app():
     styles = theme.css()
     root_section = styles.split(":root {", maxsplit=1)[1].split("}", maxsplit=1)[0]

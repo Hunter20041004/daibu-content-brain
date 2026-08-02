@@ -142,6 +142,17 @@ def css(mode: str | None = None) -> str:
         font-family: {FONT_STACK};
     }}
 
+    [data-testid="stTextArea"] [data-baseweb="textarea"] {{
+        background: var(--surface) !important;
+        border-color: var(--border) !important;
+    }}
+
+    [data-testid="stTextArea"] textarea {{
+        caret-color: var(--brand-secondary);
+        color: var(--ink) !important;
+        -webkit-text-fill-color: var(--ink) !important;
+    }}
+
     [data-testid="stIconMaterial"] {{
         font-family: "Material Symbols Rounded" !important;
     }}
