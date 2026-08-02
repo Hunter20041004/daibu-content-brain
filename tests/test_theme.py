@@ -400,6 +400,20 @@ def test_workspace_scroll_iframe_does_not_take_layout_space():
     assert "overflow: hidden" in bridge_rule
 
 
+def test_logo_candidate_card_uses_brand_tokens_and_clear_status():
+    styles = theme.css()
+
+    assert ".logo-candidate-card {" in styles
+    card_rule = styles.split(
+        ".logo-candidate-card {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "background: var(--surface)" in card_rule
+    assert "border: 1px solid var(--brand-primary)" in card_rule
+    assert "padding: 1rem" in card_rule
+    assert ".logo-candidate-card__status {" in styles
+
+
 def test_css_has_no_unused_classes():
     source_paths = [
         *pathlib.Path("pages").glob("*.py"),

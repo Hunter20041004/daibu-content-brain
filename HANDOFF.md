@@ -1,31 +1,30 @@
 # HANDOFF — 呆一布內容工作站
 
-> 2026-08-01 更新。AI 新創公司候選、自動文案與品牌主題切換已完成實作及 feature branch 驗證。
+> 2026-08-01 更新。正文可見性、官方 Logo 候選確認與 BillionToOne 七頁草稿已完成 feature branch 驗證。
 
 ## 本輪目標與驗收
 
-依以下文件完成兩項能力，維持 Streamlit／SQLite 與免費 LLM 技術棧：
+依以下文件完成兩項修正；正式 `daibu.db` 不得被驗收修改：
 
-- `docs/superpowers/specs/2026-07-31-ai-新創公司候選與自動文案-design.md`
-- `docs/superpowers/plans/2026-07-31-ai-新創公司候選與自動文案.md`
-- `docs/superpowers/specs/2026-08-01-品牌主題切換-design.md`
-- `docs/superpowers/plans/2026-08-01-品牌主題切換.md`
+- `docs/superpowers/specs/2026-08-01-官方-logo-候選與正文可見性-design.md`
+- `docs/superpowers/plans/2026-08-01-官方-logo-候選與正文可見性.md`
 
-AI 新創介紹只產具體公司候選，採用後可產 350–500 字繁中初稿；側邊欄可切換深／淺色並跨頁保存。正式 `daibu.db` 不得被驗收修改。
+正文在深／淺色都必須可讀；公司正文完成後自動從一般網頁搜尋定位官網，只解析官網或官網品牌頁直接引用的 Logo。候選先預覽，使用者確認後才能存檔。Logo 不阻擋七頁文字草稿。
 
 ## 本輪狀態
 
-- **公司候選**：`Theme.content_kind` 支援 `general/company_profile`；AI 新創介紹固定為公司模式。候選必須有公司、HTTPS 素材 URL 與可逐字回查的引文；畫面只呈現「公司｜在做什麼」。
-- **自動文案**：採用且正文空白時顯示「AI 幫我寫初稿」；先研究可信來源，再由免費 LLM 產稿，正文與來源同一筆 SQLite transaction 保存。沒有 Tavily key 時可先用候選已驗證來源啟動，失敗保留舊資料。
-- **主題切換**：保留 `toolbarMode = "minimal"`，在側邊品牌區加入「目前：淺／深色模式」與切換按鈕。沿用 Streamlit 原生主題鍵並保存跨頁偏好；SVG 以 CSS mask 呈現，支援鍵盤、45px 觸控、focus、disabled、切換中與 localStorage 失敗狀態。
-- **瀏覽驗收**：8502 實走淺→深→內容製作→reload→淺；四頁偏好同步，鍵盤第 5 次 Tab 可達，全新根網址 session 為 `0 errors / 0 warnings`。直接 reload `/選題` 仍有 Streamlit 既有相對 health URL 404，但頁面可用。
-- **視覺驗收**：完成兩輪 1280×800 與 375×812；最終深色圖為 `.screenshots/desktop.png`、`.screenshots/mobile.png`。層次、留白、字體、配色、對齊、響應式、狀態與動效均通過。
-- **測試與交付**：主題／UI／導覽回歸 `68 passed, 77 deselected`；合併後 `main` 全套 `430 passed, 11 deselected, 1 warning in 37.42s`，已推送 `origin/main`。唯一警告是既有 Starlette/httpx 棄用提示；`git diff --check` 通過。
-- **資料安全**：舊候選與本輪 QA 資料只從 `/tmp/daibu-workstation-redesign.db` 移除；最後備份為 `/tmp/daibu-company-qa-cleanup-final.7ORTUk/daibu-workstation-redesign.before-final-qa-cleanup.db`。真實 `daibu.db` mtime 前後均為 `1785433278`。
+- **正文**：Streamlit textarea 的容器、文字與游標已改用品牌語意 token，修正切換主題時「有 478 字但看起來全白」的狀況。
+- **官方 Logo 候選**：新增 `search_web()` 與 `logo_discovery`。排除社群、媒體與不相關搜尋結果；最多讀 3 個官方頁，只下載頁面直接引用的 HTTPS SVG／PNG，沿用 2 MB、尺寸與 SVG 腳本安全驗證。白色版與一般版並存時優先一般深色版。
+- **人工確認**：候選只放 Streamlit session；畫面提供官方頁、原檔連結、確認、拒絕與重試。只有確認會呼叫既有 `store_logo()` 寫入；拒絕不落盤並排除舊候選。手動上傳保留為收合備援。
+- **BillionToOne 草稿**：`/tmp/daibu-workstation-redesign.db` 的 idea 15 已由免費 Gemini 依既有 S1（Y Combinator）原子產生 1–7 頁。標題依序為「1/11 的美國新生兒都在用…」、「認識 BillionToOne」、「解決了什麼問題？」、「AI 角色」、「成果」、「為什麼重要？」、「給我們的啟示」。
+- **真實官網驗證**：由 `https://www.billiontoone.com/` 實際解析並驗證官方 CDN 的 `bto_logo_new.svg`；尚未存入資料庫，需使用者看圖確認。本機沒有 `TAVILY_API_KEY`，UI 會顯示可恢復錯誤與手動備援；真實 Tavily contract 因此 skip。
+- **視覺驗收**：完成兩輪 1280×800 與 375×812；第一輪將過高的手動 Logo 表單改為收合，第二輪層次、留白、字體、三色內配色、對齊、375px 無溢位、狀態與微動效全數通過。最終圖：`.screenshots/desktop.png`、`.screenshots/mobile.png`。
+- **測試**：相關回歸 `28 passed, 110 deselected`；feature branch 全套 `441 passed, 12 deselected, 1 warning in 53.96s`。唯一警告是既有 Starlette/httpx 棄用提示。
+- **資料安全**：只操作 `/tmp/daibu-workstation-redesign.db` 與 `/tmp/daibu-workstation-redesign-logos`。真實 `daibu.db` mtime 仍為 `1785433278`（2026-07-30 10:41:18 -0700）。
 
 ## 最容易踩的坑
 
-- 勿把缺少 Tavily key 當成零來源；候選來源可先啟動初稿，Tavily 只負責擴充。
-- `stActiveTheme-<pathname>-v2` 是逐路徑儲存；新增頁面時仍需保留 `daibuColorMode-v1` 的首次同步。
-- 不要打開 Streamlit 工具列取代品牌按鈕，也不要把使用者／資料庫／LLM 內容插入可執行 HTML。
-- 人工流程只使用 `/tmp` DB；專案沒有正式部署流程，本機入口為 `http://localhost:8502/`。
+- 不得把 Logo 候選自動視為正式資產；必須等使用者確認。
+- 沒有 Tavily key 時不要改用圖片搜尋；顯示重試與官網手動上傳即可。
+- 七頁草稿目前只有 S1 證據，文字與引文必須維持可追溯，不可自行補無來源主張。
+- 本機入口為 `http://localhost:8502/選題`；專案沒有正式部署流程。

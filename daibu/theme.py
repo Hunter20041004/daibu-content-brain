@@ -835,6 +835,44 @@ def css(mode: str | None = None) -> str:
         padding: 0.75rem 0.9rem;
     }}
 
+    .logo-candidate-card {{
+        background: var(--surface);
+        border: 1px solid var(--brand-primary);
+        border-radius: 16px;
+        box-shadow: 0 10px 24px color-mix(
+            in srgb,
+            var(--ink) 12%,
+            transparent
+        );
+        margin: 0.75rem 0;
+        padding: 1rem;
+    }}
+
+    .logo-candidate-card strong {{
+        display: block;
+        font-size: 1rem;
+        line-height: 1.4;
+        margin-top: 0.65rem;
+    }}
+
+    .logo-candidate-card p {{
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin: 0.4rem 0 0;
+        opacity: 0.72;
+    }}
+
+    .logo-candidate-card__status {{
+        background: var(--canvas);
+        border: 1px solid var(--brand-primary);
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 0.75rem;
+        font-weight: 800;
+        line-height: 1;
+        padding: 0.35rem 0.6rem;
+    }}
+
     .verified-source strong,
     .verified-logo strong {{
         font-size: 0.875rem;
