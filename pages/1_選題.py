@@ -452,33 +452,6 @@ with context_panel:
                 unsafe_allow_html=True,
             )
 
-    with st.popover("＋ 新增內容系列", width="stretch"):
-        with st.form("new-theme"):
-            new_theme_name = st.text_input("內容系列名稱")
-            new_theme_weekday = st.selectbox("提醒星期", WEEKDAYS)
-            new_theme_count = st.number_input(
-                "每次產生幾則",
-                min_value=1,
-                max_value=12,
-                value=3,
-            )
-            if st.form_submit_button("建立內容系列"):
-                if not new_theme_name.strip():
-                    st.error("請輸入內容系列名稱。")
-                else:
-                    theme_id = db.add_theme(
-                        conn,
-                        Theme(
-                            None,
-                            new_theme_name.strip(),
-                            WEEKDAYS.index(new_theme_weekday),
-                            [],
-                            int(new_theme_count),
-                        ),
-                    )
-                    st.session_state.selected_theme_id = theme_id
-                    st.rerun()
-
     with st.expander("素材來源庫"):
         st.caption("來源可被多個內容系列共用；停用後不會再抓取。")
         with st.form("new-source"):
@@ -860,7 +833,7 @@ with candidate_column:
     else:
         st.markdown(
             '<div class="empty-state">'
-            "先建立一個內容系列，再開始找題材。"
+            "目前沒有內容系列；請透過專案設定新增。"
             "</div>",
             unsafe_allow_html=True,
         )

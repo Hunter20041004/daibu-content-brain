@@ -64,7 +64,21 @@ def test_home_next_action_falls_back_when_nothing_pending(
     app.run()
 
     visible_text = " ".join(markdown.value for markdown in app.markdown)
-    assert "目前沒有待辦" in visible_text
+    assert "目前沒有內容系列" in visible_text
+
+
+def test_home_empty_series_points_to_project_settings(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+    monkeypatch.setattr(seeds, "load", lambda conn: None)
+
+    app = AppTest.from_file(PROJECT_ROOT / "app.py").run()
+
+    visible_text = " ".join(
+        element.value for elements in (app.markdown, app.info)
+        for element in elements
+    )
+    assert "目前沒有內容系列；請透過專案設定新增。" in visible_text
+    assert "先建立第一個內容系列" not in visible_text
 
 
 def test_home_cta_targets_the_theme_with_candidates(monkeypatch, tmp_path):
@@ -381,6 +395,38 @@ def test_selection_lists_my_themes_in_the_left_column(monkeypatch, tmp_path):
 
     button_labels = {button.label for button in app.button}
     assert {"主題甲", "主題乙", "主題丙"}.issubset(button_labels)
+
+
+def test_selection_hides_manual_series_creation_but_lists_code_added_series(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "程式新增系列", 2, [], 2))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    button_labels = {button.label for button in app.button}
+    assert "程式新增系列" in button_labels
+    assert "＋ 新增內容系列" not in button_labels
+    assert "建立內容系列" not in button_labels
+
+
+def test_selection_empty_series_points_to_project_settings(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+    monkeypatch.setattr(seeds, "load", lambda conn: None)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    visible_text = " ".join(markdown.value for markdown in app.markdown)
+    assert "目前沒有內容系列；請透過專案設定新增。" in visible_text
+    assert "先建立一個內容系列" not in visible_text
 
 
 def test_selection_shows_the_selected_theme_workspace(monkeypatch, tmp_path):
