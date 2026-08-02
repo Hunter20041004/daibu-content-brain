@@ -20,6 +20,10 @@ from daibu.llm.base import Idea
 from daibu.models import Source, StoredIdea, Theme
 
 
+SINGLE_SERIES_CLEANUP_KEY = "single_series_cleanup_v1"
+SINGLE_SERIES_NAME = "AI 新創介紹"
+
+
 def connect(path: str) -> sqlite3.Connection:
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
@@ -193,6 +197,68 @@ def _migrate_legacy_schema(conn: sqlite3.Connection) -> None:
         conn.execute("DROP TABLE sources")
         conn.execute("ALTER TABLE sources_final RENAME TO sources")
 
+
+def _cleanup_to_single_series(conn: sqlite3.Connection) -> bool:
+    marked = conn.execute(
+        "SELECT 1 FROM config WHERE key = ?",
+        (SINGLE_SERIES_CLEANUP_KEY,),
+    ).fetchone()
+    if marked:
+        return True
+
+    theme_count = conn.execute(
+        "SELECT COUNT(*) AS count FROM themes"
+    ).fetchone()["count"]
+    if theme_count == 0:
+        conn.execute(
+            "INSERT INTO config (key, value) VALUES (?, '1')",
+            (SINGLE_SERIES_CLEANUP_KEY,),
+        )
+        return True
+
+    targets = conn.execute(
+        "SELECT id FROM themes WHERE name = ?",
+        (SINGLE_SERIES_NAME,),
+    ).fetchall()
+    if len(targets) != 1:
+        return False
+
+    target_id = targets[0]["id"]
+    conn.execute("SAVEPOINT single_series_cleanup")
+    try:
+        for table in (
+            "performance",
+            "carousel_pages",
+            "carousel_sources",
+            "idea_sources",
+        ):
+            conn.execute(
+                f"DELETE FROM {table} WHERE idea_id IN "
+                "(SELECT id FROM ideas "
+                "WHERE theme_id IS NOT NULL AND theme_id != ?)",
+                (target_id,),
+            )
+        conn.execute(
+            "DELETE FROM ideas "
+            "WHERE theme_id IS NOT NULL AND theme_id != ?",
+            (target_id,),
+        )
+        conn.execute(
+            "DELETE FROM theme_sources WHERE theme_id != ?",
+            (target_id,),
+        )
+        conn.execute("DELETE FROM themes WHERE id != ?", (target_id,))
+        conn.execute(
+            "INSERT INTO config (key, value) VALUES (?, '1')",
+            (SINGLE_SERIES_CLEANUP_KEY,),
+        )
+        conn.execute("RELEASE SAVEPOINT single_series_cleanup")
+    except Exception:
+        conn.execute("ROLLBACK TO SAVEPOINT single_series_cleanup")
+        conn.execute("RELEASE SAVEPOINT single_series_cleanup")
+        raise
+    return True
+
 def init_schema(conn: sqlite3.Connection) -> None:
     if _table_exists(conn, "themes") and _needs_legacy_migration(conn):
         try:
@@ -352,6 +418,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
                 f"ALTER TABLE {table} "
                 "ADD COLUMN source_kind TEXT NOT NULL DEFAULT 'manual'"
             )
+    _cleanup_to_single_series(conn)
     already_pruned = conn.execute(
         "SELECT 1 FROM config WHERE key = 'startup_sources_pruned'"
     ).fetchone()
