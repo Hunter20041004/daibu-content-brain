@@ -11,6 +11,7 @@ from daibu.cards import assets as carousel_assets
 from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
 from daibu.cards import logo as carousel_logo
+from daibu.cards import logo_discovery
 from daibu.cards import pages as carousel_pages
 from daibu.cards import research_draft as carousel_research_draft
 from daibu.cards import shoot as carousel_shoot
@@ -89,6 +90,136 @@ def render_logo_upload_form(idea_id: int, company: str, suffix: str) -> None:
                 None,
             )
             queue_toast(st.session_state, "官方 Logo 已儲存。")
+            st.rerun()
+
+
+def logo_candidate_key(idea_id: int) -> str:
+    return f"logo-candidate-{idea_id}"
+
+
+def clear_logo_discovery_state(idea_id: int) -> None:
+    for key in (
+        logo_candidate_key(idea_id),
+        f"logo-discovery-attempted-{idea_id}",
+        f"logo-discovery-error-{idea_id}",
+        f"logo-discovery-excluded-{idea_id}",
+    ):
+        st.session_state.pop(key, None)
+
+
+def discover_logo_candidate_once(idea_id: int, company: str) -> None:
+    attempted_key = f"logo-discovery-attempted-{idea_id}"
+    if st.session_state.get(attempted_key):
+        return
+    st.session_state[attempted_key] = True
+    try:
+        with st.spinner("正在公司官網找 Logo…"):
+            excluded = tuple(
+                st.session_state.get(
+                    f"logo-discovery-excluded-{idea_id}",
+                    (),
+                )
+            )
+            if excluded:
+                candidate = logo_discovery.discover(
+                    company,
+                    excluded_asset_urls=excluded,
+                )
+            else:
+                candidate = logo_discovery.discover(company)
+            st.session_state[logo_candidate_key(idea_id)] = candidate
+        st.session_state.pop(f"logo-discovery-error-{idea_id}", None)
+    except logo_discovery.LogoDiscoveryError as error:
+        st.session_state[f"logo-discovery-error-{idea_id}"] = str(error)
+
+
+def render_logo_candidate_preview(idea_id: int) -> None:
+    candidate = st.session_state.get(logo_candidate_key(idea_id))
+    if candidate is None:
+        return
+    st.markdown(
+        '<div class="logo-candidate-card">'
+        '<span class="logo-candidate-card__status">待你確認</span>'
+        '<strong>找到一張官方 Logo 候選</strong>'
+        '<p>我只是從公司官網頁面取得候選，現在還沒有儲存或用於出圖。</p>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    preview = (
+        candidate.data.decode("utf-8")
+        if candidate.filename.casefold().endswith(".svg")
+        else candidate.data
+    )
+    st.image(preview, width=240)
+    source_column, asset_column = st.columns(2)
+    source_column.link_button(
+        "查看官方頁面",
+        candidate.official_page_url,
+        width="stretch",
+    )
+    asset_column.link_button(
+        "開啟 Logo 原檔",
+        candidate.asset_url,
+        width="stretch",
+    )
+    confirm_column, reject_column = st.columns(2)
+    if confirm_column.button(
+        "確認是官方 Logo",
+        key=f"confirm-logo-candidate-{idea_id}",
+        type="primary",
+        width="stretch",
+    ):
+        try:
+            carousel_assets.store_logo(
+                conn,
+                candidate.company,
+                candidate.filename,
+                candidate.data,
+                candidate.official_page_url,
+                date.today().isoformat(),
+            )
+        except carousel_logo.InvalidBrandAsset as error:
+            st.error(str(error))
+            return
+        clear_logo_discovery_state(idea_id)
+        queue_toast(st.session_state, "官方 Logo 已確認並儲存。")
+        st.rerun()
+    if reject_column.button(
+        "不是官方 Logo",
+        key=f"reject-logo-candidate-{idea_id}",
+        width="stretch",
+    ):
+        excluded_key = f"logo-discovery-excluded-{idea_id}"
+        excluded = set(st.session_state.get(excluded_key, ()))
+        excluded.add(candidate.asset_url)
+        st.session_state[excluded_key] = tuple(excluded)
+        st.session_state.pop(logo_candidate_key(idea_id), None)
+        st.session_state[f"logo-discovery-error-{idea_id}"] = (
+            "已略過這張候選，尚未儲存任何 Logo。"
+        )
+        st.rerun()
+
+
+def render_logo_discovery_recovery(idea_id: int) -> None:
+    if st.session_state.get(logo_candidate_key(idea_id)) is not None:
+        return
+    error = st.session_state.get(f"logo-discovery-error-{idea_id}")
+    if error:
+        st.warning(error)
+    if st.session_state.get(f"logo-discovery-attempted-{idea_id}"):
+        if st.button(
+            "重新搜尋官方 Logo",
+            key=f"retry-logo-discovery-{idea_id}",
+            width="stretch",
+        ):
+            st.session_state.pop(
+                f"logo-discovery-attempted-{idea_id}",
+                None,
+            )
+            st.session_state.pop(
+                f"logo-discovery-error-{idea_id}",
+                None,
+            )
             st.rerun()
 
 
@@ -1252,6 +1383,13 @@ with candidate_column:
                 if idea.company.strip():
                     st.markdown("#### 官方 Logo")
                     if brand_asset is None:
+                        if idea.body.strip():
+                            discover_logo_candidate_once(
+                                idea.id,
+                                idea.company,
+                            )
+                            render_logo_candidate_preview(idea.id)
+                            render_logo_discovery_recovery(idea.id)
                         st.markdown(
                             '<div class="carousel-status '
                             'carousel-status--missing">'
@@ -1261,11 +1399,12 @@ with candidate_column:
                             "</div>",
                             unsafe_allow_html=True,
                         )
-                        render_logo_upload_form(
-                            idea.id,
-                            idea.company,
-                            "new",
-                        )
+                        with st.expander("找不到合適候選？手動上傳"):
+                            render_logo_upload_form(
+                                idea.id,
+                                idea.company,
+                                "new",
+                            )
                     else:
                         st.markdown(
                             '<div class="verified-logo">'

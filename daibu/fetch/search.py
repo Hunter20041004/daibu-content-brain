@@ -17,11 +17,13 @@ def _raw_search(
             "缺少 TAVILY_API_KEY，請到設定頁填入搜尋 API key。"
         )
     client = TavilyClient(api_key=api_key)
-    return client.search(
-        query=query,
-        include_domains=domains,
-        max_results=limit,
-    )
+    options: dict[str, object] = {
+        "query": query,
+        "max_results": limit,
+    }
+    if domains:
+        options["include_domains"] = domains
+    return client.search(**options)
 
 
 def _is_allowed(url: str, allowed_domains: list[str]) -> bool:
@@ -46,4 +48,19 @@ def search(
         )
         for result in results
         if _is_allowed(str(result.get("url", "")), allowed_domains)
+    ][:limit]
+
+
+def search_web(query: str, limit: int = 5) -> list[Material]:
+    """Return HTTPS web results for finding a possible official website."""
+    response = _raw_search(query, [], limit)
+    results = response.get("results", [])
+    return [
+        Material(
+            title=str(result.get("title", "")),
+            url=str(result.get("url", "")),
+            snippet=str(result.get("content", "")),
+        )
+        for result in results
+        if urlparse(str(result.get("url", ""))).scheme == "https"
     ][:limit]

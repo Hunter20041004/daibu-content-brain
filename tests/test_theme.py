@@ -133,6 +133,23 @@ def test_theme_switcher_icons_use_vector_masks():
     assert 'mask-image: url("data:image/svg+xml' in styles
 
 
+def test_textarea_uses_brand_tokens_for_text_and_surface():
+    styles = theme.css("light")
+    textarea_rule = styles.split(
+        '[data-testid="stTextArea"] textarea {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    surface_rule = styles.split(
+        '[data-testid="stTextArea"] [data-baseweb="textarea"] {',
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+    assert "color: var(--ink) !important" in textarea_rule
+    assert "-webkit-text-fill-color: var(--ink) !important" in textarea_rule
+    assert "caret-color: var(--brand-secondary)" in textarea_rule
+    assert "background: var(--surface)" in surface_rule
+
+
 def test_palette_variables_are_defined_on_root_not_app():
     styles = theme.css()
     root_section = styles.split(":root {", maxsplit=1)[1].split("}", maxsplit=1)[0]
@@ -381,6 +398,20 @@ def test_workspace_scroll_iframe_does_not_take_layout_space():
     assert "position: absolute" in bridge_rule
     assert "height: 1px" in bridge_rule
     assert "overflow: hidden" in bridge_rule
+
+
+def test_logo_candidate_card_uses_brand_tokens_and_clear_status():
+    styles = theme.css()
+
+    assert ".logo-candidate-card {" in styles
+    card_rule = styles.split(
+        ".logo-candidate-card {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "background: var(--surface)" in card_rule
+    assert "border: 1px solid var(--brand-primary)" in card_rule
+    assert "padding: 1rem" in card_rule
+    assert ".logo-candidate-card__status {" in styles
 
 
 def test_css_has_no_unused_classes():
