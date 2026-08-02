@@ -109,7 +109,7 @@ def render() -> None:
             f"{WEEKDAYS[next_theme.weekday]}的「{next_theme.name}」"
         )
     else:
-        next_action = "目前沒有待辦；先建立第一個內容系列"
+        next_action = "目前沒有內容系列；請透過專案設定新增。"
 
     cta_label = (
         f"去看「{candidate_target.name}」的 {candidate_target_count} 則"
@@ -171,7 +171,7 @@ def render() -> None:
                 unsafe_allow_html=True,
             )
     else:
-        st.info("先建立第一個內容系列，呆一布就能替你排出製作路線。")
+        st.info("目前沒有內容系列；請透過專案設定新增。")
 
     st.subheader("本週節奏")
     focus_columns = st.columns(3)

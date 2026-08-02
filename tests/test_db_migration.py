@@ -1,4 +1,5 @@
 from daibu import db
+from daibu.models import Theme
 
 
 def _old_connection(tmp_path):
@@ -532,3 +533,203 @@ def test_migration_adds_brand_assets_idempotently(tmp_path):
         "official_source_url",
         "verified_at",
     } <= columns
+
+
+def test_single_series_cleanup_keeps_target_graph_and_shared_assets(tmp_path):
+    conn = db.connect(str(tmp_path / "single-series.db"))
+    db.init_schema(conn)
+    conn.execute(
+        "DELETE FROM config WHERE key = 'single_series_cleanup_v1'"
+    )
+    source_id = conn.execute(
+        """
+        INSERT INTO sources (name, url, fetch_type, enabled)
+        VALUES ('共同來源', 'https://example.com/feed', 'rss', 1)
+        """
+    ).lastrowid
+    target_id = conn.execute(
+        """
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES ('AI 新創介紹', 4, 3, 'company_profile')
+        """
+    ).lastrowid
+    other_id = conn.execute(
+        """
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES ('其他系列', 1, 2, 'general')
+        """
+    ).lastrowid
+    conn.executemany(
+        "INSERT INTO theme_sources (theme_id, source_id) VALUES (?, ?)",
+        [(target_id, source_id), (other_id, source_id)],
+    )
+    kept_idea_id = conn.execute(
+        """
+        INSERT INTO ideas (theme_id, title, angle, status, body)
+        VALUES (?, '保留題目', '保留角度', '採用', '保留正文')
+        """,
+        (target_id,),
+    ).lastrowid
+    removed_idea_id = conn.execute(
+        """
+        INSERT INTO ideas (theme_id, title, angle, status, body)
+        VALUES (?, '刪除題目', '刪除角度', '候選', '刪除正文')
+        """,
+        (other_id,),
+    ).lastrowid
+    for idea_id, label in (
+        (kept_idea_id, "保留"),
+        (removed_idea_id, "刪除"),
+    ):
+        conn.execute(
+            """
+            INSERT INTO performance (
+                idea_id, platform, likes, reach, engagement
+            ) VALUES (?, 'Instagram', 1, 10, 0.1)
+            """,
+            (idea_id,),
+        )
+        conn.execute(
+            """
+            INSERT INTO carousel_pages (
+                idea_id, page_no, page_type, heading, body
+            ) VALUES (?, 1, 'cover', ?, ?)
+            """,
+            (idea_id, f"{label}標題", f"{label}內文"),
+        )
+        for table in ("carousel_sources", "idea_sources"):
+            conn.execute(
+                f"""
+                INSERT INTO {table} (
+                    idea_id, source_key, publisher, published_at,
+                    url, excerpt
+                ) VALUES (?, 'S1', '官方網站', '2026-08-01',
+                          'https://example.com/source', ?)
+                """,
+                (idea_id, f"{label}摘錄"),
+            )
+    conn.execute(
+        """
+        INSERT INTO brand_assets (
+            company_key, company, local_path,
+            official_source_url, verified_at
+        ) VALUES (
+            'target', '目標公司', '/tmp/logo.svg',
+            'https://example.com/brand', '2026-08-01'
+        )
+        """
+    )
+    conn.commit()
+
+    db.init_schema(conn)
+
+    assert [
+        row["name"] for row in conn.execute("SELECT name FROM themes")
+    ] == ["AI 新創介紹"]
+    assert [
+        row["title"] for row in conn.execute("SELECT title FROM ideas")
+    ] == ["保留題目"]
+    for table in (
+        "performance",
+        "carousel_pages",
+        "carousel_sources",
+        "idea_sources",
+    ):
+        assert conn.execute(
+            f"SELECT COUNT(*) AS count FROM {table}"
+        ).fetchone()["count"] == 1
+    assert conn.execute(
+        "SELECT COUNT(*) AS count FROM sources"
+    ).fetchone()["count"] == 1
+    assert conn.execute(
+        "SELECT COUNT(*) AS count FROM brand_assets"
+    ).fetchone()["count"] == 1
+    assert conn.execute(
+        "SELECT value FROM config WHERE key = 'single_series_cleanup_v1'"
+    ).fetchone()["value"] == "1"
+
+
+def test_single_series_cleanup_runs_only_once(tmp_path):
+    conn = db.connect(str(tmp_path / "single-series-once.db"))
+    db.init_schema(conn)
+    conn.execute(
+        "DELETE FROM config WHERE key = 'single_series_cleanup_v1'"
+    )
+    conn.executemany(
+        """
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES (?, 1, 2, ?)
+        """,
+        [
+            ("AI 新創介紹", "company_profile"),
+            ("應被清除", "general"),
+        ],
+    )
+    conn.commit()
+    db.init_schema(conn)
+
+    db.add_theme(
+        conn,
+        Theme(None, "未來程式新增系列", 2, [], 3),
+    )
+    db.init_schema(conn)
+
+    assert [theme.name for theme in db.get_themes(conn)] == [
+        "AI 新創介紹",
+        "未來程式新增系列",
+    ]
+
+
+def test_single_series_cleanup_preserves_data_when_target_is_missing(
+    tmp_path,
+):
+    conn = db.connect(str(tmp_path / "single-series-missing.db"))
+    db.init_schema(conn)
+    conn.execute(
+        "DELETE FROM config WHERE key = 'single_series_cleanup_v1'"
+    )
+    conn.executemany(
+        """
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES (?, 1, 2, 'general')
+        """,
+        [("系列甲",), ("系列乙",)],
+    )
+    conn.commit()
+
+    db.init_schema(conn)
+
+    assert [theme.name for theme in db.get_themes(conn)] == [
+        "系列甲",
+        "系列乙",
+    ]
+    assert conn.execute(
+        "SELECT 1 FROM config WHERE key = 'single_series_cleanup_v1'"
+    ).fetchone() is None
+
+
+def test_single_series_cleanup_preserves_data_when_target_is_ambiguous(
+    tmp_path,
+):
+    conn = db.connect(str(tmp_path / "single-series-ambiguous.db"))
+    db.init_schema(conn)
+    conn.execute(
+        "DELETE FROM config WHERE key = 'single_series_cleanup_v1'"
+    )
+    conn.executemany(
+        """
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES ('AI 新創介紹', ?, 2, 'company_profile')
+        """,
+        [(1,), (2,)],
+    )
+    conn.commit()
+
+    db.init_schema(conn)
+
+    assert conn.execute(
+        "SELECT COUNT(*) AS count FROM themes"
+    ).fetchone()["count"] == 2
+    assert conn.execute(
+        "SELECT 1 FROM config WHERE key = 'single_series_cleanup_v1'"
+    ).fetchone() is None
