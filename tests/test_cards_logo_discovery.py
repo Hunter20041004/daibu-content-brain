@@ -104,6 +104,23 @@ def test_discover_skips_editorial_and_unrelated_search_results():
         )
 
 
+def test_discover_does_not_trust_an_official_claim_on_an_unrelated_domain():
+    with pytest.raises(logo_discovery.LogoDiscoveryError):
+        logo_discovery.discover(
+            "Acme",
+            search_fn=lambda _query, _limit: [
+                Material(
+                    "Acme official website and brand assets",
+                    "https://logo-downloads.example/acme",
+                    "Download the official Acme logo here",
+                )
+            ],
+            html_fetch_fn=lambda _url: pytest.fail(
+                "A self-proclaimed official result must not be fetched"
+            ),
+        )
+
+
 def test_discover_skips_an_unsafe_asset_and_uses_the_next_valid_logo():
     unsafe_svg = (
         b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">'

@@ -103,10 +103,8 @@ def _is_blocked(value: str) -> bool:
 
 def _looks_like_company_site(company: str, material: Material) -> bool:
     needle = _normalized(company)
-    haystack = _normalized(
-        f"{material.title} {material.snippet} {_hostname(material.url)}"
-    )
-    return bool(needle and needle in haystack)
+    hostname = _normalized(_hostname(material.url))
+    return bool(needle and needle in hostname)
 
 
 def _request(url: str) -> Request:

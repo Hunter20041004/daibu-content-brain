@@ -19,7 +19,7 @@
 - **BillionToOne 草稿**：`/tmp/daibu-workstation-redesign.db` 的 idea 15 已由免費 Gemini 依既有 S1（Y Combinator）原子產生 1–7 頁。標題依序為「1/11 的美國新生兒都在用…」、「認識 BillionToOne」、「解決了什麼問題？」、「AI 角色」、「成果」、「為什麼重要？」、「給我們的啟示」。
 - **真實官網驗證**：由 `https://www.billiontoone.com/` 實際解析並驗證官方 CDN 的 `bto_logo_new.svg`；尚未存入資料庫，需使用者看圖確認。本機沒有 `TAVILY_API_KEY`，UI 會顯示可恢復錯誤與手動備援；真實 Tavily contract 因此 skip。
 - **視覺驗收**：完成兩輪 1280×800 與 375×812；第一輪將過高的手動 Logo 表單改為收合，第二輪層次、留白、字體、三色內配色、對齊、375px 無溢位、狀態與微動效全數通過。最終圖：`.screenshots/desktop.png`、`.screenshots/mobile.png`。
-- **測試**：相關回歸 `28 passed, 110 deselected`；feature branch 全套 `441 passed, 12 deselected, 1 warning in 53.96s`。唯一警告是既有 Starlette/httpx 棄用提示。
+- **測試**：相關回歸 `28 passed, 110 deselected`；安全審查再補冒牌官網案例後，feature branch 全套 `442 passed, 12 deselected, 1 warning in 50.26s`。唯一警告是既有 Starlette/httpx 棄用提示。
 - **資料安全**：只操作 `/tmp/daibu-workstation-redesign.db` 與 `/tmp/daibu-workstation-redesign-logos`。真實 `daibu.db` mtime 仍為 `1785433278`（2026-07-30 10:41:18 -0700）。
 
 ## 最容易踩的坑
