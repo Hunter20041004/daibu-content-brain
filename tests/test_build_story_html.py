@@ -91,3 +91,27 @@ def test_story_interactions_update_without_reload():
         assert first_note.get_attribute("open") == ""
         assert page.locator("#vt-comment-trigger").count() == 1
         browser.close()
+
+
+def test_story_mobile_layout_focus_and_reduced_motion():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(viewport={"width": 375, "height": 812})
+        page.goto(_file_url())
+
+        overflow = page.evaluate(
+            "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+        )
+        assert overflow <= 0
+        heights = page.locator("button").evaluate_all(
+            "buttons => buttons.map(button => button.getBoundingClientRect().height).filter(height => height > 0)"
+        )
+        assert heights and min(heights) >= 44
+        first_step = page.locator("[data-journey-step]").first
+        first_step.focus()
+        assert first_step.evaluate("el => getComputedStyle(el).outlineStyle") != "none"
+        page.emulate_media(reduced_motion="reduce")
+        assert page.locator("body").evaluate(
+            "el => getComputedStyle(el).getPropertyValue('--motion-distance').trim()"
+        ) == "0px"
+        browser.close()
