@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="一份給 Vibe Coding 初學者的呆一布內容工作站建造故事。"
+    />
+    <title>我怎麼用 Vibe Coding 搭出呆一布內容工作站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=Noto+Sans+TC:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --canvas: #e9f6ff;
+        --primary: #6fc1cc;
+        --secondary: #32738f;
+        --ink: #0e0e2c;
+        --highlight: #f8c0a0;
+        --surface: #fafcfe;
+        --border: #c7e2ea;
+        --muted: #466370;
+        --danger: #a34a3a;
+        --danger-soft: #fff1eb;
+        --success: #285f52;
+        --success-soft: #e4f5f1;
+        --shadow: 0 22px 54px rgba(14, 14, 44, 0.1);
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --font-sans: "Figtree", "Noto Sans TC", sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 92% 4%, rgba(248, 192, 160, 0.3), transparent 20rem),
+          linear-gradient(180deg, #f5fbff 0%, var(--canvas) 100%);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--secondary);
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 100;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--ink);
+        color: var(--surface);
+        opacity: 0;
+        transform: translateY(-140%);
+      }
+
+      .skip-link:focus {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .page-shell {
+        width: min(1180px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+        gap: 64px;
+        align-items: center;
+        min-height: 92vh;
+        padding: 80px 0 72px;
+      }
+
+      .eyebrow {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 0 0 22px;
+        color: var(--secondary);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 28px;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--primary);
+        content: "";
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin-top: 0;
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-width: 13ch;
+        margin-bottom: 24px;
+        font-size: clamp(2.75rem, 6.4vw, 5.6rem);
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+      }
+
+      h1 em {
+        color: var(--secondary);
+        font-style: normal;
+      }
+
+      .hero__deck {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.8vw, 1.22rem);
+      }
+
+      .hero__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 28px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .hero__meta li,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(250, 252, 254, 0.76);
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .hero__visual {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 440px;
+      }
+
+      .hero__visual::before,
+      .hero__visual::after {
+        position: absolute;
+        border-radius: 34px;
+        content: "";
+      }
+
+      .hero__visual::before {
+        inset: 34px 18px 18px 34px;
+        border: 1px solid rgba(50, 115, 143, 0.22);
+        background: rgba(250, 252, 254, 0.7);
+        transform: rotate(5deg);
+      }
+
+      .hero__visual::after {
+        inset: 12px 42px 44px 8px;
+        background: var(--highlight);
+        opacity: 0.55;
+        transform: rotate(-5deg);
+      }
+
+      .mascot-card {
+        position: relative;
+        z-index: 1;
+        width: min(320px, 86%);
+        padding: 44px 42px 34px;
+        border: 1.5px solid var(--border);
+        border-radius: 30px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        transform: rotate(1.5deg);
+      }
+
+      .mascot-card svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .mascot-card p {
+        margin: 20px 0 0;
+        color: var(--secondary);
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .quick-read {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin: 0 0 96px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .quick-read li {
+        position: relative;
+        min-height: 132px;
+        padding: 24px 22px 22px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(250, 252, 254, 0.82);
+      }
+
+      .quick-read span {
+        display: block;
+        margin-bottom: 22px;
+        color: var(--secondary);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+
+      .quick-read strong {
+        display: block;
+        font-size: 1.05rem;
+        line-height: 1.45;
+      }
+
+      section {
+        margin: 0 0 112px;
+        scroll-margin-top: 28px;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+        margin-bottom: 34px;
+      }
+
+      .section-head__index {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: var(--secondary);
+        color: var(--surface);
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .section-head h2 {
+        margin-bottom: 6px;
+        font-size: clamp(2rem, 4vw, 3.25rem);
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+      }
+
+      .section-head p {
+        max-width: 68ch;
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .before-after {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+        align-items: stretch;
+        gap: 14px;
+      }
+
+      .flow-card {
+        padding: 30px;
+        border: 1.5px solid var(--border);
+        border-radius: 24px;
+        background: var(--surface);
+      }
+
+      .flow-card--before {
+        background: var(--danger-soft);
+        border-color: #efcfc4;
+      }
+
+      .flow-card--after {
+        background: var(--success-soft);
+        border-color: #b9ddd4;
+      }
+
+      .flow-card h3 {
+        margin-bottom: 22px;
+        font-size: 1.35rem;
+      }
+
+      .flow-card ol {
+        display: grid;
+        gap: 16px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .flow-card li {
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .flow-card li span {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(250, 252, 254, 0.82);
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .flow-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--secondary);
+      }
+
+      .flow-arrow svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 36px 0 56px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 840px) {
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 16px;
+          min-height: auto;
+        }
+
+        .hero__visual {
+          min-height: 350px;
+        }
+
+        .quick-read {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .page-shell {
+          width: min(100% - 36px, 1180px);
+        }
+
+        .before-after {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-arrow {
+          transform: rotate(90deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要內容</a>
+    <div class="page-shell">
+      <header class="hero" id="hero">
+        <div class="hero__copy">
+          <p class="eyebrow">呆一布內容工作站 · 建造故事</p>
+          <h1>我怎麼用 <em>Vibe Coding</em> 搭出呆一布內容工作站</h1>
+          <p class="hero__deck">
+            從「每週到底要寫什麼」開始，我把一個模糊的社團痛點，慢慢做成能找公司、整理來源、寫正文，最後產出七張輪播圖的本機工具。
+          </p>
+          <ul class="hero__meta" aria-label="閱讀資訊">
+            <li>約 10–15 分鐘</li>
+            <li>不需要程式背景</li>
+            <li>2026 年 8 月整理</li>
+          </ul>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="mascot-card">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 118">
+              <g fill="none">
+                <path d="M64 20V10" stroke="var(--primary)" stroke-width="7" stroke-linecap="round" />
+                <circle cx="64" cy="8" r="8" fill="var(--highlight)" />
+                <rect x="0" y="52" width="14" height="30" rx="7" fill="var(--primary)" />
+                <rect x="114" y="52" width="14" height="30" rx="7" fill="var(--primary)" />
+                <rect x="10" y="20" width="108" height="90" rx="30" fill="var(--primary)" />
+                <rect x="24" y="34" width="80" height="62" rx="22" fill="var(--surface)" />
+                <ellipse cx="48" cy="58" rx="6" ry="6.5" fill="var(--ink)" />
+                <ellipse cx="80" cy="58" rx="6" ry="6.5" fill="var(--ink)" />
+                <ellipse cx="37" cy="74" rx="8" ry="6" fill="var(--highlight)" />
+                <ellipse cx="91" cy="74" rx="8" ry="6" fill="var(--highlight)" />
+                <path d="M55 72q9 13 18 0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" />
+              </g>
+            </svg>
+            <p>內容工作站</p>
+          </div>
+        </div>
+      </header>
+
+      <ol class="quick-read" aria-label="一分鐘摘要">
+        <li>
+          <span>01 · 問題</span>
+          <strong>先把每週反覆發生的內容工作，畫成一條看得見的流程。</strong>
+        </li>
+        <li>
+          <span>02 · 分工</span>
+          <strong>我負責產品決策，AI 協助規劃、實作與驗收。</strong>
+        </li>
+        <li>
+          <span>03 · 方法</span>
+          <strong>每次只做一個可測、可操作的小切片，再往下一步走。</strong>
+        </li>
+      </ol>
+
+      <main id="main-content">
+        <section id="problem" aria-labelledby="problem-title">
+          <div class="section-head">
+            <span class="section-head__index">01</span>
+            <div>
+              <h2 id="problem-title">起點：我們原本卡在哪裡</h2>
+              <p>這個工具不是從「我想學哪個框架」開始，而是從社團每週都會遇到的工作摩擦開始。</p>
+            </div>
+          </div>
+
+          <div class="before-after">
+            <article class="flow-card flow-card--before">
+              <span class="badge">以前：每次重新來過</span>
+              <h3>資料與決策散在不同地方</h3>
+              <ol>
+                <li><span>1</span>四處找資料</li>
+                <li><span>2</span>臨時想題</li>
+                <li><span>3</span>文件散落</li>
+                <li><span>4</span>做完沒有回顧</li>
+              </ol>
+            </article>
+
+            <div class="flow-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <article class="flow-card flow-card--after">
+              <span class="badge">現在：一條內容生產線</span>
+              <h3>每一步都有明確輸入與產出</h3>
+              <ol>
+                <li><span>1</span>找題材</li>
+                <li><span>2</span>選一則</li>
+                <li><span>3</span>寫內容</li>
+                <li><span>4</span>產出七張輪播圖</li>
+              </ol>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>呆一布 AI 共學實驗室 · 社群組</span>
+        <a href="#hero">回到開頭</a>
+      </footer>
+    </div>
+  </body>
+</html>
