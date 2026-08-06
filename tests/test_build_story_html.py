@@ -1,6 +1,8 @@
 from pathlib import Path
 from html.parser import HTMLParser
 
+from playwright.sync_api import sync_playwright
+
 
 HTML_PATH = (
     Path(__file__).resolve().parents[1]
@@ -67,3 +69,25 @@ def test_story_contains_complete_build_journey_and_plain_language_notes():
     assert {"守門線", "來源分層", "常青時效分類"} <= parser.removed_features
     assert "先說想要什麼，再讓 AI 幫我拆成可以驗收的小步驟" in source
     assert "99 個測試都通過，實際操作仍找到 24 個問題" in source
+
+
+def _file_url() -> str:
+    return HTML_PATH.resolve().as_uri()
+
+
+def test_story_interactions_update_without_reload():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(viewport={"width": 1280, "height": 800})
+        page.goto(_file_url())
+
+        draft_step = page.locator('[data-journey-step="draft"]')
+        draft_step.click()
+
+        assert draft_step.get_attribute("aria-selected") == "true"
+        assert "AI 正文" in page.locator("#journey-detail").inner_text()
+        first_note = page.locator("details.tech-note").first
+        first_note.locator("summary").click()
+        assert first_note.get_attribute("open") == ""
+        assert page.locator("#vt-comment-trigger").count() == 1
+        browser.close()
