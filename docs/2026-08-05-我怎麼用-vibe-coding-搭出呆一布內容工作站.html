@@ -8,6 +8,7 @@
       content="一份給 Vibe Coding 初學者的呆一布內容工作站建造故事。"
     />
     <title>我怎麼用 Vibe Coding 搭出呆一布內容工作站</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%236fc1cc'/%3E%3Ccircle cx='11' cy='15' r='2' fill='%230e0e2c'/%3E%3Ccircle cx='21' cy='15' r='2' fill='%230e0e2c'/%3E%3Cpath d='M11 21q5 4 10 0' fill='none' stroke='%230e0e2c' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -163,8 +164,8 @@
         grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
         gap: 64px;
         align-items: center;
-        min-height: 92vh;
-        padding: 80px 0 72px;
+        min-height: 84vh;
+        padding: 64px 0 58px;
       }
 
       .eyebrow {
@@ -187,17 +188,17 @@
         content: "";
       }
 
-      h1,
-      h2,
-      h3 {
+      body h1,
+      body h2,
+      body h3 {
         margin-top: 0;
         text-wrap: balance;
       }
 
-      h1 {
+      body h1 {
         max-width: 13ch;
         margin-bottom: 24px;
-        font-size: clamp(2.75rem, 6.4vw, 5.6rem);
+        font-size: clamp(2.75rem, 5.2vw, 4.6rem);
         font-weight: 800;
         letter-spacing: -0.045em;
         line-height: 0.98;
@@ -649,12 +650,7 @@
         font-size: 0.84rem;
         font-weight: 700;
         text-align: left;
-        transition:
-          transform 190ms var(--ease-out),
-          border-color 190ms var(--ease-out),
-          background-color 190ms var(--ease-out),
-          color 190ms var(--ease-out),
-          box-shadow 190ms var(--ease-out);
+        transition: transform 190ms var(--ease-out);
       }
 
       .journey-step span {
@@ -1221,7 +1217,7 @@
         }
 
         .hero__visual {
-          min-height: 350px;
+          min-height: 320px;
         }
 
         .quick-read {
@@ -1332,6 +1328,12 @@
       @media (max-width: 620px) {
         .page-shell {
           width: min(100% - 36px, 1180px);
+        }
+
+        body h1 {
+          max-width: none;
+          font-size: clamp(2.35rem, 12vw, 3rem);
+          line-height: 1.02;
         }
 
         .before-after {

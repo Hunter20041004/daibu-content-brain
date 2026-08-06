@@ -11,9 +11,15 @@
 ## 本輪狀態
 
 - **設計**：使用者已確認建造故事式互動網頁方向；正式規格位於 `docs/superpowers/specs/2026-08-05-社團建造故事-html-design.md`。
-- **實作計畫**：已寫入 `docs/superpowers/plans/2026-08-05-社團建造故事-html.md`，等待選擇 inline 或 subagent-driven 執行方式。
-- **預定成品**：`docs/2026-08-05-我怎麼用-vibe-coding-搭出呆一布內容工作站.html`。
-- **產品程式**：尚未修改。
+- **執行方式**：使用者選擇 inline；依 `docs/superpowers/plans/2026-08-05-社團建造故事-html.md` 以五個垂直 TDD 切片完成。
+- **HTML 成品**：`docs/2026-08-05-我怎麼用-vibe-coding-搭出呆一布內容工作站.html`。包含八個主章節、一分鐘摘要、十個術語的漸進解釋、七步內容旅程、七階段時間軸、五張踩坑卡與八步建造公式。
+- **閱讀互動**：桌機／手機章節導覽、閱讀進度、可鍵盤操作的七步內容旅程、原生技術補充、減少動態、列印版與全頁段落評論均完成。
+- **內容現況**：守門線、來源分層、常青／時效分類只出現在「後來移除」的歷史脈絡；沒有寫成現有功能。
+- **安全邊界**：HTML 不讀資料庫、不呼叫產品 API、不含 API key、本機絕對路徑或外連資產路徑；吉祥物與 favicon 都已內嵌。
+- **HTML 測試**：`5 passed in 4.65s`。另以本機 HTTP 真實操作確認 AI 正文步驟切換成功、375px overflow 為 0、瀏覽器 console 為 0 errors；Tailwind CDN 有一則既有的 production 使用提醒。
+- **視覺驗收第一輪**：主標字級被 Tailwind 基礎樣式覆蓋、桌機首屏留白過長、手機主標層級不足；已提高 selector specificity、重調字級與首屏高度並補 favicon。
+- **視覺驗收第二輪**：層次、留白、字體、配色、對齊、響應式、狀態與動效全數通過。最終證據：`.screenshots/build-story-round2-desktop.png`、`.screenshots/build-story-round2-mobile.png`；第一輪證據：`.screenshots/build-story-round1-desktop.png`、`.screenshots/build-story-round1-mobile.png`。
+- **產品程式與資料**：未修改 Streamlit、資料表、AI 指令或真實資料庫；本輪沒有呼叫 Tavily／Gemini。
 
 ## 前一輪 Demo 影片交付紀錄
 
@@ -30,9 +36,9 @@
 
 ## 下一步
 
-1. 使用者快速覆核 HTML 設計規格。
-2. 寫 TDD／視覺驗收實作計畫並製作單檔 HTML。
-3. 兩輪桌機／手機截圖自檢、功能與文字驗收。
+1. 跑全專案測試，確認文件新增沒有影響產品。
+2. 合併 `main` 後重跑全套測試並推送既有遠端。
+3. 取得可供社團組員開啟的分享連結，實際驗證閱讀與互動。
 
 ## 最容易踩的坑
 
