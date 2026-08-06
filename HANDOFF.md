@@ -1,14 +1,44 @@
-# HANDOFF — 社團建造故事 HTML
+# HANDOFF — 自動文案與官方 Logo 修復
 
-> 2026-08-05 更新。這一輪製作給幾乎不寫程式、主要使用 Vibe Coding 的社團組員閱讀的建造故事 HTML；不修改產品程式碼。
+> 2026-08-05 更新。這一輪修復「AI 文案產生後變空白」與「找不到新創公司官方 Logo」兩條真實使用流程。
 
 ## 本輪目標與驗收
+
+- 在現有 Streamlit 工作台中，AI 文案產生後要立刻顯示，且頁面重跑後不能被舊的空白編輯器內容蓋掉。
+- 官方網站若把 Logo 寫成頁面內嵌 SVG，系統仍要能安全擷取、預覽，並維持「使用者確認後才保存」的產品規則。
+- 搜尋備援不得把名稱只是部分相似的其他公司誤認為官方網域。
+- 依 TDD 補回歸測試，完成真實 API／官網邊界驗證、兩輪桌機／手機視覺驗收與全套測試。
+
+## 本輪狀態
+
+- **文案根因與修復**：Streamlit 的文字框會保留舊的瀏覽器 session 值；Gemini 已把新文案寫入 SQLite 後，舊空白值仍可能在下一次頁面重跑時覆蓋它。新增 `sync_body_editor`，資料庫正文比目前 session 更新時先同步編輯器；使用者正在打字時則保留使用者內容。
+- **Logo 根因與修復**：Moove 官網的導覽 Logo 是頁面內嵌 `<svg>`，舊版只會找 `<img src>`。現在能解析安全的內嵌 SVG，移除非允許標籤／屬性並沿用既有 SVG 安全驗證，再以瀏覽器可顯示的 data URL 預覽。
+- **搜尋備援**：第一次品牌搜尋沒有結果時才追加一次「公司名＋official website」查詢；網域判定改為完整 label 相符，因此 `moovecars.com` 不會再因包含 `moove` 字串而通過。
+- **真實流程證據**：在實際 8501 工作台重新產生 Moove 文案，取得 492 字，來源重載後文字仍保留；Logo 候選來自 `https://www.moove.io`，頁面無應用程式錯誤或新增 console 錯誤。候選尚未保存，等待使用者肉眼確認。
+- **安全與成本**：錯誤的 `moovecars.com` 候選沒有寫入資料庫；所有 Logo 仍須使用者確認才保存。只有第一次搜尋為空時才多用一次 Tavily 免費額度。
+- **TDD／契約測試**：新增內嵌 SVG 擷取、空搜尋備援、相似網域拒絕、Moove 官網真實契約、正文 session 同步與 SVG data URL 預覽測試；均先看見失敗再以最小修正通過。
+- **相關測試**：Logo 單元測試 `8 passed, 1 deselected`；Moove 真實官網契約 `1 passed`；相關頁面測試 `4 passed`；Python 編譯檢查通過。
+- **全套測試**：最終乾淨環境 `458 passed, 13 deselected, 1 warning in 62.57s`。13 個預設略過項目是需外部服務的契約測試；唯一 warning 是既有 Starlette／httpx 棄用提示。
+- **視覺驗收**：1280×800 與 375×812 各做兩輪；最終 Logo 候選卡、來源、確認／拒絕操作在桌機與手機都沒有破版，375px 的水平 overflow 為 0。最終證據：`.screenshots/logo-fix-round2-desktop.png`、`.screenshots/logo-fix-round2-mobile.png`；第一輪：`.screenshots/logo-fix-round1-desktop.png`、`.screenshots/logo-fix-round1-mobile.png`。
+- **服務狀態**：本機工具維持在 `http://localhost:8501`。此專案目前沒有 production 部署流程，因此本輪不另建正式站。
+- **剩餘限制**：設定頁輸入的 Tavily／Gemini key 只存在目前 Streamlit 程序；重啟工具後仍需重填。永久保存涉及秘密管理方式，未在本次功能修復中擅自改動。
+
+## 下一步
+
+1. 使用者在 Moove 候選卡上確認圖樣確實是官方 Logo 後，點「確認是官方 Logo」；確認前系統不會保存或拿去出圖。
+2. 若要解決「重啟後 API key 消失」，另開一輪選擇安全的本機秘密保存方式，不把 key 寫進 Git。
+
+## 前一輪：社團建造故事 HTML
+
+> 同為 2026-08-05 交付。製作給幾乎不寫程式、主要使用 Vibe Coding 的社團組員閱讀的建造故事 HTML；未修改產品程式碼。
+
+### 目標與驗收
 
 依 `docs/superpowers/specs/2026-08-05-社團建造故事-html-design.md` 製作一份可獨立閱讀的繁體中文單頁 HTML，說明工具為什麼做、如何拆解、AI 與人的分工、系統資料流、TDD、真實迭代與可複製的 Vibe Coding 建造方式。
 
 成品需沿用呆一布品牌，在 1280×800 與 375×812 各完成至少兩輪截圖自檢；不碰真實資料庫、不呼叫外部 API、不修改產品功能。
 
-## 本輪狀態
+### 交付狀態
 
 - **設計**：使用者已確認建造故事式互動網頁方向；正式規格位於 `docs/superpowers/specs/2026-08-05-社團建造故事-html-design.md`。
 - **執行方式**：使用者選擇 inline；依 `docs/superpowers/plans/2026-08-05-社團建造故事-html.md` 以五個垂直 TDD 切片完成。
@@ -38,7 +68,7 @@
 - **測試**：正文修正後 `449 passed, 12 deselected, 1 warning in 43.78s`。產品程式碼未變；唯一 warning 是既有 Starlette/httpx 棄用提示。
 - **已知非阻擋訊息**：Playwright console 有兩個 multipage-relative `_stcore/health`／`host-config` 404；錄影流程與畫面未受影響。
 
-## 下一步
+## 舊交付的分享方式
 
 1. 把公開網址傳給社團組員，會後可直接用手機或桌機閱讀。
 2. 若收到段落評論，整理後再決定是否改版；本輪成品與正式站已完成。

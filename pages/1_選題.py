@@ -1,3 +1,4 @@
+import base64
 import html
 import os
 from dataclasses import replace
@@ -145,11 +146,12 @@ def render_logo_candidate_preview(idea_id: int) -> None:
         "</div>",
         unsafe_allow_html=True,
     )
-    preview = (
-        candidate.data.decode("utf-8")
-        if candidate.filename.casefold().endswith(".svg")
-        else candidate.data
-    )
+    preview = candidate.data
+    if candidate.filename.casefold().endswith(".svg"):
+        preview = (
+            "data:image/svg+xml;base64,"
+            + base64.b64encode(candidate.data).decode("ascii")
+        )
     st.image(preview, width=240)
     source_column, asset_column = st.columns(2)
     source_column.link_button(
@@ -226,6 +228,20 @@ def render_logo_discovery_recovery(idea_id: int) -> None:
 def save_body_draft(idea_id: int, body_key: str) -> None:
     pipeline.update_body(conn, idea_id, st.session_state[body_key])
     st.session_state[f"body-saved-at-{idea_id}"] = clock.now()[11:16]
+
+
+def sync_body_editor(idea_id: int, persisted_body: str) -> str:
+    body_key = f"body-{idea_id}"
+    loaded_key = f"body-loaded-{idea_id}"
+    if loaded_key not in st.session_state:
+        st.session_state[body_key] = persisted_body
+    elif st.session_state[loaded_key] != persisted_body and (
+        body_key not in st.session_state
+        or st.session_state[body_key] == st.session_state[loaded_key]
+    ):
+        st.session_state[body_key] = persisted_body
+    st.session_state[loaded_key] = persisted_body
+    return body_key
 
 
 def fetch_source_suggestion(
@@ -1118,10 +1134,9 @@ with candidate_column:
                             sources,
                             provider_config,
                         )
-            body_key = f"body-{idea.id}"
+            body_key = sync_body_editor(idea.id, idea.body)
             body = st.text_area(
                 "正文",
-                value=idea.body,
                 key=body_key,
                 height=180,
                 on_change=save_body_draft,

@@ -77,6 +77,102 @@ def test_discover_prefers_dark_logo_over_white_variant():
     assert downloaded == ["https://acme.example/assets/acme-logo.svg"]
 
 
+def test_discover_extracts_an_inline_svg_logo_from_official_site():
+    html = (
+        '<html><body><a aria-label="Home" href="/">'
+        '<svg class="logo" data-testid="acme-nav-logo" '
+        'style="enable-background:new" viewBox="0 0 240 80">'
+        '<path fill="#ff4300" d="M0 0h240v80H0z"/>'
+        '</svg></a></body></html>'
+    )
+
+    candidate = logo_discovery.discover(
+        "Acme",
+        search_fn=lambda _query, _limit: [
+            Material(
+                "Acme | Official website",
+                "https://acme.example/",
+                "The official Acme homepage",
+            )
+        ],
+        html_fetch_fn=lambda _url: html,
+        asset_fetch_fn=lambda _url: pytest.fail(
+            "Inline SVG must not be downloaded as a separate asset"
+        ),
+    )
+
+    logo_discovery.logo.validate_upload(candidate.data, candidate.filename)
+    assert candidate.company == "Acme"
+    assert candidate.filename == "acme-inline-logo.svg"
+    assert candidate.official_page_url == "https://acme.example/"
+    assert candidate.asset_url == "https://acme.example/#inline-logo-1"
+
+
+def test_discover_retries_with_official_site_query_when_brand_search_is_empty():
+    queries = []
+
+    def search(query, _limit):
+        queries.append(query)
+        if len(queries) == 1:
+            return []
+        return [
+            Material(
+                "Acme | Official website",
+                "https://acme.example/",
+                "The official Acme homepage",
+            )
+        ]
+
+    candidate = logo_discovery.discover(
+        "Acme",
+        search_fn=search,
+        html_fetch_fn=lambda _url: (
+            '<svg data-testid="acme-nav-logo" viewBox="0 0 240 80">'
+            '<path d="M0 0h240v80H0z"/></svg>'
+        ),
+    )
+
+    assert candidate.company == "Acme"
+    assert queries == [
+        '"Acme" official website logo brand assets',
+        '"Acme" official website',
+    ]
+
+
+def test_discover_skips_a_domain_that_only_starts_with_the_company_name():
+    pages = {
+        "https://moovecars.com/": (
+            '<img alt="Moove Cars logo" '
+            'src="https://moovecars.com/moove-cars.svg">'
+        ),
+        "https://www.moove.io/": (
+            '<img alt="Moove logo" '
+            'src="https://www.moove.io/moove.svg">'
+        ),
+    }
+
+    candidate = logo_discovery.discover(
+        "Moove",
+        search_fn=lambda _query, _limit: [
+            Material(
+                "Moove Cars",
+                "https://moovecars.com/",
+                "A different car company",
+            ),
+            Material(
+                "Moove | Official website",
+                "https://www.moove.io/",
+                "The mobility fintech company",
+            ),
+        ],
+        html_fetch_fn=lambda url: pages[url],
+        asset_fetch_fn=lambda _url: (VALID_SVG, "image/svg+xml"),
+    )
+
+    assert candidate.official_page_url == "https://www.moove.io/"
+    assert candidate.asset_url == "https://www.moove.io/moove.svg"
+
+
 def test_discover_skips_editorial_and_unrelated_search_results():
     results = [
         Material(
@@ -156,3 +252,24 @@ def test_discover_skips_an_unsafe_asset_and_uses_the_next_valid_logo():
         "https://acme.example/assets/unsafe-logo.svg",
         "https://acme.example/assets/safe-logo.svg",
     ]
+
+
+@pytest.mark.contract
+def test_moove_official_site_keeps_an_extractable_inline_logo():
+    candidate = logo_discovery.discover(
+        "Moove",
+        search_fn=lambda _query, _limit: [
+            Material(
+                "Moove | The Future of Mobility",
+                "https://www.moove.io/",
+                "Moove's official website",
+            )
+        ],
+    )
+
+    logo_discovery.logo.validate_upload(candidate.data, candidate.filename)
+    assert candidate.company == "Moove"
+    assert candidate.official_page_url == "https://www.moove.io/"
+    assert candidate.asset_url.startswith(
+        "https://www.moove.io/#inline-logo-"
+    )

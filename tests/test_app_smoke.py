@@ -979,6 +979,39 @@ def test_ai_copy_generation_loads_and_saves_the_new_draft(
     assert "初稿準備好了" in rendered
 
 
+def test_body_editor_refreshes_when_copy_changes_outside_current_session(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "寫作主題", 0, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("跨頁更新正文", "採用角度", ""),
+        status="採用",
+    )
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=10)
+    body_editor = next(
+        area for area in app.text_area if area.label == "正文"
+    )
+    assert body_editor.value == ""
+
+    pipeline.update_body(conn, idea_id, "另一個流程剛產生的新正文")
+    app.run(timeout=10)
+
+    refreshed_editor = next(
+        area for area in app.text_area if area.label == "正文"
+    )
+    assert refreshed_editor.value == "另一個流程剛產生的新正文"
+
+
 def test_ai_copy_error_keeps_current_data_and_shows_recovery(
     monkeypatch,
     tmp_path,
@@ -2548,6 +2581,9 @@ def test_official_logo_candidate_is_previewed_without_persisting(
     tmp_path,
     monkeypatch,
 ):
+    import base64
+    import streamlit as st
+
     from daibu.cards import logo_discovery
 
     path = tmp_path / "t.db"
@@ -2586,13 +2622,25 @@ def test_official_logo_candidate_is_previewed_without_persisting(
             "https://acme.example/assets/acme.svg",
         ),
     )
+    preview_values = []
 
-    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    def capture_preview(value, *args, **kwargs):
+        del args, kwargs
+        preview_values.append(value)
+
+    monkeypatch.setattr(st, "image", capture_preview)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=10)
     rendered = " ".join(block.value for block in app.markdown)
 
     assert not app.exception
     assert "找到一張官方 Logo 候選" in rendered
     assert "待你確認" in rendered
+    assert len(preview_values) == 1
+    assert preview_values[0].startswith("data:image/svg+xml;base64,")
+    assert base64.b64decode(preview_values[0].split(",", 1)[1]) == (
+        b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"/>'
+    )
     assert db.get_brand_asset(conn, "Acme") is None
     assert not (tmp_path / "logos").exists()
 

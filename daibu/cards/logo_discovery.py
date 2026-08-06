@@ -4,10 +4,12 @@ import re
 import ssl
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from html import escape as html_escape
 from html.parser import HTMLParser
 from pathlib import PurePosixPath
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
+from xml.etree import ElementTree
 
 import certifi
 
@@ -49,7 +51,11 @@ class _OfficialPageParser(HTMLParser):
         self.page_url = page_url
         self.company = company
         self.logo_urls: list[tuple[int, str]] = []
+        self.inline_logos: list[tuple[int, str]] = []
         self.brand_page_urls: list[str] = []
+        self._inline_parts: list[str] | None = None
+        self._inline_depth = 0
+        self._inline_score = 0
 
     def handle_starttag(
         self,
@@ -57,6 +63,33 @@ class _OfficialPageParser(HTMLParser):
         attrs: list[tuple[str, str | None]],
     ) -> None:
         values = {name.casefold(): value or "" for name, value in attrs}
+        if self._inline_parts is not None:
+            self._inline_parts.append(self.get_starttag_text() or f"<{tag}>")
+            if tag == "svg":
+                self._inline_depth += 1
+            return
+        if tag == "svg":
+            description = " ".join(
+                values.get(name, "")
+                for name in (
+                    "aria-label",
+                    "title",
+                    "class",
+                    "id",
+                    "data-testid",
+                )
+            )
+            normalized_description = _normalized(description)
+            if (
+                "logo" in description.casefold()
+                or _normalized(self.company) in normalized_description
+            ):
+                self._inline_score = _logo_score(description)
+                self._inline_parts = [
+                    self.get_starttag_text() or "<svg>"
+                ]
+                self._inline_depth = 1
+                return
         if tag == "img" and values.get("src"):
             description = " ".join(
                 values.get(name, "")
@@ -65,14 +98,11 @@ class _OfficialPageParser(HTMLParser):
             if "logo" in description.casefold() or _normalized(
                 self.company
             ) in _normalized(description):
-                descriptor = description.casefold()
-                score = 0
-                if "white" in descriptor or "logo-light" in descriptor:
-                    score -= 2
-                if "dark" in descriptor or "logo-dark" in descriptor:
-                    score += 1
                 self.logo_urls.append(
-                    (score, urljoin(self.page_url, values["src"]))
+                    (
+                        _logo_score(description),
+                        urljoin(self.page_url, values["src"]),
+                    )
                 )
         if tag == "a" and values.get("href"):
             target = urljoin(self.page_url, values["href"])
@@ -80,9 +110,53 @@ class _OfficialPageParser(HTMLParser):
             if any(marker in path for marker in _BRAND_MARKERS):
                 self.brand_page_urls.append(target)
 
+    def handle_startendtag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+    ) -> None:
+        if self._inline_parts is not None:
+            self._inline_parts.append(self.get_starttag_text() or f"<{tag}/>")
+            return
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._inline_parts is None:
+            return
+        self._inline_parts.append(f"</{tag}>")
+        if tag == "svg":
+            self._inline_depth -= 1
+            if self._inline_depth == 0:
+                self.inline_logos.append(
+                    (self._inline_score, "".join(self._inline_parts))
+                )
+                self._inline_parts = None
+
+    def handle_data(self, data: str) -> None:
+        if self._inline_parts is not None:
+            self._inline_parts.append(html_escape(data))
+
+    def handle_entityref(self, name: str) -> None:
+        if self._inline_parts is not None:
+            self._inline_parts.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        if self._inline_parts is not None:
+            self._inline_parts.append(f"&#{name};")
+
 
 def _normalized(value: str) -> str:
     return re.sub(r"[^a-z0-9一-鿿]+", "", value.casefold())
+
+
+def _logo_score(description: str) -> int:
+    descriptor = description.casefold()
+    score = 0
+    if "white" in descriptor or "logo-light" in descriptor:
+        score -= 2
+    if "dark" in descriptor or "logo-dark" in descriptor:
+        score += 1
+    return score
 
 
 def _hostname(value: str) -> str:
@@ -103,8 +177,10 @@ def _is_blocked(value: str) -> bool:
 
 def _looks_like_company_site(company: str, material: Material) -> bool:
     needle = _normalized(company)
-    hostname = _normalized(_hostname(material.url))
-    return bool(needle and needle in hostname)
+    hostname_labels = {
+        _normalized(label) for label in _hostname(material.url).split(".")
+    }
+    return bool(needle and needle in hostname_labels)
 
 
 def _request(url: str) -> Request:
@@ -148,6 +224,25 @@ def _parse_page(
     return parser
 
 
+def _safe_inline_svg(raw_svg: str, company: str) -> tuple[bytes, str]:
+    try:
+        root = ElementTree.fromstring(raw_svg)
+    except ElementTree.ParseError as error:
+        raise logo.InvalidBrandAsset("內嵌 SVG 無法解析") from error
+    for element in root.iter():
+        if logo._local_name(element.tag) not in logo._ALLOWED_SVG_TAGS:
+            raise logo.InvalidBrandAsset("SVG Logo 含不安全內容")
+        for name in tuple(element.attrib):
+            if logo._local_name(name) not in logo._ALLOWED_SVG_ATTRIBUTES:
+                del element.attrib[name]
+    if not root.tag.startswith("{"):
+        root.set("xmlns", "http://www.w3.org/2000/svg")
+    data = ElementTree.tostring(root, encoding="utf-8")
+    filename = f"{_normalized(company) or 'company'}-inline-logo.svg"
+    logo.validate_upload(data, filename)
+    return data, filename
+
+
 def discover(
     company: str,
     *,
@@ -167,6 +262,8 @@ def discover(
 
     try:
         results = do_search(query, 5)
+        if not results:
+            results = do_search(f'"{company}" official website', 5)
     except (OSError, RuntimeError, ValueError) as error:
         raise LogoDiscoveryError(str(error)) from error
 
@@ -201,6 +298,30 @@ def discover(
                 for url in parser.brand_page_urls
                 if url not in visited and _same_site(url, material.url)
             )
+            for index, (_, raw_svg) in enumerate(
+                sorted(
+                    parser.inline_logos,
+                    key=lambda candidate: candidate[0],
+                    reverse=True,
+                ),
+                start=1,
+            ):
+                page_base_url = page_url.split("#", maxsplit=1)[0]
+                asset_url = f"{page_base_url}#inline-logo-{index}"
+                if asset_url in excluded:
+                    continue
+                try:
+                    data, filename = _safe_inline_svg(raw_svg, company)
+                except ValueError as error:
+                    failures.append(f"{asset_url}：{error}")
+                    continue
+                return LogoCandidate(
+                    company.strip(),
+                    filename,
+                    data,
+                    page_url,
+                    asset_url,
+                )
             for _, asset_url in sorted(
                 parser.logo_urls,
                 key=lambda candidate: candidate[0],
