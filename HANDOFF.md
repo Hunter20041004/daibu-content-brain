@@ -10,7 +10,8 @@
 
 ## 本輪狀態
 
-- **設計**：使用者已確認建造故事式互動網頁方向；正式規格已寫入 `docs/superpowers/specs/2026-08-05-社團建造故事-html-design.md`，等待使用者快速覆核後進入實作計畫。
+- **設計**：使用者已確認建造故事式互動網頁方向；正式規格位於 `docs/superpowers/specs/2026-08-05-社團建造故事-html-design.md`。
+- **實作計畫**：已寫入 `docs/superpowers/plans/2026-08-05-社團建造故事-html.md`，等待選擇 inline 或 subagent-driven 執行方式。
 - **預定成品**：`docs/2026-08-05-我怎麼用-vibe-coding-搭出呆一布內容工作站.html`。
 - **產品程式**：尚未修改。
 
