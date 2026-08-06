@@ -22,6 +22,8 @@
 - **視覺驗收第一輪**：主標字級被 Tailwind 基礎樣式覆蓋、桌機首屏留白過長、手機主標層級不足；已提高 selector specificity、重調字級與首屏高度並補 favicon。
 - **視覺驗收第二輪**：層次、留白、字體、配色、對齊、響應式、狀態與動效全數通過。最終證據：`.screenshots/build-story-round2-desktop.png`、`.screenshots/build-story-round2-mobile.png`；第一輪證據：`.screenshots/build-story-round1-desktop.png`、`.screenshots/build-story-round1-mobile.png`。
 - **產品程式與資料**：未修改 Streamlit、資料表、AI 指令或真實資料庫；本輪沒有呼叫 Tavily／Gemini。
+- **公開分享網址**：`https://daibu-vibe-coding-story.workspace-249035.chatgpt.site`，只發佈這一份建造故事，不公開 private GitHub repo 的其他文件。
+- **正式站驗證**：公開網址會進入 `/story`；在 375×812 實測主標正確、AI 正文步驟切換為選取狀態、內容同步更新、overflow 為 0、console 為 0 errors。唯一 warning 是 Tailwind CDN 的 production 提醒。
 
 ## 前一輪 Demo 影片交付紀錄
 
@@ -38,9 +40,8 @@
 
 ## 下一步
 
-1. 跑全專案測試，確認文件新增沒有影響產品。
-2. 合併 `main` 後重跑全套測試並推送既有遠端。
-3. 取得可供社團組員開啟的分享連結，實際驗證閱讀與互動。
+1. 把公開網址傳給社團組員，會後可直接用手機或桌機閱讀。
+2. 若收到段落評論，整理後再決定是否改版；本輪成品與正式站已完成。
 
 ## 最容易踩的坑
 
