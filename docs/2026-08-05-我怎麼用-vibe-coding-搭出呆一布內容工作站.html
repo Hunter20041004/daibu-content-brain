@@ -357,6 +357,552 @@
         height: 30px;
       }
 
+      .lead {
+        max-width: 72ch;
+        margin: -4px 0 34px 68px;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .pull-quote {
+        margin: 38px 0;
+        padding: 24px 30px;
+        border-left: 5px solid var(--highlight);
+        border-radius: 0 18px 18px 0;
+        background: rgba(250, 252, 254, 0.72);
+        font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+        font-weight: 700;
+        line-height: 1.55;
+      }
+
+      .role-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+
+      .role-card {
+        min-height: 290px;
+        padding: 28px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--surface);
+      }
+
+      .role-card:nth-child(2) {
+        margin-top: 28px;
+      }
+
+      .role-card__mark {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        margin-bottom: 30px;
+        border: 2px solid var(--secondary);
+        border-radius: 14px;
+        color: var(--secondary);
+        font-family: "Figtree", sans-serif;
+        font-weight: 800;
+      }
+
+      .role-card h3 {
+        margin-bottom: 10px;
+        font-size: 1.3rem;
+      }
+
+      .role-card p,
+      .timeline-item p,
+      .lesson p,
+      .recipe-list p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .build-loop {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0;
+        margin-top: 36px;
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(250, 252, 254, 0.7);
+      }
+
+      .build-loop span {
+        position: relative;
+        padding: 10px 22px 10px 10px;
+        color: var(--secondary);
+        font-size: 0.86rem;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .build-loop span:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: 2px;
+        content: "→";
+        transform: translateY(-50%);
+      }
+
+      .plain-note {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .plain-note div {
+        padding: 20px;
+        border-radius: 16px;
+        background: rgba(248, 192, 160, 0.24);
+      }
+
+      .plain-note strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .system-map {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+
+      .system-map::before {
+        position: absolute;
+        top: 78px;
+        right: 8%;
+        left: 8%;
+        z-index: 0;
+        height: 2px;
+        background: var(--border);
+        content: "";
+      }
+
+      .system-card {
+        position: relative;
+        z-index: 1;
+        min-height: 200px;
+        padding: 22px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--surface);
+      }
+
+      .system-card__number {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 22px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .system-card h3 {
+        margin-bottom: 8px;
+        font-size: 1.12rem;
+      }
+
+      .system-card > p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .tech-note {
+        margin-top: 14px;
+        border-top: 1px solid var(--border);
+      }
+
+      .tech-note summary {
+        min-height: 44px;
+        padding: 12px 0 4px;
+        color: var(--secondary);
+        cursor: pointer;
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .tech-note dl {
+        margin: 10px 0 0;
+      }
+
+      .tech-note dt {
+        margin-top: 10px;
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .tech-note dd {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .journey-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .journey-track {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(90px, 1fr));
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 4px 18px;
+      }
+
+      .journey-step {
+        position: relative;
+        min-height: 112px;
+        padding: 16px 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(250, 252, 254, 0.8);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      .journey-step span {
+        display: block;
+        margin-bottom: 20px;
+        color: var(--secondary);
+        font-family: "Figtree", sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .journey-detail {
+        min-height: 254px;
+        padding: 28px;
+        border-radius: 22px;
+        background: var(--ink);
+        color: var(--surface);
+      }
+
+      .journey-detail .badge {
+        margin-bottom: 22px;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--surface);
+      }
+
+      .journey-detail h3 {
+        font-size: 1.45rem;
+      }
+
+      .journey-detail dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px 14px;
+        margin: 0;
+      }
+
+      .journey-detail dt {
+        color: var(--primary);
+        font-weight: 800;
+      }
+
+      .journey-detail dd {
+        margin: 0;
+        color: #dcebf1;
+      }
+
+      .safety-note {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-top: 22px;
+      }
+
+      .safety-note article {
+        padding: 20px 22px;
+        border: 1px solid #efcfc4;
+        border-radius: 16px;
+        background: var(--danger-soft);
+      }
+
+      .safety-note strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .timeline-list {
+        position: relative;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .timeline-list::before {
+        position: absolute;
+        top: 18px;
+        bottom: 18px;
+        left: 23px;
+        width: 2px;
+        background: var(--border);
+        content: "";
+      }
+
+      .timeline-item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 22px;
+        padding-bottom: 34px;
+      }
+
+      .timeline-item:last-child {
+        padding-bottom: 0;
+      }
+
+      .timeline-item__dot {
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 6px solid var(--canvas);
+        border-radius: 50%;
+        background: var(--secondary);
+        color: var(--surface);
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .timeline-item__body {
+        display: grid;
+        grid-template-columns: 0.85fr 1.15fr;
+        gap: 24px;
+        padding: 24px 26px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(250, 252, 254, 0.82);
+      }
+
+      .timeline-item h3 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+
+      .test-lab {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr) 54px minmax(0, 1fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .test-stage {
+        min-height: 250px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--surface);
+      }
+
+      .test-stage__signal {
+        display: inline-block;
+        margin-bottom: 48px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-family: "Figtree", sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .test-stage--red .test-stage__signal {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .test-stage--green .test-stage__signal {
+        background: var(--success-soft);
+        color: var(--success);
+      }
+
+      .test-stage--refactor .test-stage__signal {
+        background: var(--canvas);
+        color: var(--secondary);
+      }
+
+      .test-stage h3 {
+        margin-bottom: 10px;
+        font-size: 1.16rem;
+      }
+
+      .test-stage p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .test-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--secondary);
+        font-size: 1.5rem;
+      }
+
+      .boundary-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 28px;
+      }
+
+      .boundary-compare article {
+        padding: 24px;
+        border-radius: 18px;
+        background: rgba(250, 252, 254, 0.8);
+      }
+
+      .boundary-compare h3 {
+        margin-bottom: 8px;
+      }
+
+      .boundary-compare p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .lesson-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 18px;
+      }
+
+      .lesson {
+        grid-column: span 4;
+        min-height: 238px;
+        padding: 26px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--surface);
+      }
+
+      .lesson:nth-child(1),
+      .lesson:nth-child(2) {
+        grid-column: span 6;
+      }
+
+      .lesson__number {
+        display: block;
+        margin-bottom: 34px;
+        color: var(--secondary);
+        font-family: "Figtree", sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+      }
+
+      .lesson h3 {
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+      }
+
+      .removed-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .removed-list span {
+        padding: 5px 9px;
+        border: 1px solid #efcfc4;
+        border-radius: 8px;
+        background: var(--danger-soft);
+        color: var(--danger);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: line-through;
+      }
+
+      .recipe-shell {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.65fr) minmax(0, 1.35fr);
+        gap: 42px;
+        padding: 42px;
+        border-radius: 28px;
+        background: var(--ink);
+        color: var(--surface);
+      }
+
+      .recipe-intro {
+        position: sticky;
+        top: 34px;
+        align-self: start;
+      }
+
+      .recipe-intro h3 {
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        line-height: 1.1;
+      }
+
+      .recipe-intro p {
+        color: #bfd8e2;
+      }
+
+      .recipe-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: recipe;
+      }
+
+      .recipe-list li {
+        position: relative;
+        padding: 22px 0 22px 54px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+        counter-increment: recipe;
+      }
+
+      .recipe-list li::before {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        color: var(--primary);
+        content: "0" counter(recipe);
+        font-family: "Figtree", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .recipe-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .recipe-list strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1.02rem;
+      }
+
+      .recipe-list p {
+        color: #bfd8e2;
+      }
+
+      .closing-line {
+        margin: 28px 0 0;
+        color: var(--highlight);
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
       footer {
         display: flex;
         justify-content: space-between;
@@ -381,6 +927,53 @@
         .quick-read {
           grid-template-columns: 1fr;
         }
+
+        .role-grid,
+        .system-map,
+        .lesson-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .role-card:nth-child(2) {
+          margin-top: 0;
+        }
+
+        .role-card:last-child,
+        .system-card:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .system-map::before {
+          display: none;
+        }
+
+        .lesson,
+        .lesson:nth-child(1),
+        .lesson:nth-child(2) {
+          grid-column: auto;
+        }
+
+        .lesson:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .journey-shell,
+        .recipe-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .recipe-intro {
+          position: static;
+        }
+
+        .test-lab {
+          grid-template-columns: 1fr;
+        }
+
+        .test-arrow {
+          min-height: 28px;
+          transform: rotate(90deg);
+        }
       }
 
       @media (max-width: 620px) {
@@ -394,6 +987,63 @@
 
         .flow-arrow {
           transform: rotate(90deg);
+        }
+
+        .lead {
+          margin-left: 0;
+        }
+
+        .role-grid,
+        .system-map,
+        .plain-note,
+        .safety-note,
+        .boundary-compare,
+        .lesson-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .role-card:last-child,
+        .system-card:last-child,
+        .lesson:last-child {
+          grid-column: auto;
+        }
+
+        .build-loop {
+          grid-template-columns: 1fr;
+        }
+
+        .build-loop span {
+          padding: 10px 10px 28px;
+        }
+
+        .build-loop span:not(:last-child)::after {
+          top: auto;
+          right: 50%;
+          bottom: 0;
+          transform: translateX(50%) rotate(90deg);
+        }
+
+        .journey-track {
+          grid-template-columns: 1fr;
+          overflow: visible;
+        }
+
+        .journey-step {
+          min-height: 72px;
+        }
+
+        .journey-step span {
+          display: inline-block;
+          margin: 0 14px 0 0;
+        }
+
+        .timeline-item__body {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .recipe-shell {
+          padding: 28px 22px;
         }
       }
     </style>
@@ -489,6 +1139,373 @@
                 <li><span>4</span>產出七張輪播圖</li>
               </ol>
             </article>
+          </div>
+        </section>
+
+        <section id="collaboration" aria-labelledby="collaboration-title">
+          <div class="section-head">
+            <span class="section-head__index">02</span>
+            <div>
+              <h2 id="collaboration-title">我不是把整件事交給 AI</h2>
+              <p>Vibe Coding 不是按一次按鈕等成品，而是人和 AI 在不同位置負責不同的判斷。</p>
+            </div>
+          </div>
+          <p class="lead">
+            我的做法是：先說想要什麼，再讓 AI 幫我拆成可以驗收的小步驟。真正影響使用者的選擇，仍然由我決定。
+          </p>
+
+          <div class="role-grid">
+            <article class="role-card">
+              <span class="role-card__mark" aria-hidden="true">我</span>
+              <h3>產品負責人：決定方向</h3>
+              <p>說清楚社團的痛點、哪些功能先不做、什麼結果算好用；最後也由我親手操作，判斷成品是不是真的解決問題。</p>
+            </article>
+            <article class="role-card">
+              <span class="role-card__mark" aria-hidden="true">C</span>
+              <h3>Claude：整理施工圖</h3>
+              <p>幫我追問需求、比較不同方案、寫規格與實作計畫，把一句模糊的「我想要一個工具」變成可討論的產品決策。</p>
+            </article>
+            <article class="role-card">
+              <span class="role-card__mark" aria-hidden="true">X</span>
+              <h3>Codex：依圖施工與驗收</h3>
+              <p>照計畫先寫測試、再實作，跑真實操作流程、修正問題，並留下每一步做了什麼、怎麼確認的紀錄。</p>
+            </article>
+          </div>
+
+          <div class="build-loop" aria-label="合作循環">
+            <span>需求與限制</span>
+            <span>設計與計畫</span>
+            <span>測試與實作</span>
+            <span>操作驗收</span>
+            <span>下一輪決策</span>
+          </div>
+
+          <div class="plain-note">
+            <div>
+              <strong>規格，就像裝潢前的施工圖</strong>
+              先把房間用途、插座位置和不能動的牆說清楚，才不會做完才發現彼此想像不同。
+            </div>
+            <div>
+              <strong>測試，就像交屋前的驗收清單</strong>
+              先寫好門要能開、水龍頭不能漏，再施工；它不是為了考工程師，而是保護使用者結果。
+            </div>
+          </div>
+        </section>
+
+        <section id="system-map" aria-labelledby="system-map-title">
+          <div class="section-head">
+            <span class="section-head__index">03</span>
+            <div>
+              <h2 id="system-map-title">系統地圖：六個角色一起工作</h2>
+              <p>不用先懂程式。把它想成一間內容餐廳：有人接單、有人料理、有人管庫存，也有人把成品拍好交付。</p>
+            </div>
+          </div>
+
+          <div class="system-map" aria-label="內容工作站系統地圖">
+            <article class="system-card">
+              <span class="system-card__number">1</span>
+              <h3>Streamlit · 接待櫃台</h3>
+              <p>我實際看到、點擊和輸入內容的網頁介面。</p>
+              <details class="tech-note" data-tech="Streamlit">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>把 Python 很快變成網頁工具的展示櫃。</dd>
+                  <dt>定義</dt><dd>一套用 Python 建立資料應用介面的開源框架。</dd>
+                  <dt>在這個產品裡</dt><dd>負責主題、候選、正文與輪播圖的操作畫面。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">2</span>
+              <h3>Python · 後場廚房</h3>
+              <p>把按鈕背後的規則、順序和錯誤處理真正做出來。</p>
+              <details class="tech-note" data-tech="Python">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>告訴電腦每一步要怎麼做的工作語言。</dd>
+                  <dt>定義</dt><dd>一種常用的通用程式語言。</dd>
+                  <dt>在這個產品裡</dt><dd>串起資料、搜尋、AI、狀態變更與出圖流程。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">3</span>
+              <h3>SQLite · 本機資料櫃</h3>
+              <p>把主題、候選、正文與成效放在電腦裡，不必先租伺服器。</p>
+              <details class="tech-note" data-tech="SQLite">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>像一個會整理、會查找的電子檔案櫃。</dd>
+                  <dt>定義</dt><dd>儲存在單一檔案裡的關聯式資料庫。</dd>
+                  <dt>在這個產品裡</dt><dd>記住題目從候選到發佈，以及之後的成效數字。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">4</span>
+              <h3>RSS 與 Tavily · 採購員</h3>
+              <p>從設定好的公開網站帶回材料，而不是讓 AI 憑空猜。</p>
+              <details class="tech-note" data-tech="RSS">
+                <summary>RSS 是什麼？</summary>
+                <dl>
+                  <dt>白話</dt><dd>網站主動提供的「最新文章清單」。</dd>
+                  <dt>定義</dt><dd>讓程式訂閱網站更新的標準資料格式。</dd>
+                  <dt>在這個產品裡</dt><dd>抓取已知內容來源的新文章。</dd>
+                </dl>
+              </details>
+              <details class="tech-note" data-tech="Tavily">
+                <summary>Tavily 是什麼？</summary>
+                <dl>
+                  <dt>白話</dt><dd>替 AI 找網頁資料的搜尋幫手。</dd>
+                  <dt>定義</dt><dd>提供結構化搜尋結果的外部 API 服務。</dd>
+                  <dt>在這個產品裡</dt><dd>只在可信網域範圍內找公司與參考資料。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">5</span>
+              <h3>Gemini · 文字助手</h3>
+              <p>讀過材料後，協助整理候選題目、正文與七頁草稿。</p>
+              <details class="tech-note" data-tech="Gemini">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>能讀指示和材料、再產生文字的 AI 助手。</dd>
+                  <dt>定義</dt><dd>Google 的大型語言模型系列。</dd>
+                  <dt>在這個產品裡</dt><dd>依來源寫初稿；免費 Gemini 是主方案，Groq 是可切換備援。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">6</span>
+              <h3>Playwright · 出圖攝影機</h3>
+              <p>把七頁品牌 HTML 放進瀏覽器，再逐張拍成固定尺寸圖片。</p>
+              <details class="tech-note" data-tech="Playwright">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>一雙能自動打開網頁、點按鈕和拍照的機器手。</dd>
+                  <dt>定義</dt><dd>控制真實瀏覽器的自動化工具。</dd>
+                  <dt>在這個產品裡</dt><dd>輸出七張 1080 × 1350 PNG，也幫忙檢查手機與桌機畫面。</dd>
+                </dl>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section id="content-journey" aria-labelledby="journey-title">
+          <div class="section-head">
+            <span class="section-head__index">04</span>
+            <div>
+              <h2 id="journey-title">一筆內容怎麼從材料走到成品</h2>
+              <p>資料不是一次跳到終點。每一站都留下可看、可改、可拒絕的中間成果。</p>
+            </div>
+          </div>
+
+          <div class="journey-shell">
+            <div class="journey-track" role="tablist" aria-label="內容旅程七步驟">
+              <button class="journey-step" type="button" role="tab" aria-selected="true" data-journey-step="sources"><span>01</span>公開來源</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="research"><span>02</span>公司研究</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="idea"><span>03</span>候選題目</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="adopt"><span>04</span>人工採用</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="draft"><span>05</span>AI 正文</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="cards"><span>06</span>七頁草稿</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="export"><span>07</span>PNG 與 ZIP</button>
+            </div>
+            <article class="journey-detail" id="journey-detail" aria-live="polite">
+              <span class="badge">目前位置 · 公開來源</span>
+              <h3>先決定 AI 可以看哪些材料</h3>
+              <dl>
+                <dt>收到</dt><dd>主題名稱與可信網域清單</dd>
+                <dt>處理</dt><dd>讀取 RSS 或在限定網站內搜尋</dd>
+                <dt>產出</dt><dd>可回頭查證的網址與文字摘要</dd>
+              </dl>
+            </article>
+          </div>
+
+          <div class="safety-note">
+            <article>
+              <strong>文字安全邊界</strong>
+              AI 只能依已蒐集的來源整理內容；資料不足時要保留不確定性，不能自己補故事。
+            </article>
+            <article>
+              <strong>品牌安全邊界</strong>
+              Logo 只能從公司官網或官方品牌頁找候選，仍要由人確認，不能因網址看起來很像就自動採用。
+            </article>
+          </div>
+        </section>
+
+        <section id="timeline" aria-labelledby="timeline-title">
+          <div class="section-head">
+            <span class="section-head__index">05</span>
+            <div>
+              <h2 id="timeline-title">它不是一次生成，是七次長大</h2>
+              <p>每一階段都先解一個最痛的問題。產品用過之後，下一步才會變清楚。</p>
+            </div>
+          </div>
+
+          <ol class="timeline-list">
+            <li class="timeline-item">
+              <span class="timeline-item__dot">01</span>
+              <div class="timeline-item__body"><h3>先做能跑的本機 v1</h3><p>把資料庫、來源抓取、AI 選題、狀態與成效接起來。先證明整條流程走得完，不急著上雲端。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">02</span>
+              <div class="timeline-item__body"><h3>讓外部服務可以替換</h3><p>把 AI 供應商包成同一個插座：免費 Gemini 為主、Groq 為備援，避免工具被單一服務綁死。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">03</span>
+              <div class="timeline-item__body"><h3>重整成主題工作台</h3><p>早期是四個分開的頁面，操作很跳。後來改成左邊選主題、右邊一路工作的同一個空間。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">04</span>
+              <div class="timeline-item__body"><h3>真人操作，測試盲點浮出來</h3><p>99 個測試都通過，實際操作仍找到 24 個問題，其中 4 個會讓資料消失或互相污染。於是補上跨頁、跨資料表的驗收。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">05</span>
+              <div class="timeline-item__body"><h3>加入公司研究與可信來源</h3><p>候選不只是一句點子，而是先知道公司做什麼、依據在哪裡，再讓 AI 寫成可讀的正文。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">06</span>
+              <div class="timeline-item__body"><h3>把文字變成七張輪播</h3><p>加入七頁敘事草稿、品牌模板、官方 Logo 確認、PNG 出圖與 ZIP 下載，內容才真正走到可交付成品。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">07</span>
+              <div class="timeline-item__body"><h3>收斂成單一系列</h3><p>先聚焦「AI 新創介紹」，拿掉暫時用不到的系列與流程，留下能穩定展示、也能繼續演進的工作站。</p></div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="testing" aria-labelledby="testing-title">
+          <div class="section-head">
+            <span class="section-head__index">06</span>
+            <div>
+              <h2 id="testing-title">我怎麼避免 AI 一次寫歪</h2>
+              <p>關鍵不是產生更多程式，而是每次只往前一小步，而且先裝好會報警的驗收條件。</p>
+            </div>
+          </div>
+          <p class="pull-quote">先做一個會響的煙霧警報器，再開始修電線。</p>
+
+          <div class="test-lab">
+            <article class="test-stage test-stage--red">
+              <span class="test-stage__signal">RED</span>
+              <h3>先證明現在做不到</h3>
+              <p>先寫：「刪除主題時，底下題目也必須刪除。」執行後看到失敗，確認警報器真的會響。</p>
+            </article>
+            <div class="test-arrow" aria-hidden="true">→</div>
+            <article class="test-stage test-stage--green">
+              <span class="test-stage__signal">GREEN</span>
+              <h3>只做剛好夠用的修正</h3>
+              <p>不順手加十個功能，只寫最少的程式，讓刪除流程不再留下孤兒資料。</p>
+            </article>
+            <div class="test-arrow" aria-hidden="true">→</div>
+            <article class="test-stage test-stage--refactor">
+              <span class="test-stage__signal">REFACTOR</span>
+              <h3>在保護下整理</h3>
+              <p>測試維持通過時，再改善命名、拿掉重複，讓下一輪比較容易修改。</p>
+            </article>
+          </div>
+
+          <details class="tech-note" data-tech="TDD">
+            <summary>TDD 是什麼？</summary>
+            <dl>
+              <dt>白話</dt><dd>先寫驗收條件，再施工。</dd>
+              <dt>定義</dt><dd>測試驅動開發：Red → Green → Refactor 的開發循環。</dd>
+              <dt>在這個產品裡</dt><dd>把功能切成一次只驗收一件事的小片，降低 AI 大改後難以追查的風險。</dd>
+            </dl>
+          </details>
+
+          <div class="boundary-compare">
+            <article>
+              <h3>Mock：先在室內排練</h3>
+              <p>朋友假裝是外送員，能確認我們會不會開門、收餐；但不代表真實平台一定找得到地址。</p>
+              <details class="tech-note" data-tech="Mock">
+                <summary>正式意思</summary>
+                <dl><dt>定義</dt><dd>用可控制的假物件代替外部服務，快速測內部邏輯。</dd><dt>在這個產品裡</dt><dd>模擬搜尋與 AI 回應，讓大部分測試快速、穩定且不用花額度。</dd></dl>
+              </details>
+            </article>
+            <article>
+              <h3>契約測試：真的叫一次外送</h3>
+              <p>實際連到 RSS、搜尋、免費模型或瀏覽器，確認欄位、權限與回傳格式跟排練時相同。</p>
+              <details class="tech-note" data-tech="契約測試">
+                <summary>正式意思</summary>
+                <dl><dt>定義</dt><dd>對真實系統邊界驗證雙方約定的輸入輸出格式。</dd><dt>在這個產品裡</dt><dd>避免假 AI 永遠乖乖回 JSON，但 Gemini 實際回應一變就整段壞掉。</dd></dl>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section id="lessons" aria-labelledby="lessons-title">
+          <div class="section-head">
+            <span class="section-head__index">07</span>
+            <div>
+              <h2 id="lessons-title">做錯的地方，反而改變了方法</h2>
+              <p>這些不是漂亮的成功步驟，而是工具真的被使用之後，逼我重新做的產品決定。</p>
+            </div>
+          </div>
+
+          <div class="lesson-grid">
+            <article class="lesson">
+              <span class="lesson__number">LESSON 01</span>
+              <h3>功能多，不等於判斷更容易</h3>
+              <p>早期加了很多分類與分數，實際使用卻只增加設定負擔。確認沒有幫助後，就把它們移除。</p>
+              <div class="removed-list" aria-label="後來移除的功能">
+                <span data-removed-feature="守門線">守門線</span>
+                <span data-removed-feature="來源分層">來源分層</span>
+                <span data-removed-feature="常青時效分類">常青／時效分類</span>
+              </div>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 02</span>
+              <h3>測試全綠，不代表產品沒問題</h3>
+              <p>99 個單元測試各自看起來都對，但真人從一頁走到另一頁，仍找到會刪錯或漏資料的流程問題。</p>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 03</span>
+              <h3>驗收不能碰正式資料</h3>
+              <p>手動操作一律使用暫存資料庫複本。測試的目的，是發現錯誤，不是拿真正累積的內容當實驗品。</p>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 04</span>
+              <h3>假 AI 很乖，真 AI 不一定</h3>
+              <p>模擬回應通過，只能證明內部邏輯。免費模型可能改格式、漏欄位或拒答，所以一定要補真實契約測試。</p>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 05</span>
+              <h3>出圖成功，不代表畫面正確</h3>
+              <p>指令顯示成功，文字仍可能溢出、手機仍可能破版。最後要看桌機與手機截圖，驗證使用者真正看見什麼。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="recipe" aria-labelledby="recipe-title">
+          <div class="section-head">
+            <span class="section-head__index">08</span>
+            <div>
+              <h2 id="recipe-title">如果你也想做，可以照這個順序</h2>
+              <p>不用先學完整套程式。先把問題與驗收想清楚，再讓 AI 幫你一段一段完成。</p>
+            </div>
+          </div>
+
+          <div class="recipe-shell">
+            <div class="recipe-intro">
+              <h3>一份可複製的 Vibe Coding 建造公式</h3>
+              <p>八步不是一次做完，而是一個可以反覆回來的小循環。</p>
+              <p class="closing-line">人負責方向、安全與驗收；AI 負責加速分析與施工。</p>
+            </div>
+            <ol class="recipe-list">
+              <li><strong>先寫一個真實痛點</strong><p>描述誰在什麼情境卡住，不要先從「我要用哪個技術」開始。</p></li>
+              <li><strong>畫出一條完整流程</strong><p>從使用者開始操作，到拿到成果，中間每一站都寫出來。</p></li>
+              <li><strong>明確寫出這一版不做什麼</strong><p>範圍越清楚，AI 越不容易把半成品膨脹成失控的大專案。</p></li>
+              <li><strong>請 AI 比較方案並寫規格</strong><p>要求它說明優缺點、成本與風險，不要只接受第一個答案。</p></li>
+              <li><strong>拆成一次可驗收一件事的小切片</strong><p>每片做完都能操作、能判斷通過或不通過。</p></li>
+              <li><strong>先寫失敗測試，再做最小實作</strong><p>先確認警報真的會響，才讓 AI 修改程式。</p></li>
+              <li><strong>用真實畫面與真實服務驗收</strong><p>模擬測試之外，親手走流程、看截圖，也確認外部服務真的照約定回應。</p></li>
+              <li><strong>把使用後的問題放回下一輪</strong><p>刪掉沒幫助的設計也算進步；初版不是承諾，而是用來學習的假設。</p></li>
+            </ol>
           </div>
         </section>
       </main>
