@@ -1,5 +1,6 @@
-from pathlib import Path
+import re
 from html.parser import HTMLParser
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
@@ -115,3 +116,14 @@ def test_story_mobile_layout_focus_and_reduced_motion():
             "el => getComputedStyle(el).getPropertyValue('--motion-distance').trim()"
         ) == "0px"
         browser.close()
+
+
+def test_story_contains_no_secrets_placeholders_or_local_links():
+    source = HTML_PATH.read_text(encoding="utf-8")
+
+    assert not re.search(r"(?:GEMINI|GROQ|TAVILY)_API_KEY\s*=", source)
+    assert "/Users/" not in source
+    assert "file:///" not in source
+    assert not re.search(r"\b(?:TBD|TODO|Lorem ipsum|__TITLE__)\b", source)
+    assert "window.vtCollectComments = function" in source
+    assert 'id="vt-comment-trigger"' in source
