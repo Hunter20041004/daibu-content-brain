@@ -1,0 +1,2240 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="一份給 Vibe Coding 初學者的呆一布內容工作站建造故事。"
+    />
+    <title>我怎麼用 Vibe Coding 搭出呆一布內容工作站</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%236fc1cc'/%3E%3Ccircle cx='11' cy='15' r='2' fill='%230e0e2c'/%3E%3Ccircle cx='21' cy='15' r='2' fill='%230e0e2c'/%3E%3Cpath d='M11 21q5 4 10 0' fill='none' stroke='%230e0e2c' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=Noto+Sans+TC:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --canvas: #e9f6ff;
+        --primary: #6fc1cc;
+        --secondary: #32738f;
+        --ink: #0e0e2c;
+        --highlight: #f8c0a0;
+        --surface: #fafcfe;
+        --border: #c7e2ea;
+        --muted: #466370;
+        --danger: #a34a3a;
+        --danger-soft: #fff1eb;
+        --success: #285f52;
+        --success-soft: #e4f5f1;
+        --shadow: 0 22px 54px rgba(14, 14, 44, 0.1);
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --motion-distance: 6px;
+        --font-sans: "Figtree", "Noto Sans TC", sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 92% 4%, rgba(248, 192, 160, 0.3), transparent 20rem),
+          linear-gradient(180deg, #f5fbff 0%, var(--canvas) 100%);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--secondary);
+      }
+
+      button,
+      summary,
+      a {
+        touch-action: manipulation;
+      }
+
+      button {
+        min-height: 44px;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--secondary);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 100;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--ink);
+        color: var(--surface);
+        opacity: 0;
+        transform: translateY(-140%);
+      }
+
+      .skip-link:focus {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .reading-progress {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 1000;
+        height: 4px;
+        background: rgba(199, 226, 234, 0.7);
+      }
+
+      .reading-progress__bar {
+        width: 100%;
+        height: 100%;
+        background: var(--secondary);
+        transform: scaleX(0);
+        transform-origin: left center;
+      }
+
+      .desktop-toc {
+        position: fixed;
+        top: 84px;
+        left: max(24px, calc((100vw - 1480px) / 2));
+        z-index: 30;
+        width: 180px;
+        padding: 20px 16px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(250, 252, 254, 0.86);
+        box-shadow: 0 12px 30px rgba(14, 14, 44, 0.06);
+        backdrop-filter: blur(14px);
+      }
+
+      .desktop-toc__label {
+        display: block;
+        margin: 0 8px 12px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+
+      .desktop-toc a {
+        display: block;
+        min-height: 44px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 0.83rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .desktop-toc a[aria-current="location"] {
+        background: var(--canvas);
+        color: var(--secondary);
+      }
+
+      .mobile-toc {
+        display: none;
+      }
+
+      .page-shell {
+        width: min(1180px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+        gap: 64px;
+        align-items: center;
+        min-height: 84vh;
+        padding: 64px 0 58px;
+      }
+
+      .eyebrow {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 0 0 22px;
+        color: var(--secondary);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 28px;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--primary);
+        content: "";
+      }
+
+      body h1,
+      body h2,
+      body h3 {
+        margin-top: 0;
+        text-wrap: balance;
+      }
+
+      body h1 {
+        max-width: 13ch;
+        margin-bottom: 24px;
+        font-size: clamp(2.75rem, 5.2vw, 4.6rem);
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+      }
+
+      h1 em {
+        color: var(--secondary);
+        font-style: normal;
+      }
+
+      .hero__deck {
+        max-width: 62ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.8vw, 1.22rem);
+      }
+
+      .hero__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 28px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .hero__meta li,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(250, 252, 254, 0.76);
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .hero__visual {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 440px;
+      }
+
+      .hero__visual::before,
+      .hero__visual::after {
+        position: absolute;
+        border-radius: 34px;
+        content: "";
+      }
+
+      .hero__visual::before {
+        inset: 34px 18px 18px 34px;
+        border: 1px solid rgba(50, 115, 143, 0.22);
+        background: rgba(250, 252, 254, 0.7);
+        transform: rotate(5deg);
+      }
+
+      .hero__visual::after {
+        inset: 12px 42px 44px 8px;
+        background: var(--highlight);
+        opacity: 0.55;
+        transform: rotate(-5deg);
+      }
+
+      .mascot-card {
+        position: relative;
+        z-index: 1;
+        width: min(320px, 86%);
+        padding: 44px 42px 34px;
+        border: 1.5px solid var(--border);
+        border-radius: 30px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        transform: rotate(1.5deg);
+      }
+
+      .mascot-card svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .mascot-card p {
+        margin: 20px 0 0;
+        color: var(--secondary);
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .quick-read {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin: 0 0 96px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .quick-read li {
+        position: relative;
+        min-height: 132px;
+        padding: 24px 22px 22px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(250, 252, 254, 0.82);
+      }
+
+      .quick-read span {
+        display: block;
+        margin-bottom: 22px;
+        color: var(--secondary);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+
+      .quick-read strong {
+        display: block;
+        font-size: 1.05rem;
+        line-height: 1.45;
+      }
+
+      section {
+        margin: 0 0 112px;
+        scroll-margin-top: 28px;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+        margin-bottom: 34px;
+      }
+
+      .section-head__index {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: var(--secondary);
+        color: var(--surface);
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .section-head h2 {
+        margin-bottom: 6px;
+        font-size: clamp(2rem, 4vw, 3.25rem);
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+      }
+
+      .section-head p {
+        max-width: 68ch;
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .before-after {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+        align-items: stretch;
+        gap: 14px;
+      }
+
+      .flow-card {
+        padding: 30px;
+        border: 1.5px solid var(--border);
+        border-radius: 24px;
+        background: var(--surface);
+      }
+
+      .flow-card--before {
+        background: var(--danger-soft);
+        border-color: #efcfc4;
+      }
+
+      .flow-card--after {
+        background: var(--success-soft);
+        border-color: #b9ddd4;
+      }
+
+      .flow-card h3 {
+        margin-bottom: 22px;
+        font-size: 1.35rem;
+      }
+
+      .flow-card ol {
+        display: grid;
+        gap: 16px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .flow-card li {
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .flow-card li span {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(250, 252, 254, 0.82);
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .flow-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--secondary);
+      }
+
+      .flow-arrow svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .lead {
+        max-width: 72ch;
+        margin: -4px 0 34px 68px;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .pull-quote {
+        margin: 38px 0;
+        padding: 24px 30px;
+        border-left: 5px solid var(--highlight);
+        border-radius: 0 18px 18px 0;
+        background: rgba(250, 252, 254, 0.72);
+        font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+        font-weight: 700;
+        line-height: 1.55;
+      }
+
+      .role-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+
+      .role-card {
+        min-height: 290px;
+        padding: 28px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--surface);
+      }
+
+      .role-card:nth-child(2) {
+        margin-top: 28px;
+      }
+
+      .role-card__mark {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        margin-bottom: 30px;
+        border: 2px solid var(--secondary);
+        border-radius: 14px;
+        color: var(--secondary);
+        font-family: "Figtree", sans-serif;
+        font-weight: 800;
+      }
+
+      .role-card h3 {
+        margin-bottom: 10px;
+        font-size: 1.3rem;
+      }
+
+      .role-card p,
+      .timeline-item p,
+      .lesson p,
+      .recipe-list p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .build-loop {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0;
+        margin-top: 36px;
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(250, 252, 254, 0.7);
+      }
+
+      .build-loop span {
+        position: relative;
+        padding: 10px 22px 10px 10px;
+        color: var(--secondary);
+        font-size: 0.86rem;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .build-loop span:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: 2px;
+        content: "→";
+        transform: translateY(-50%);
+      }
+
+      .plain-note {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .plain-note div {
+        padding: 20px;
+        border-radius: 16px;
+        background: rgba(248, 192, 160, 0.24);
+      }
+
+      .plain-note strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .system-map {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+
+      .system-map::before {
+        position: absolute;
+        top: 78px;
+        right: 8%;
+        left: 8%;
+        z-index: 0;
+        height: 2px;
+        background: var(--border);
+        content: "";
+      }
+
+      .system-card {
+        position: relative;
+        z-index: 1;
+        min-height: 200px;
+        padding: 22px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--surface);
+      }
+
+      .system-card__number {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 22px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .system-card h3 {
+        margin-bottom: 8px;
+        font-size: 1.12rem;
+      }
+
+      .system-card > p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .tech-note {
+        margin-top: 14px;
+        border-top: 1px solid var(--border);
+      }
+
+      .tech-note summary {
+        min-height: 44px;
+        padding: 12px 0 4px;
+        color: var(--secondary);
+        cursor: pointer;
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .tech-note dl {
+        margin: 10px 0 0;
+      }
+
+      .tech-note dt {
+        margin-top: 10px;
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .tech-note dd {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .journey-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .journey-track {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(90px, 1fr));
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 4px 18px;
+      }
+
+      .journey-step {
+        position: relative;
+        min-height: 112px;
+        padding: 16px 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(250, 252, 254, 0.8);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 700;
+        text-align: left;
+        transition: transform 190ms var(--ease-out);
+      }
+
+      .journey-step span {
+        display: block;
+        margin-bottom: 20px;
+        color: var(--secondary);
+        font-family: "Figtree", sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .journey-step[aria-selected="true"] {
+        border-color: var(--secondary);
+        background: var(--secondary);
+        box-shadow: 0 8px 20px rgba(50, 115, 143, 0.18);
+        color: var(--surface);
+        transform: translateY(-4px);
+      }
+
+      .journey-step[aria-selected="true"] span {
+        color: var(--highlight);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .journey-step:hover {
+          border-color: var(--secondary);
+          transform: translateY(-3px);
+        }
+
+        .desktop-toc a:hover,
+        .mobile-toc a:hover {
+          background: rgba(111, 193, 204, 0.14);
+        }
+      }
+
+      .journey-detail {
+        min-height: 254px;
+        padding: 28px;
+        border-radius: 22px;
+        background: var(--ink);
+        color: var(--surface);
+      }
+
+      .journey-detail .badge {
+        margin-bottom: 22px;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--surface);
+      }
+
+      .journey-detail h3 {
+        font-size: 1.45rem;
+      }
+
+      .journey-detail dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px 14px;
+        margin: 0;
+      }
+
+      .journey-detail dt {
+        color: var(--primary);
+        font-weight: 800;
+      }
+
+      .journey-detail dd {
+        margin: 0;
+        color: #dcebf1;
+      }
+
+      .safety-note {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        margin-top: 22px;
+      }
+
+      .safety-note article {
+        padding: 20px 22px;
+        border: 1px solid #efcfc4;
+        border-radius: 16px;
+        background: var(--danger-soft);
+      }
+
+      .safety-note strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .timeline-list {
+        position: relative;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .timeline-list::before {
+        position: absolute;
+        top: 18px;
+        bottom: 18px;
+        left: 23px;
+        width: 2px;
+        background: var(--border);
+        content: "";
+      }
+
+      .timeline-item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 22px;
+        padding-bottom: 34px;
+      }
+
+      .timeline-item:last-child {
+        padding-bottom: 0;
+      }
+
+      .timeline-item__dot {
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 6px solid var(--canvas);
+        border-radius: 50%;
+        background: var(--secondary);
+        color: var(--surface);
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .timeline-item__body {
+        display: grid;
+        grid-template-columns: 0.85fr 1.15fr;
+        gap: 24px;
+        padding: 24px 26px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(250, 252, 254, 0.82);
+      }
+
+      .timeline-item h3 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+
+      .test-lab {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr) 54px minmax(0, 1fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .test-stage {
+        min-height: 250px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--surface);
+      }
+
+      .test-stage__signal {
+        display: inline-block;
+        margin-bottom: 48px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-family: "Figtree", sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .test-stage--red .test-stage__signal {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .test-stage--green .test-stage__signal {
+        background: var(--success-soft);
+        color: var(--success);
+      }
+
+      .test-stage--refactor .test-stage__signal {
+        background: var(--canvas);
+        color: var(--secondary);
+      }
+
+      .test-stage h3 {
+        margin-bottom: 10px;
+        font-size: 1.16rem;
+      }
+
+      .test-stage p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .test-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--secondary);
+        font-size: 1.5rem;
+      }
+
+      .boundary-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 28px;
+      }
+
+      .boundary-compare article {
+        padding: 24px;
+        border-radius: 18px;
+        background: rgba(250, 252, 254, 0.8);
+      }
+
+      .boundary-compare h3 {
+        margin-bottom: 8px;
+      }
+
+      .boundary-compare p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .lesson-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 18px;
+      }
+
+      .lesson {
+        grid-column: span 4;
+        min-height: 238px;
+        padding: 26px;
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--surface);
+      }
+
+      .lesson:nth-child(1),
+      .lesson:nth-child(2) {
+        grid-column: span 6;
+      }
+
+      .lesson__number {
+        display: block;
+        margin-bottom: 34px;
+        color: var(--secondary);
+        font-family: "Figtree", sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+      }
+
+      .lesson h3 {
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+      }
+
+      .removed-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .removed-list span {
+        padding: 5px 9px;
+        border: 1px solid #efcfc4;
+        border-radius: 8px;
+        background: var(--danger-soft);
+        color: var(--danger);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: line-through;
+      }
+
+      .recipe-shell {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.65fr) minmax(0, 1.35fr);
+        gap: 42px;
+        padding: 42px;
+        border-radius: 28px;
+        background: var(--ink);
+        color: var(--surface);
+      }
+
+      .recipe-intro {
+        position: sticky;
+        top: 34px;
+        align-self: start;
+      }
+
+      .recipe-intro h3 {
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        line-height: 1.1;
+      }
+
+      .recipe-intro p {
+        color: #bfd8e2;
+      }
+
+      .recipe-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: recipe;
+      }
+
+      .recipe-list li {
+        position: relative;
+        padding: 22px 0 22px 54px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+        counter-increment: recipe;
+      }
+
+      .recipe-list li::before {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        color: var(--primary);
+        content: "0" counter(recipe);
+        font-family: "Figtree", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .recipe-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .recipe-list strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1.02rem;
+      }
+
+      .recipe-list p {
+        color: #bfd8e2;
+      }
+
+      .closing-line {
+        margin: 28px 0 0;
+        color: var(--highlight);
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .vt-comment-trigger {
+        position: fixed;
+        z-index: 9998;
+        display: none;
+        align-items: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 7px 12px;
+        border: 1.5px solid var(--secondary);
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow: 0 4px 14px rgba(14, 14, 44, 0.14);
+        color: var(--secondary);
+        cursor: pointer;
+        font: 700 0.78rem var(--font-sans);
+      }
+
+      .vt-comment-trigger svg,
+      .vt-comment-pill svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .vt-comment-popup {
+        position: fixed;
+        z-index: 9999;
+        display: none;
+        width: min(340px, calc(100vw - 24px));
+        padding: 14px 16px;
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: 0 14px 36px rgba(14, 14, 44, 0.17);
+      }
+
+      .vt-comment-popup .quote {
+        max-height: 80px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        padding: 8px 10px;
+        border-left: 3px solid var(--secondary);
+        background: var(--canvas);
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+
+      .vt-comment-popup textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 72px;
+        padding: 9px 10px;
+        resize: vertical;
+        border: 1.5px solid var(--border);
+        border-radius: 9px;
+        color: var(--ink);
+        font: 0.82rem var(--font-sans);
+      }
+
+      .vt-comment-popup .actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+      }
+
+      .vt-comment-popup .hint {
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .vt-comment-popup button,
+      .vt-comment-list-footer button,
+      .vt-comment-item .item-del {
+        min-height: 44px;
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font: 700 0.76rem var(--font-sans);
+      }
+
+      .vt-comment-popup button.send,
+      .vt-comment-list-footer button.copy {
+        border-color: var(--secondary);
+        background: var(--secondary);
+        color: var(--surface);
+      }
+
+      mark.vt-comment-mark {
+        padding: 0 2px;
+        border-radius: 2px;
+        background: rgba(248, 192, 160, 0.65);
+        cursor: pointer;
+      }
+
+      .vt-comment-pill {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 9990;
+        display: none;
+        align-items: center;
+        gap: 7px;
+        min-height: 44px;
+        padding: 8px 14px;
+        border: 1.5px solid var(--secondary);
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow: 0 4px 14px rgba(14, 14, 44, 0.13);
+        color: var(--secondary);
+        cursor: pointer;
+        font: 700 0.78rem var(--font-sans);
+      }
+
+      .vt-comment-pill.is-active {
+        display: inline-flex;
+      }
+
+      .vt-comment-list {
+        position: fixed;
+        right: 16px;
+        bottom: 68px;
+        z-index: 9991;
+        display: none;
+        flex-direction: column;
+        width: min(360px, calc(100vw - 32px));
+        max-height: 60vh;
+        overflow: hidden;
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: 0 14px 36px rgba(14, 14, 44, 0.17);
+      }
+
+      .vt-comment-list.is-open {
+        display: flex;
+      }
+
+      .vt-comment-list-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .vt-comment-list-items {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .vt-comment-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .vt-comment-item .item-quote {
+        margin-bottom: 6px;
+        padding-left: 8px;
+        border-left: 2px solid var(--highlight);
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-style: italic;
+      }
+
+      .vt-comment-item .item-body {
+        color: var(--ink);
+        font-size: 0.82rem;
+      }
+
+      .vt-comment-item .item-del {
+        min-height: 44px;
+        margin-top: 4px;
+        padding: 2px 0;
+        border: 0;
+      }
+
+      .vt-comment-list-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--canvas);
+      }
+
+      body.vt-has-existing-export .vt-comment-list-footer button.copy {
+        display: none;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 36px 0 56px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 840px) {
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 16px;
+          min-height: auto;
+        }
+
+        .hero__visual {
+          min-height: 320px;
+        }
+
+        .quick-read {
+          grid-template-columns: 1fr;
+        }
+
+        .role-grid,
+        .system-map,
+        .lesson-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .role-card:nth-child(2) {
+          margin-top: 0;
+        }
+
+        .role-card:last-child,
+        .system-card:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .system-map::before {
+          display: none;
+        }
+
+        .lesson,
+        .lesson:nth-child(1),
+        .lesson:nth-child(2) {
+          grid-column: auto;
+        }
+
+        .lesson:last-child {
+          grid-column: 1 / -1;
+        }
+
+        .journey-shell,
+        .recipe-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .recipe-intro {
+          position: static;
+        }
+
+        .test-lab {
+          grid-template-columns: 1fr;
+        }
+
+        .test-arrow {
+          min-height: 28px;
+          transform: rotate(90deg);
+        }
+      }
+
+      @media (min-width: 1100px) {
+        .page-shell {
+          width: min(1000px, calc(100% - 280px));
+          margin-left: 240px;
+          margin-right: auto;
+        }
+      }
+
+      @media (max-width: 1099px) {
+        .desktop-toc {
+          display: none;
+        }
+
+        .mobile-toc {
+          position: sticky;
+          top: 4px;
+          z-index: 50;
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          margin: 0 -18px;
+          padding: 10px 18px;
+          overscroll-behavior-inline: contain;
+          border-bottom: 1px solid rgba(199, 226, 234, 0.85);
+          background: rgba(245, 251, 255, 0.9);
+          scrollbar-width: none;
+          backdrop-filter: blur(14px);
+        }
+
+        .mobile-toc::-webkit-scrollbar {
+          display: none;
+        }
+
+        .mobile-toc a {
+          flex: 0 0 auto;
+          min-height: 44px;
+          padding: 8px 12px;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          background: var(--surface);
+          color: var(--muted);
+          font-size: 0.78rem;
+          font-weight: 700;
+          text-decoration: none;
+        }
+
+        .mobile-toc a[aria-current="location"] {
+          border-color: var(--secondary);
+          background: var(--secondary);
+          color: var(--surface);
+        }
+      }
+
+      @media (max-width: 620px) {
+        .page-shell {
+          width: min(100% - 36px, 1180px);
+        }
+
+        body h1 {
+          max-width: none;
+          font-size: clamp(2.35rem, 12vw, 3rem);
+          line-height: 1.02;
+        }
+
+        .before-after {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-arrow {
+          transform: rotate(90deg);
+        }
+
+        .lead {
+          margin-left: 0;
+        }
+
+        .role-grid,
+        .system-map,
+        .plain-note,
+        .safety-note,
+        .boundary-compare,
+        .lesson-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .role-card:last-child,
+        .system-card:last-child,
+        .lesson:last-child {
+          grid-column: auto;
+        }
+
+        .build-loop {
+          grid-template-columns: 1fr;
+        }
+
+        .build-loop span {
+          padding: 10px 10px 28px;
+        }
+
+        .build-loop span:not(:last-child)::after {
+          top: auto;
+          right: 50%;
+          bottom: 0;
+          transform: translateX(50%) rotate(90deg);
+        }
+
+        .journey-track {
+          grid-template-columns: 1fr;
+          overflow: visible;
+        }
+
+        .journey-step {
+          min-height: 72px;
+        }
+
+        .journey-step span {
+          display: inline-block;
+          margin: 0 14px 0 0;
+        }
+
+        .timeline-item__body {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .recipe-shell {
+          padding: 28px 22px;
+        }
+
+        footer {
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --motion-distance: 0px;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+
+        .journey-step[aria-selected="true"],
+        .journey-step:hover {
+          transform: none;
+        }
+      }
+
+      @media print {
+        @page {
+          margin: 16mm;
+        }
+
+        body {
+          background: #fff;
+          color: #000;
+        }
+
+        .desktop-toc,
+        .mobile-toc,
+        .reading-progress,
+        .vt-comment-trigger,
+        .vt-comment-popup,
+        .vt-comment-pill,
+        .vt-comment-list {
+          display: none !important;
+        }
+
+        .page-shell {
+          width: 100%;
+          margin: 0;
+        }
+
+        .hero {
+          min-height: auto;
+          padding-top: 0;
+        }
+
+        section {
+          break-inside: avoid-page;
+        }
+
+        details,
+        details > * {
+          display: block !important;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要內容</a>
+    <div class="reading-progress" aria-hidden="true">
+      <div class="reading-progress__bar" id="reading-progress"></div>
+    </div>
+    <nav class="desktop-toc" aria-label="章節導覽">
+      <span class="desktop-toc__label">閱讀路線</span>
+      <a href="#problem" aria-current="location">01 · 起點</a>
+      <a href="#collaboration">02 · 分工</a>
+      <a href="#system-map">03 · 系統地圖</a>
+      <a href="#content-journey">04 · 內容旅程</a>
+      <a href="#timeline">05 · 時間軸</a>
+      <a href="#testing">06 · 測試方法</a>
+      <a href="#lessons">07 · 踩坑</a>
+      <a href="#recipe">08 · 建造公式</a>
+    </nav>
+    <div class="page-shell">
+      <nav class="mobile-toc" aria-label="手機章節導覽">
+        <a href="#problem" aria-current="location">起點</a>
+        <a href="#collaboration">分工</a>
+        <a href="#system-map">系統</a>
+        <a href="#content-journey">旅程</a>
+        <a href="#timeline">時間軸</a>
+        <a href="#testing">測試</a>
+        <a href="#lessons">踩坑</a>
+        <a href="#recipe">公式</a>
+      </nav>
+      <header class="hero" id="hero">
+        <div class="hero__copy">
+          <p class="eyebrow">呆一布內容工作站 · 建造故事</p>
+          <h1>我怎麼用 <em>Vibe Coding</em> 搭出呆一布內容工作站</h1>
+          <p class="hero__deck">
+            從「每週到底要寫什麼」開始，我把一個模糊的社團痛點，慢慢做成能找公司、整理來源、寫正文，最後產出七張輪播圖的本機工具。
+          </p>
+          <ul class="hero__meta" aria-label="閱讀資訊">
+            <li>約 10–15 分鐘</li>
+            <li>不需要程式背景</li>
+            <li>2026 年 8 月整理</li>
+          </ul>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="mascot-card">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 118">
+              <g fill="none">
+                <path d="M64 20V10" stroke="var(--primary)" stroke-width="7" stroke-linecap="round" />
+                <circle cx="64" cy="8" r="8" fill="var(--highlight)" />
+                <rect x="0" y="52" width="14" height="30" rx="7" fill="var(--primary)" />
+                <rect x="114" y="52" width="14" height="30" rx="7" fill="var(--primary)" />
+                <rect x="10" y="20" width="108" height="90" rx="30" fill="var(--primary)" />
+                <rect x="24" y="34" width="80" height="62" rx="22" fill="var(--surface)" />
+                <ellipse cx="48" cy="58" rx="6" ry="6.5" fill="var(--ink)" />
+                <ellipse cx="80" cy="58" rx="6" ry="6.5" fill="var(--ink)" />
+                <ellipse cx="37" cy="74" rx="8" ry="6" fill="var(--highlight)" />
+                <ellipse cx="91" cy="74" rx="8" ry="6" fill="var(--highlight)" />
+                <path d="M55 72q9 13 18 0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" />
+              </g>
+            </svg>
+            <p>內容工作站</p>
+          </div>
+        </div>
+      </header>
+
+      <ol class="quick-read" aria-label="一分鐘摘要">
+        <li>
+          <span>01 · 問題</span>
+          <strong>先把每週反覆發生的內容工作，畫成一條看得見的流程。</strong>
+        </li>
+        <li>
+          <span>02 · 分工</span>
+          <strong>我負責產品決策，AI 協助規劃、實作與驗收。</strong>
+        </li>
+        <li>
+          <span>03 · 方法</span>
+          <strong>每次只做一個可測、可操作的小切片，再往下一步走。</strong>
+        </li>
+      </ol>
+
+      <main id="main-content">
+        <section id="problem" aria-labelledby="problem-title">
+          <div class="section-head">
+            <span class="section-head__index">01</span>
+            <div>
+              <h2 id="problem-title">起點：我們原本卡在哪裡</h2>
+              <p>我先觀察社團每週反覆遇到的工作摩擦，再決定工具要做什麼；技術選擇排在後面。</p>
+            </div>
+          </div>
+
+          <div class="before-after">
+            <article class="flow-card flow-card--before">
+              <span class="badge">以前：每次重新來過</span>
+              <h3>資料與決策散在不同地方</h3>
+              <ol>
+                <li><span>1</span>四處找資料</li>
+                <li><span>2</span>臨時想題</li>
+                <li><span>3</span>文件散落</li>
+                <li><span>4</span>做完沒有回顧</li>
+              </ol>
+            </article>
+
+            <div class="flow-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <article class="flow-card flow-card--after">
+              <span class="badge">現在：一條內容生產線</span>
+              <h3>每一步都有明確輸入與產出</h3>
+              <ol>
+                <li><span>1</span>找題材</li>
+                <li><span>2</span>選一則</li>
+                <li><span>3</span>寫內容</li>
+                <li><span>4</span>產出七張輪播圖</li>
+              </ol>
+            </article>
+          </div>
+        </section>
+
+        <section id="collaboration" aria-labelledby="collaboration-title">
+          <div class="section-head">
+            <span class="section-head__index">02</span>
+            <div>
+              <h2 id="collaboration-title">分工：三種角色怎麼接力</h2>
+              <p>我的 Vibe Coding 過程裡，人和 AI 各自站在不同位置，也負責不同的判斷。</p>
+            </div>
+          </div>
+          <p class="lead">
+            我的做法是：先說想要什麼，再讓 AI 幫我拆成可以驗收的小步驟。真正影響使用者的選擇，仍然由我決定。
+          </p>
+
+          <div class="role-grid">
+            <article class="role-card">
+              <span class="role-card__mark" aria-hidden="true">我</span>
+              <h3>產品負責人：決定方向</h3>
+              <p>說清楚社團的痛點、哪些功能先不做、什麼結果算好用；最後也由我親手操作，判斷成品是不是真的解決問題。</p>
+            </article>
+            <article class="role-card">
+              <span class="role-card__mark" aria-hidden="true">C</span>
+              <h3>Claude：整理施工圖</h3>
+              <p>幫我追問需求、比較不同方案、寫規格與實作計畫，把一句模糊的「我想要一個工具」變成可討論的產品決策。</p>
+            </article>
+            <article class="role-card">
+              <span class="role-card__mark" aria-hidden="true">X</span>
+              <h3>Codex：依圖施工與驗收</h3>
+              <p>照計畫先寫測試、再實作，跑真實操作流程、修正問題，並留下每一步做了什麼、怎麼確認的紀錄。</p>
+            </article>
+          </div>
+
+          <div class="build-loop" aria-label="合作循環">
+            <span>需求與限制</span>
+            <span>設計與計畫</span>
+            <span>測試與實作</span>
+            <span>操作驗收</span>
+            <span>下一輪決策</span>
+          </div>
+
+          <div class="plain-note">
+            <div>
+              <strong>規格，就像裝潢前的施工圖</strong>
+              先把房間用途、插座位置和不能動的牆說清楚，才不會做完才發現彼此想像不同。
+            </div>
+            <div>
+              <strong>測試，就像交屋前的驗收清單</strong>
+              先寫好門要能開、水龍頭不能漏，再施工；這份清單的用途，是保護使用者最後拿到的結果。
+            </div>
+          </div>
+        </section>
+
+        <section id="system-map" aria-labelledby="system-map-title">
+          <div class="section-head">
+            <span class="section-head__index">03</span>
+            <div>
+              <h2 id="system-map-title">系統地圖：六個角色一起工作</h2>
+              <p>不用先懂程式。把它想成一間內容餐廳：有人接單、有人料理、有人管庫存，也有人把成品拍好交付。</p>
+            </div>
+          </div>
+
+          <div class="system-map" aria-label="內容工作站系統地圖">
+            <article class="system-card">
+              <span class="system-card__number">1</span>
+              <h3>Streamlit · 接待櫃台</h3>
+              <p>我實際看到、點擊和輸入內容的網頁介面。</p>
+              <details class="tech-note" data-tech="Streamlit">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>把 Python 很快變成網頁工具的展示櫃。</dd>
+                  <dt>定義</dt><dd>一套用 Python 建立資料應用介面的開源框架。</dd>
+                  <dt>在這個產品裡</dt><dd>負責主題、候選、正文與輪播圖的操作畫面。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">2</span>
+              <h3>Python · 後場廚房</h3>
+              <p>把按鈕背後的規則、順序和錯誤處理真正做出來。</p>
+              <details class="tech-note" data-tech="Python">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>告訴電腦每一步要怎麼做的工作語言。</dd>
+                  <dt>定義</dt><dd>一種常用的通用程式語言。</dd>
+                  <dt>在這個產品裡</dt><dd>串起資料、搜尋、AI、狀態變更與出圖流程。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">3</span>
+              <h3>SQLite · 本機資料櫃</h3>
+              <p>把主題、候選、正文與成效放在電腦裡，不必先租伺服器。</p>
+              <details class="tech-note" data-tech="SQLite">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>像一個會整理、會查找的電子檔案櫃。</dd>
+                  <dt>定義</dt><dd>儲存在單一檔案裡的關聯式資料庫。</dd>
+                  <dt>在這個產品裡</dt><dd>記住題目從候選到發佈，以及之後的成效數字。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">4</span>
+              <h3>RSS 與 Tavily · 採購員</h3>
+              <p>只從設定好的公開網站帶回材料，讓 AI 有資料可查。</p>
+              <details class="tech-note" data-tech="RSS">
+                <summary>RSS 是什麼？</summary>
+                <dl>
+                  <dt>白話</dt><dd>網站主動提供的「最新文章清單」。</dd>
+                  <dt>定義</dt><dd>讓程式訂閱網站更新的標準資料格式。</dd>
+                  <dt>在這個產品裡</dt><dd>抓取已知內容來源的新文章。</dd>
+                </dl>
+              </details>
+              <details class="tech-note" data-tech="Tavily">
+                <summary>Tavily 是什麼？</summary>
+                <dl>
+                  <dt>白話</dt><dd>替 AI 找網頁資料的搜尋幫手。</dd>
+                  <dt>定義</dt><dd>提供結構化搜尋結果的外部 API 服務。</dd>
+                  <dt>在這個產品裡</dt><dd>只在可信網域範圍內找公司與參考資料。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">5</span>
+              <h3>Gemini · 文字助手</h3>
+              <p>讀過材料後，協助整理候選題目、正文與七頁草稿。</p>
+              <details class="tech-note" data-tech="Gemini">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>能讀指示和材料、再產生文字的 AI 助手。</dd>
+                  <dt>定義</dt><dd>Google 的大型語言模型系列。</dd>
+                  <dt>在這個產品裡</dt><dd>依來源寫初稿；免費 Gemini 是主方案，Groq 是可切換備援。</dd>
+                </dl>
+              </details>
+            </article>
+
+            <article class="system-card">
+              <span class="system-card__number">6</span>
+              <h3>Playwright · 出圖攝影機</h3>
+              <p>把七頁品牌 HTML 放進瀏覽器，再逐張拍成固定尺寸圖片。</p>
+              <details class="tech-note" data-tech="Playwright">
+                <summary>想多懂一點</summary>
+                <dl>
+                  <dt>白話</dt><dd>一雙能自動打開網頁、點按鈕和拍照的機器手。</dd>
+                  <dt>定義</dt><dd>控制真實瀏覽器的自動化工具。</dd>
+                  <dt>在這個產品裡</dt><dd>輸出七張 1080 × 1350 PNG，也幫忙檢查手機與桌機畫面。</dd>
+                </dl>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section id="content-journey" aria-labelledby="journey-title">
+          <div class="section-head">
+            <span class="section-head__index">04</span>
+            <div>
+              <h2 id="journey-title">一筆內容怎麼從材料走到成品</h2>
+              <p>資料會一站一站往前走；每一站都留下可看、可改、可拒絕的中間成果。</p>
+            </div>
+          </div>
+
+          <div class="journey-shell">
+            <div class="journey-track" role="tablist" aria-label="內容旅程七步驟">
+              <button class="journey-step" type="button" role="tab" aria-selected="true" data-journey-step="sources"><span>01</span>公開來源</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="research"><span>02</span>公司研究</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="idea"><span>03</span>候選題目</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="adopt"><span>04</span>人工採用</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="draft"><span>05</span>AI 正文</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="cards"><span>06</span>七頁草稿</button>
+              <button class="journey-step" type="button" role="tab" aria-selected="false" data-journey-step="export"><span>07</span>PNG 與 ZIP</button>
+            </div>
+            <article class="journey-detail" id="journey-detail" aria-live="polite">
+              <span class="badge">目前位置 · 公開來源</span>
+              <h3>先決定 AI 可以看哪些材料</h3>
+              <dl>
+                <dt>收到</dt><dd>主題名稱與可信網域清單</dd>
+                <dt>處理</dt><dd>讀取 RSS 或在限定網站內搜尋</dd>
+                <dt>產出</dt><dd>可回頭查證的網址與文字摘要</dd>
+              </dl>
+            </article>
+          </div>
+
+          <div class="safety-note">
+            <article>
+              <strong>文字安全邊界</strong>
+              AI 只能依已蒐集的來源整理內容；資料不足時要保留不確定性，不能自己補故事。
+            </article>
+            <article>
+              <strong>品牌安全邊界</strong>
+              Logo 只能從公司官網或官方品牌頁找候選，仍要由人確認，不能因網址看起來很像就自動採用。
+            </article>
+          </div>
+        </section>
+
+        <section id="timeline" aria-labelledby="timeline-title">
+          <div class="section-head">
+            <span class="section-head__index">05</span>
+            <div>
+              <h2 id="timeline-title">七次迭代，才長成現在的樣子</h2>
+              <p>每一階段都先解一個最痛的問題。產品用過之後，下一步才會變清楚。</p>
+            </div>
+          </div>
+
+          <ol class="timeline-list">
+            <li class="timeline-item">
+              <span class="timeline-item__dot">01</span>
+              <div class="timeline-item__body"><h3>先做能跑的本機 v1</h3><p>把資料庫、來源抓取、AI 選題、狀態與成效接起來。先證明整條流程走得完，不急著上雲端。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">02</span>
+              <div class="timeline-item__body"><h3>讓外部服務可以替換</h3><p>把 AI 供應商包成同一個插座：免費 Gemini 為主、Groq 為備援，避免工具被單一服務綁死。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">03</span>
+              <div class="timeline-item__body"><h3>重整成主題工作台</h3><p>早期是四個分開的頁面，操作很跳。後來改成左邊選主題、右邊一路工作的同一個空間。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">04</span>
+              <div class="timeline-item__body"><h3>真人操作，測試盲點浮出來</h3><p>99 個測試都通過，實際操作仍找到 24 個問題，其中 4 個會讓資料消失或互相污染。於是補上跨頁、跨資料表的驗收。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">05</span>
+              <div class="timeline-item__body"><h3>加入公司研究與可信來源</h3><p>候選要先交代公司做什麼、依據在哪裡，AI 才能接著寫成可讀的正文。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">06</span>
+              <div class="timeline-item__body"><h3>把文字變成七張輪播</h3><p>加入七頁敘事草稿、品牌模板、官方 Logo 確認、PNG 出圖與 ZIP 下載，內容才真正走到可交付成品。</p></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-item__dot">07</span>
+              <div class="timeline-item__body"><h3>收斂成單一系列</h3><p>先聚焦「AI 新創介紹」，拿掉暫時用不到的系列與流程，留下能穩定展示、也能繼續演進的工作站。</p></div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="testing" aria-labelledby="testing-title">
+          <div class="section-head">
+            <span class="section-head__index">06</span>
+            <div>
+              <h2 id="testing-title">我怎麼避免 AI 一次寫歪</h2>
+              <p>我的做法是每次只往前一小步，而且先裝好會報警的驗收條件。</p>
+            </div>
+          </div>
+          <p class="pull-quote">先做一個會響的煙霧警報器，再開始修電線。</p>
+
+          <div class="test-lab">
+            <article class="test-stage test-stage--red">
+              <span class="test-stage__signal">RED</span>
+              <h3>先證明現在做不到</h3>
+              <p>先寫：「刪除主題時，底下題目也必須刪除。」執行後看到失敗，確認警報器真的會響。</p>
+            </article>
+            <div class="test-arrow" aria-hidden="true">→</div>
+            <article class="test-stage test-stage--green">
+              <span class="test-stage__signal">GREEN</span>
+              <h3>只做剛好夠用的修正</h3>
+              <p>不順手加十個功能，只寫最少的程式，讓刪除流程不再留下孤兒資料。</p>
+            </article>
+            <div class="test-arrow" aria-hidden="true">→</div>
+            <article class="test-stage test-stage--refactor">
+              <span class="test-stage__signal">REFACTOR</span>
+              <h3>在保護下整理</h3>
+              <p>測試維持通過時，再改善命名、拿掉重複，讓下一輪比較容易修改。</p>
+            </article>
+          </div>
+
+          <details class="tech-note" data-tech="TDD">
+            <summary>TDD 是什麼？</summary>
+            <dl>
+              <dt>白話</dt><dd>先寫驗收條件，再施工。</dd>
+              <dt>定義</dt><dd>測試驅動開發：Red → Green → Refactor 的開發循環。</dd>
+              <dt>在這個產品裡</dt><dd>把功能切成一次只驗收一件事的小片，降低 AI 大改後難以追查的風險。</dd>
+            </dl>
+          </details>
+
+          <div class="boundary-compare">
+            <article>
+              <h3>Mock：先在室內排練</h3>
+              <p>朋友假裝是外送員，能確認我們會不會開門、收餐；但不代表真實平台一定找得到地址。</p>
+              <details class="tech-note" data-tech="Mock">
+                <summary>正式意思</summary>
+                <dl><dt>定義</dt><dd>用可控制的假物件代替外部服務，快速測內部邏輯。</dd><dt>在這個產品裡</dt><dd>模擬搜尋與 AI 回應，讓大部分測試快速、穩定且不用花額度。</dd></dl>
+              </details>
+            </article>
+            <article>
+              <h3>契約測試：真的叫一次外送</h3>
+              <p>實際連到 RSS、搜尋、免費模型或瀏覽器，確認欄位、權限與回傳格式跟排練時相同。</p>
+              <details class="tech-note" data-tech="契約測試">
+                <summary>正式意思</summary>
+                <dl><dt>定義</dt><dd>對真實系統邊界驗證雙方約定的輸入輸出格式。</dd><dt>在這個產品裡</dt><dd>避免假 AI 永遠乖乖回 JSON，但 Gemini 實際回應一變就整段壞掉。</dd></dl>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section id="lessons" aria-labelledby="lessons-title">
+          <div class="section-head">
+            <span class="section-head__index">07</span>
+            <div>
+              <h2 id="lessons-title">做錯的地方，反而改變了方法</h2>
+              <p>工具真的被使用之後，下面這些問題逼我重新做了產品決定。</p>
+            </div>
+          </div>
+
+          <div class="lesson-grid">
+            <article class="lesson">
+              <span class="lesson__number">LESSON 01</span>
+              <h3>功能多，不等於判斷更容易</h3>
+              <p>早期加了很多分類與分數，實際使用卻只增加設定負擔。確認沒有幫助後，就把它們移除。</p>
+              <div class="removed-list" aria-label="後來移除的功能">
+                <span data-removed-feature="守門線">守門線</span>
+                <span data-removed-feature="來源分層">來源分層</span>
+                <span data-removed-feature="常青時效分類">常青／時效分類</span>
+              </div>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 02</span>
+              <h3>測試全綠，不代表產品沒問題</h3>
+              <p>99 個單元測試各自看起來都對，但真人從一頁走到另一頁，仍找到會刪錯或漏資料的流程問題。</p>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 03</span>
+              <h3>驗收不能碰正式資料</h3>
+              <p>手動操作一律使用暫存資料庫複本。這樣可以放心找錯，也不會拿真正累積的內容冒險。</p>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 04</span>
+              <h3>假 AI 很乖，真 AI 不一定</h3>
+              <p>模擬回應通過，只能證明內部邏輯。免費模型可能改格式、漏欄位或拒答，所以一定要補真實契約測試。</p>
+            </article>
+            <article class="lesson">
+              <span class="lesson__number">LESSON 05</span>
+              <h3>出圖成功，不代表畫面正確</h3>
+              <p>指令顯示成功，文字仍可能溢出、手機仍可能破版。最後要看桌機與手機截圖，驗證使用者真正看見什麼。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="recipe" aria-labelledby="recipe-title">
+          <div class="section-head">
+            <span class="section-head__index">08</span>
+            <div>
+              <h2 id="recipe-title">如果你也想做，可以照這個順序</h2>
+              <p>不用先學完整套程式。先把問題與驗收想清楚，再讓 AI 幫你一段一段完成。</p>
+            </div>
+          </div>
+
+          <div class="recipe-shell">
+            <div class="recipe-intro">
+              <h3>一份可複製的 Vibe Coding 建造公式</h3>
+              <p>這八步可以反覆循環，每次只把工具往前推一小段。</p>
+              <p class="closing-line">人負責方向、安全與驗收；AI 負責加速分析與施工。</p>
+            </div>
+            <ol class="recipe-list">
+              <li><strong>先寫一個真實痛點</strong><p>描述誰在什麼情境卡住，不要先從「我要用哪個技術」開始。</p></li>
+              <li><strong>畫出一條完整流程</strong><p>從使用者開始操作，到拿到成果，中間每一站都寫出來。</p></li>
+              <li><strong>明確寫出這一版不做什麼</strong><p>範圍越清楚，AI 越不容易把半成品膨脹成失控的大專案。</p></li>
+              <li><strong>請 AI 比較方案並寫規格</strong><p>要求它說明優缺點、成本與風險，不要只接受第一個答案。</p></li>
+              <li><strong>拆成一次可驗收一件事的小切片</strong><p>每片做完都能操作、能判斷通過或不通過。</p></li>
+              <li><strong>先寫失敗測試，再做最小實作</strong><p>先確認警報真的會響，才讓 AI 修改程式。</p></li>
+              <li><strong>用真實畫面與真實服務驗收</strong><p>模擬測試之外，親手走流程、看截圖，也確認外部服務真的照約定回應。</p></li>
+              <li><strong>把使用後的問題放回下一輪</strong><p>刪掉沒幫助的設計也算進步；初版只是用來學習的假設。</p></li>
+            </ol>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>呆一布 AI 共學實驗室 · 社群組</span>
+        <a href="#hero">回到開頭</a>
+      </footer>
+    </div>
+
+    <button class="vt-comment-trigger" id="vt-comment-trigger" type="button">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5.5h14v10H9l-4 3v-13Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>
+      評論
+    </button>
+    <div class="vt-comment-popup" id="vt-comment-popup" role="dialog" aria-label="新增段落評論">
+      <div class="quote" id="vt-popup-quote"></div>
+      <textarea id="vt-popup-textarea" placeholder="對這段文字的評論、疑問或補充"></textarea>
+      <div class="actions">
+        <span class="hint">⌘ + Enter 送出 · Esc 取消</span>
+        <div>
+          <button class="cancel" id="vt-popup-cancel" type="button">取消</button>
+          <button class="send" id="vt-popup-send" type="button">送出</button>
+        </div>
+      </div>
+    </div>
+    <button class="vt-comment-pill" id="vt-comment-pill" type="button" aria-label="開啟我的評論">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5.5h14v10H9l-4 3v-13Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>
+      <strong id="vt-count">0</strong>
+    </button>
+    <div class="vt-comment-list" id="vt-comment-list">
+      <div class="vt-comment-list-header">我的評論</div>
+      <div class="vt-comment-list-items" id="vt-comment-list-items"></div>
+      <div class="vt-comment-list-footer">
+        <button id="vt-clear-all" type="button">全部清除</button>
+        <button class="copy" id="vt-copy-fallback" type="button">複製評論</button>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const journeySteps = {
+          sources: { title: "公開來源", input: "RSS 與可信網站", action: "蒐集可回查的材料", output: "來源網址與摘要" },
+          research: { title: "公司研究", input: "來源包", action: "核對公司、產品與原文證據", output: "研究證據" },
+          idea: { title: "候選題目", input: "研究證據", action: "整理值得討論的題目與角度", output: "候選卡" },
+          adopt: { title: "人工採用", input: "候選卡", action: "由人選擇、微調或淘汰", output: "已採用題目" },
+          draft: { title: "AI 正文", input: "已採用題目與來源", action: "依證據寫成可編輯初稿", output: "AI 正文" },
+          cards: { title: "七頁草稿", input: "正文與來源快照", action: "拆成有起承轉合的七頁敘事", output: "輪播草稿" },
+          export: { title: "PNG 與 ZIP", input: "輪播草稿與已確認 Logo", action: "用瀏覽器逐頁出圖", output: "七張 PNG 與 ZIP" },
+        };
+        const detail = document.querySelector("#journey-detail");
+        const journeyButtons = [...document.querySelectorAll("[data-journey-step]")];
+
+        const showJourneyStep = (button) => {
+          const data = journeySteps[button.dataset.journeyStep];
+          journeyButtons.forEach((candidate) => {
+            const selected = candidate === button;
+            candidate.setAttribute("aria-selected", String(selected));
+            candidate.tabIndex = selected ? 0 : -1;
+          });
+          detail.innerHTML = `
+            <span class="badge">目前位置 · ${data.title}</span>
+            <h3>${data.title}</h3>
+            <dl>
+              <dt>收到</dt><dd>${data.input}</dd>
+              <dt>處理</dt><dd>${data.action}</dd>
+              <dt>產出</dt><dd>${data.output}</dd>
+            </dl>`;
+        };
+
+        journeyButtons.forEach((button, index) => {
+          button.tabIndex = button.getAttribute("aria-selected") === "true" ? 0 : -1;
+          button.addEventListener("click", () => showJourneyStep(button));
+          button.addEventListener("keydown", (event) => {
+            if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(event.key)) return;
+            event.preventDefault();
+            const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1;
+            const nextIndex = (index + direction + journeyButtons.length) % journeyButtons.length;
+            showJourneyStep(journeyButtons[nextIndex]);
+            journeyButtons[nextIndex].focus();
+          });
+        });
+
+        const progress = document.querySelector("#reading-progress");
+        let ticking = false;
+        const updateProgress = () => {
+          const available = document.documentElement.scrollHeight - window.innerHeight;
+          const ratio = available > 0 ? Math.min(1, window.scrollY / available) : 0;
+          progress.style.transform = `scaleX(${ratio})`;
+          ticking = false;
+        };
+        window.addEventListener("scroll", () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(updateProgress);
+        }, { passive: true });
+        updateProgress();
+
+        const sectionLinks = [...document.querySelectorAll('.desktop-toc a[href^="#"], .mobile-toc a[href^="#"]')];
+        const sections = [...document.querySelectorAll("main > section[id]")];
+        if ("IntersectionObserver" in window) {
+          const observer = new IntersectionObserver((entries) => {
+            const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            sectionLinks.forEach((link) => {
+              if (link.getAttribute("href") === `#${visible.target.id}`) link.setAttribute("aria-current", "location");
+              else link.removeAttribute("aria-current");
+            });
+          }, { rootMargin: "-20% 0px -65%", threshold: [0, 0.2, 0.5] });
+          sections.forEach((section) => observer.observe(section));
+        }
+      })();
+
+      (() => {
+        const storageKey = "vt-comments-" + location.pathname;
+        const quoteLimit = 80;
+        let comments = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        let selection = null;
+        const byId = (id) => document.getElementById(id);
+        const trigger = byId("vt-comment-trigger");
+        const popup = byId("vt-comment-popup");
+        const popupQuote = byId("vt-popup-quote");
+        const popupTextarea = byId("vt-popup-textarea");
+        const commentPill = byId("vt-comment-pill");
+        const count = byId("vt-count");
+        const list = byId("vt-comment-list");
+        const listItems = byId("vt-comment-list-items");
+
+        window.vtCollectComments = function () {
+          if (!comments.length) return "";
+          return "\n\n---\n\n" + comments.map((comment) => {
+            const quote = comment.quote.length > quoteLimit ? comment.quote.slice(0, quoteLimit) + "…" : comment.quote;
+            return `@評論「${quote}」\n  → ${comment.body}`;
+          }).join("\n\n");
+        };
+
+        function handleSelection(event) {
+          if (event.target.closest(".vt-comment-popup,.vt-comment-trigger,.vt-comment-pill,.vt-comment-list,button,input,select,textarea")) return;
+          setTimeout(() => {
+            const currentSelection = getSelection();
+            const text = currentSelection.toString().trim();
+            if (!text || text.length < 2 || !currentSelection.rangeCount) {
+              trigger.style.display = "none";
+              return;
+            }
+            const range = currentSelection.getRangeAt(0);
+            const box = range.getBoundingClientRect();
+            selection = { text, range: range.cloneRange() };
+            trigger.style.display = "inline-flex";
+            trigger.style.top = Math.max(8, box.top - 42) + "px";
+            trigger.style.left = Math.max(8, box.left + box.width / 2 - 40) + "px";
+          }, 10);
+        }
+
+        function openPopup() {
+          if (!selection) return;
+          popupQuote.textContent = selection.text.length > quoteLimit ? selection.text.slice(0, quoteLimit) + "…" : selection.text;
+          popupTextarea.value = "";
+          const triggerBox = trigger.getBoundingClientRect();
+          let left = triggerBox.left;
+          if (left + 340 > innerWidth - 16) left = innerWidth - 356;
+          let top = triggerBox.bottom + 6;
+          if (top + 220 > innerHeight) top = triggerBox.top - 230;
+          popup.style.left = Math.max(8, left) + "px";
+          popup.style.top = Math.max(8, top) + "px";
+          trigger.style.display = "none";
+          popup.style.display = "block";
+          setTimeout(() => popupTextarea.focus(), 50);
+        }
+
+        function closePopup() {
+          popup.style.display = "none";
+          selection = null;
+        }
+
+        function persist() {
+          localStorage.setItem(storageKey, JSON.stringify(comments));
+        }
+
+        function escapeHtml(value) {
+          return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+        }
+
+        function deleteComment(id) {
+          comments = comments.filter((comment) => comment.id !== id);
+          document.querySelectorAll(`mark.vt-comment-mark[data-comment-id="${id}"]`).forEach((mark) => {
+            const parent = mark.parentNode;
+            while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+            parent.removeChild(mark);
+            parent.normalize();
+          });
+          persist();
+          renderComments();
+        }
+
+        function renderComments() {
+          count.textContent = comments.length;
+          commentPill.classList.toggle("is-active", comments.length > 0);
+          if (!comments.length) list.classList.remove("is-open");
+          listItems.innerHTML = comments.map((comment) => {
+            const quote = comment.quote.length > 60 ? comment.quote.slice(0, 60) + "…" : comment.quote;
+            return `<div class="vt-comment-item" data-id="${comment.id}"><div class="item-quote">「${escapeHtml(quote)}」</div><div class="item-body">${escapeHtml(comment.body)}</div><button class="item-del" data-del="${comment.id}" type="button">刪除</button></div>`;
+          }).join("");
+          listItems.querySelectorAll("[data-del]").forEach((button) => button.addEventListener("click", () => deleteComment(button.dataset.del)));
+        }
+
+        function saveComment() {
+          const body = popupTextarea.value.trim();
+          if (!body || !selection) return closePopup();
+          const id = "c-" + Date.now();
+          try {
+            const mark = document.createElement("mark");
+            mark.className = "vt-comment-mark";
+            mark.dataset.commentId = id;
+            selection.range.surroundContents(mark);
+          } catch (error) {
+            console.debug("選取範圍跨越多個元素，只保存評論文字。", error);
+          }
+          comments.push({ id, quote: selection.text, body, ts: Date.now() });
+          persist();
+          renderComments();
+          closePopup();
+          getSelection().removeAllRanges();
+        }
+
+        document.addEventListener("mouseup", handleSelection);
+        document.addEventListener("touchend", handleSelection);
+        trigger.addEventListener("click", openPopup);
+        byId("vt-popup-cancel").addEventListener("click", closePopup);
+        byId("vt-popup-send").addEventListener("click", saveComment);
+        popupTextarea.addEventListener("keydown", (event) => {
+          if (event.isComposing || event.keyCode === 229) return;
+          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            event.stopPropagation();
+            saveComment();
+          }
+          if (event.key === "Escape") closePopup();
+        });
+        commentPill.addEventListener("click", () => list.classList.toggle("is-open"));
+        byId("vt-clear-all").addEventListener("click", () => {
+          if (!comments.length || !confirm("確定清除全部 " + comments.length + " 條評論？")) return;
+          document.querySelectorAll("mark.vt-comment-mark").forEach((mark) => {
+            const parent = mark.parentNode;
+            while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+            parent.removeChild(mark);
+            parent.normalize();
+          });
+          comments = [];
+          persist();
+          renderComments();
+        });
+        byId("vt-copy-fallback").addEventListener("click", (event) => {
+          if (!comments.length) return;
+          const text = window.vtCollectComments().replace(/^\n\n---\n\n/, "");
+          const button = event.currentTarget;
+          const original = button.textContent;
+          const done = () => {
+            button.textContent = "已複製";
+            setTimeout(() => { button.textContent = original; }, 2000);
+          };
+          navigator.clipboard.writeText(text).then(done).catch(() => {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            textarea.remove();
+            done();
+          });
+        });
+        setTimeout(() => {
+          if (typeof window.vtBuildDecisionExport === "function") document.body.classList.add("vt-has-existing-export");
+        }, 100);
+        document.addEventListener("click", (event) => {
+          if (popup.style.display === "block" && !event.target.closest(".vt-comment-popup,.vt-comment-trigger")) closePopup();
+        });
+        renderComments();
+      })();
+    </script>
+  </body>
+</html>
