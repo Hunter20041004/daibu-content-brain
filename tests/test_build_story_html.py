@@ -8,7 +8,7 @@ from playwright.sync_api import sync_playwright
 HTML_PATH = (
     Path(__file__).resolve().parents[1]
     / "docs"
-    / "2026-08-05-我怎麼用-vibe-coding-搭出呆一布內容工作站.html"
+    / "2026-08-07-呆一布內容工作站是怎麼做出來的.html"
 )
 
 
@@ -67,20 +67,21 @@ def test_copy_round_trip_is_lossless():
     assert not mismatches, "這些段落匯入後會走樣：\n" + "\n".join(mismatches[:5])
 
 
-def test_story_has_three_chapter_structure():
-    """三章：怎麼做出來、系統是什麼、怎麼確認它沒寫歪。
+def test_story_has_four_chapter_structure():
+    """四章：怎麼用、開發方式、怎麼做出來、怎麼驗收。
 
-    第四章「你可以照這個順序做」是給讀者的建議，不是在講這個工具怎麼做出來的，
-    已經整章移除。
+    先講成品與流程，讀者才有背景去理解後面的建造過程。
+    「你可以照這個順序做」那種給讀者的建議不放在這裡。
     """
     source = HTML_PATH.read_text(encoding="utf-8")
     parser = StoryParser()
     parser.feed(source)
 
-    assert {"build", "system", "verify"} <= parser.ids
+    assert {"flow", "how-we-work", "build", "verify"} <= parser.ids
 
     retired = {
         "recipe",
+        "system",
         "collaboration",
         "system-map",
         "content-journey",
@@ -110,9 +111,9 @@ def test_story_opens_with_title_and_outcome():
     source = HTML_PATH.read_text(encoding="utf-8")
 
     assert '<html lang="zh-TW">' in source
-    assert "我怎麼用 Vibe Coding 搭出呆一布內容工作站" in source
+    assert "我沒寫程式，怎麼做出" in source
     assert 'id="hero"' in source
-    assert "七張輪播圖" in source
+    assert "七張可以直接發的輪播圖" in source
     assert "<svg" in source
 
 
@@ -151,8 +152,6 @@ def test_hero_states_multi_series_architecture_with_one_series_today():
 
     assert "架構上可以跑不同的內容系列" in source
     assert "AI 新創介紹" in source
-    # 成品必須被介紹成「某個系列的產出」，不能被寫成這個工具唯一能做的事
-    assert "不是這個工具唯一能做的東西" in source
 
 
 def test_story_quotes_no_raw_conversation():
@@ -176,7 +175,7 @@ def test_carousel_output_images_are_embedded_and_render():
         page = browser.new_page(viewport={"width": 1280, "height": 800})
         page.goto(_file_url())
 
-        images = page.locator('#build img')
+        images = page.locator('.carousel-out img')
         assert images.count() == 7
 
         srcs = images.evaluate_all("nodes => nodes.map(node => node.getAttribute('src'))")
@@ -280,10 +279,10 @@ def test_output_gallery_is_asymmetric_not_an_equal_card_grid():
         page = browser.new_page(viewport={"width": 1280, "height": 800})
         page.goto(_file_url())
 
-        lead = page.locator("#build .carousel-out__lead img").evaluate(
+        lead = page.locator(".carousel-out__lead img").evaluate(
             "el => el.getBoundingClientRect().width"
         )
-        rest = page.locator("#build .carousel-out__rest img").first.evaluate(
+        rest = page.locator(".carousel-out__rest img").first.evaluate(
             "el => el.getBoundingClientRect().width"
         )
         assert lead > rest * 1.4, f"主圖沒有明顯大於其他圖：{lead} vs {rest}"
@@ -334,7 +333,7 @@ def test_story_interactions_update_without_reload():
         draft_step.click()
 
         assert draft_step.get_attribute("aria-selected") == "true"
-        assert "AI 正文" in page.locator("#journey-detail").inner_text()
+        assert "AI 寫初稿" in page.locator("#journey-detail").inner_text()
         first_note = page.locator("details.tech-note").first
         first_note.locator("summary").click()
         assert first_note.get_attribute("open") == ""

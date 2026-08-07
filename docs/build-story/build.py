@@ -26,7 +26,7 @@ TEMPLATE = HERE / "template.html"
 ASSETS = HERE / "assets"
 PARTIALS = HERE / "partials"
 MASCOT = ROOT / "assets" / "mascot" / "wave.svg"
-OUTPUT = ROOT / "docs" / "2026-08-05-我怎麼用-vibe-coding-搭出呆一布內容工作站.html"
+OUTPUT = ROOT / "docs" / "2026-08-07-呆一布內容工作站是怎麼做出來的.html"
 
 BANNER = (
     "<!-- 這份檔案由 docs/build-story/build.py 產生，請改 docs/build-story/template.html "

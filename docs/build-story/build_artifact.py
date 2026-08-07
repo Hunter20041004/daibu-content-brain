@@ -20,7 +20,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-SOURCE = ROOT / "docs" / "2026-08-05-我怎麼用-vibe-coding-搭出呆一布內容工作站.html"
+SOURCE = ROOT / "docs" / "2026-08-07-呆一布內容工作站是怎麼做出來的.html"
 
 FONT_STACKS = {
     "--font-serif": '"Songti TC", "Songti SC", "PMingLiU", "MingLiU", Georgia, serif',
@@ -102,7 +102,7 @@ def build(out_path: Path) -> Path:
     style = style.rstrip() + "\n" + THEME_BLOCK
 
     page = (
-        "<title>我怎麼用 Vibe Coding 搭出呆一布內容工作站</title>\n"
+        "<title>我沒寫程式，怎麼做出呆一布內容工作站</title>\n"
         f"<style>{style}</style>\n"
         f"{body.strip()}\n"
     )
