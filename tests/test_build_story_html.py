@@ -68,8 +68,12 @@ def test_story_keeps_tech_notes_and_removed_features():
         "契約測試",
     } <= parser.tech_terms
     assert {"守門線", "來源分層", "常青時效分類"} <= parser.removed_features
+    # 這幾個數字都要對得上專案紀錄，不能憑印象寫：
+    # 24 條問題與 99 個測試出自 docs/history/HANDOFF-2026-07-26-qa-fixes.md，
+    # 134 字的草稿消失是那份文件裡第 4 條的原始描述。
     assert "24 個問題" in source
-    assert "4 個會讓資料消失" in source
+    assert "99 個" in source
+    assert "134 字" in source
 
 
 def _file_url() -> str:
