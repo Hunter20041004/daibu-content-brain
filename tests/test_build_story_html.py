@@ -123,6 +123,33 @@ def test_carousel_output_images_are_embedded_and_render():
         browser.close()
 
 
+def test_page_loads_and_interacts_without_console_errors():
+    """頁面載入與操作都不能丟錯。舊版曾經同時載入兩套 journey 腳本而不自知。"""
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(viewport={"width": 1280, "height": 800})
+
+        errors: list[str] = []
+        page.on("pageerror", lambda exc: errors.append(f"pageerror: {exc}"))
+        page.on(
+            "console",
+            lambda msg: errors.append(f"console.{msg.type}: {msg.text}")
+            if msg.type == "error"
+            else None,
+        )
+
+        page.goto(_file_url())
+        page.wait_for_timeout(600)
+
+        for step in page.locator("[data-journey-step]").all():
+            step.click()
+        page.locator("details.tech-note").first.locator("summary").click()
+        page.wait_for_timeout(300)
+
+        assert not errors, "頁面丟出錯誤：\n" + "\n".join(errors)
+        browser.close()
+
+
 def test_no_horizontal_overflow_at_any_width():
     """雜誌版面讓圖片突出文字欄，中等寬度最容易因此撐出橫向捲動。"""
     with sync_playwright() as playwright:
