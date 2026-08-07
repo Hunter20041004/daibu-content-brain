@@ -118,7 +118,44 @@ def build(out_path: Path) -> Path:
     return out_path
 
 
+STANDALONE_SHELL = """<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="呆一布內容工作站怎麼從一個每週重複的麻煩，做成能從找題材一路做到七張輪播圖的工具。" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23244A5B'/%3E%3Ccircle cx='11' cy='15' r='2' fill='%23FBFAF7'/%3E%3Ccircle cx='21' cy='15' r='2' fill='%23FBFAF7'/%3E%3Cpath d='M11 21q5 4 10 0' fill='none' stroke='%236FC1CC' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E" />
+{fragment_head}  </head>
+  <body>
+{fragment_body}  </body>
+</html>
+"""
+
+
+def build_standalone(out_path: Path) -> Path:
+    """包成可以直接傳給別人的完整網頁：零外部連線，離線也能開。"""
+    fragment = build(Path("/dev/null") if False else out_path.with_suffix(".fragment"))
+    text = fragment.read_text(encoding="utf-8")
+    fragment.unlink()
+
+    title_end = text.index("</title>") + len("</title>")
+    style_end = text.index("</style>") + len("</style>")
+    head = text[:title_end] + "\n" + text[title_end:style_end] + "\n"
+    body = text[style_end:].lstrip("\n")
+
+    page = STANDALONE_SHELL.format(
+        fragment_head="    " + head.replace("\n", "\n    ").rstrip() + "\n",
+        fragment_body=body.rstrip() + "\n",
+    )
+    out_path.write_text(page, encoding="utf-8")
+    return out_path
+
+
 if __name__ == "__main__":
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "build-story-artifact.html"
-    result = build(target)
-    print(f"已產生 {result}（{result.stat().st_size / 1024:.0f} KB）", file=sys.stderr)
+    args = [a for a in sys.argv[1:] if a != "--standalone"]
+    standalone = "--standalone" in sys.argv
+    default = "呆一布內容工作站是怎麼做出來的.html" if standalone else "build-story-artifact.html"
+    target = Path(args[0]) if args else ROOT / default
+    result = build_standalone(target) if standalone else build(target)
+    kind = "可直接分享的完整網頁" if standalone else "Artifact 片段"
+    print(f"已產生{kind}：{result}（{result.stat().st_size / 1024:.0f} KB）", file=sys.stderr)
