@@ -29,6 +29,44 @@ class StoryParser(HTMLParser):
             self.removed_features.add(attributes["data-removed-feature"])
 
 
+def _load_copy_tool():
+    import importlib.util
+
+    path = HTML_PATH.parents[1] / "docs" / "build-story" / "copy.py"
+    spec = importlib.util.spec_from_file_location("build_story_copy", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_copy_round_trip_is_lossless():
+    """文案.txt 匯出再匯入，不能改動任何一段的 HTML。
+
+    這條守住兩件事：<b> 不可以被換成 <strong>（.note-body b 的樣式只認 <b>），
+    以及等寬字、步驟編號、角色標籤都要原樣回來。
+    """
+    copy_tool = _load_copy_tool()
+    template = (HTML_PATH.parents[1] / "docs" / "build-story" / "template.html").read_text(
+        encoding="utf-8"
+    )
+    body = template.split("<body>", 1)[1]
+
+    mismatches = []
+    slots = 0
+    for match in copy_tool.SLOT.finditer(body):
+        slot_id = int(match.group(3))
+        if slot_id in copy_tool.LOCKED:
+            continue
+        slots += 1
+        original = " ".join(match.group(4).split())
+        restored = copy_tool.to_html(copy_tool.to_text(match.group(4)), match.group(4))
+        if original != restored:
+            mismatches.append(f"[{slot_id}]\n  原: {original}\n  回: {restored}")
+
+    assert slots > 100, f"可編輯的段落只有 {slots} 段，標記可能掉了"
+    assert not mismatches, "這些段落匯入後會走樣：\n" + "\n".join(mismatches[:5])
+
+
 def test_story_has_four_chapter_structure():
     source = HTML_PATH.read_text(encoding="utf-8")
     parser = StoryParser()

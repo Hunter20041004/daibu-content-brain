@@ -925,9 +925,9 @@
 
           <header class="hero" id="hero">
             <div>
-              <p class="eyebrow">呆一布內容工作站 · 建造故事</p>
-              <h1>我怎麼用 <em>Vibe&nbsp;Coding</em> 搭出<span class="keep">呆一布</span>內容工作站</h1>
-              <p class="hero__lede">
+              <p class="eyebrow" data-c="1">呆一布內容工作站 · 建造故事</p>
+              <h1 data-c="2">我怎麼用 <em>Vibe&nbsp;Coding</em> 搭出<span class="keep">呆一布</span>內容工作站</h1>
+              <p class="hero__lede" data-c="3">
                 這是一個內容工作站。架構上可以跑不同的內容系列，目前先把「AI 新創介紹」這一條路走通。
                 下面挑其中一個功能完整走一次：把一篇寫好的文字變成七張輪播圖。
                 從我發現哪裡卡住開始，到七張圖真的存進資料夾為止。
@@ -940,7 +940,7 @@
             </div>
             <figure class="hero__mascot">
               {{SVG:mascot}}
-              <figcaption>呆一布 · 內容工作站</figcaption>
+              <figcaption data-c="4">呆一布 · 內容工作站</figcaption>
             </figure>
           </header>
 
@@ -949,80 +949,80 @@
             <div class="chapter__head">
               <span class="chapter__num">01</span>
               <h2>一個功能，從發想到出圖</h2>
-              <p class="chapter__lede">
+              <p class="chapter__lede" data-c="5">
                 這一章是一條完整的線：2026 年 7 月 28 日晚上，大約 70 分鐘，我把「輪播圖產生器」從一句話推到可以施工的計畫。
                 後面三章講的方法，全部都掛在這條線上。
               </p>
             </div>
 
             <div class="prose">
-              <h3><span class="step">01</span>起念：不是不想做，是做不起</h3>
-              <p>
+              <h3 data-c="6"><span class="step">01</span>起念：不是不想做，是做不起</h3>
+              <p data-c="7">
                 那時候工具走到「標記已發」為止。貼文的正文還是我自己在輸入框裡手打的，
                 AI 只負責產標題候選，圖則是完全沒碰。
               </p>
-              <p>
+              <p data-c="8">
                 沒碰的原因卡在待決問題清單上很久了：主流的圖片生成服務多數要付費，
                 跟這個專案「只用免費額度」的原則直接牴觸。所以產圖這件事，連設計都沒辦法開始。
               </p>
 
-              <h3><span class="step">02</span>卡了很久，其實是問錯問題</h3>
-              <p>
+              <h3 data-c="9"><span class="step">02</span>卡了很久，其實是問錯問題</h3>
+              <p data-c="10">
                 那天晚上想通的是：貼文要的圖根本不是 AI 生成的插畫，是文字圖卡。
                 說穿了就是把網頁排好版，然後截圖。零成本，中文字永遠正確，每張的風格也一致。
               </p>
-              <p>
+              <p data-c="11">
                 吉祥物和插畫則是模板的一部分，做一次收進專案裡重複用，不是每則貼文重新生成。
                 這樣一想，要付錢的問題就不存在了。卡了那麼久的那一條，當天結案。
               </p>
 
-              <blockquote class="pull">圖不是生出來的，是把網頁排好版之後截下來的。</blockquote>
+              <blockquote class="pull" data-c="12">圖不是生出來的，是把網頁排好版之後截下來的。</blockquote>
 
-              <h3><span class="step">03</span>喊停：先對齊內容，不急著做圖</h3>
-              <p>
+              <h3 data-c="13"><span class="step">03</span>喊停：先對齊內容，不急著做圖</h3>
+              <p data-c="14">
                 原本規劃的七個頁型裡有「文組生用途」和「多少錢」。我在準備動工前停下來，
                 說這不對：這個系列要介紹的是<strong>公司本身，以及他們怎麼運用 AI</strong>，
                 不談定價，也不談讀者要怎麼操作。讀者的位置是來認識這家公司在幹嘛。
               </p>
-              <p>
+              <p data-c="15">
                 頁型改成：封面／這是什麼／它解決什麼問題／AI 在哪裡／成果／為什麼你該在意／結尾。
                 這一步花掉快二十分鐘，一行程式都沒寫。
               </p>
 
-              <h3><span class="step">04</span>選出圖的方法</h3>
-              <p>
+              <h3 data-c="16"><span class="step">04</span>選出圖的方法</h3>
+              <p data-c="17">
                 有三個選項。Pillow 是直接在程式裡畫，但排版得自己算座標，
                 中文自動換行、圓角、陰影全都要手刻。html2canvas 在瀏覽器裡把畫面轉成圖，
                 但對字體和部分 CSS 支援不完美，容易變成預覽好看、匯出走樣。
               </p>
-              <p>
+              <p data-c="18">
                 最後選了 Playwright：用程式開一個看不見的瀏覽器，載入模板網頁，截圖。
                 理由只有一個，但很關鍵：匯出的圖必須跟我在畫面上看到的一模一樣。
               </p>
 
-              <h3><span class="step">05</span>配色與字體：先下暫時的決定</h3>
-              <p>
+              <h3 data-c="19"><span class="step">05</span>配色與字體：先下暫時的決定</h3>
+              <p data-c="20">
                 我看了參考圖之後，方向是走帶一點手繪感的調性。第一版配色裡有一個薄荷綠，我不要。
                 字體先指定芫荽 Iansui，講明是暫定的，之後再改。
               </p>
-              <p>
+              <p data-c="21">
                 後來真的改了。同一天稍晚換成 LINE Seed TW，理由是一個品牌用一種字；
                 代價是失去原本 IG 上的手寫感，好處是它有三個字重，
                 層次可以靠粗細做，不必全靠字級硬撐。
               </p>
-              <p>
+              <p data-c="22">
                 這個做法我後來一直在用：還沒想清楚的事情就標成暫時決定，不要讓它擋住整條線。
                 範圍和資料安全不能將就，顏色可以之後再調。
               </p>
 
-              <h3><span class="step">06</span>拍板，寫計畫，施工</h3>
-              <p>
+              <h3 data-c="23"><span class="step">06</span>拍板，寫計畫，施工</h3>
+              <p data-c="24">
                 方向、頁型、技術、視覺都有答案之後，才進到寫實作計畫。
                 計畫是一步一步、每步都能單獨驗收的清單，不是「做一個輪播圖產生器」這種一整塊的任務。
               </p>
 
-              <h3><span class="step">07</span>產出</h3>
-              <p>
+              <h3 data-c="25"><span class="step">07</span>產出</h3>
+              <p data-c="26">
                 下面是這條線走完之後，工具實際吐出來的一組成品：七張 1080 × 1350 的圖，
                 內容是 Railway 這家公司。這是「AI 新創介紹」這個系列的產出，不是這個工具唯一能做的東西。
               </p>
@@ -1042,8 +1042,8 @@
                   <img src="{{IMG:carousel-07-cta}}" alt="第七頁：結尾與行動呼籲" width="544" height="680" />
                 </div>
               </div>
-              <figcaption>
-                七張 <span class="mono">1080 × 1350</span> PNG，由瀏覽器逐頁拍出，可以直接打包下載。
+              <figcaption data-c="27">
+                七張 <code class="mono">1080 × 1350</code> PNG，由瀏覽器逐頁拍出，可以直接打包下載。
                 每一頁的事實段落都保留來源，文字可以逐頁修改後重拍。
               </figcaption>
             </figure>
@@ -1054,7 +1054,7 @@
             <div class="chapter__head">
               <span class="chapter__num">02</span>
               <h2>這中間，系統做了什麼</h2>
-              <p class="chapter__lede">
+              <p class="chapter__lede" data-c="28">
                 同一條線，換一個角度看：一筆內容從公開來源走到 PNG，中間經過七站，每一站由不同的角色負責。
                 點任何一站，看它收到什麼、做了什麼、交出什麼。
               </p>
@@ -1074,76 +1074,76 @@
             </div>
 
             <div class="prose">
-              <h3>六個角色，各站一個位置</h3>
-              <p>
+              <h3 data-c="29">六個角色，各站一個位置</h3>
+              <p data-c="30">
                 不用先懂程式。把它想成一間內容餐廳：有人接單、有人料理、有人管庫存，也有人把成品拍好交付。
                 下面每一個名詞都可以展開，看它的白話說法、正式定義，以及在這個產品裡負責哪一段。
               </p>
             </div>
 
             <details class="tech-note" data-tech="Streamlit">
-              <summary>Streamlit<span class="role">接待櫃台</span></summary>
+              <summary data-c="31">Streamlit<span class="role">接待櫃台</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>把 Python 很快變成網頁工具的展示櫃。</p>
-                <p><b>定義：</b>一套用 Python 建立資料應用介面的開源框架。</p>
-                <p><b>在這個產品裡：</b>我實際看到、點擊和輸入內容的所有畫面。主題、候選、正文與輪播圖都在這裡操作。</p>
+                <p data-c="32"><b>白話：</b>把 Python 很快變成網頁工具的展示櫃。</p>
+                <p data-c="33"><b>定義：</b>一套用 Python 建立資料應用介面的開源框架。</p>
+                <p data-c="34"><b>在這個產品裡：</b>我實際看到、點擊和輸入內容的所有畫面。主題、候選、正文與輪播圖都在這裡操作。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="Python">
-              <summary>Python<span class="role">後場廚房</span></summary>
+              <summary data-c="35">Python<span class="role">後場廚房</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>告訴電腦每一步要怎麼做的工作語言。</p>
-                <p><b>定義：</b>一種常用的通用程式語言。</p>
-                <p><b>在這個產品裡：</b>串起資料、搜尋、AI、狀態變更與出圖流程，也處理錯誤與順序。</p>
+                <p data-c="36"><b>白話：</b>告訴電腦每一步要怎麼做的工作語言。</p>
+                <p data-c="37"><b>定義：</b>一種常用的通用程式語言。</p>
+                <p data-c="38"><b>在這個產品裡：</b>串起資料、搜尋、AI、狀態變更與出圖流程，也處理錯誤與順序。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="SQLite">
-              <summary>SQLite<span class="role">本機資料櫃</span></summary>
+              <summary data-c="39">SQLite<span class="role">本機資料櫃</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>像一個會整理、會查找的電子檔案櫃。</p>
-                <p><b>定義：</b>儲存在單一檔案裡的關聯式資料庫。</p>
-                <p><b>在這個產品裡：</b>記住題目從候選到發佈的每個狀態，以及發佈之後的成效數字。不必先租伺服器。</p>
+                <p data-c="40"><b>白話：</b>像一個會整理、會查找的電子檔案櫃。</p>
+                <p data-c="41"><b>定義：</b>儲存在單一檔案裡的關聯式資料庫。</p>
+                <p data-c="42"><b>在這個產品裡：</b>記住題目從候選到發佈的每個狀態，以及發佈之後的成效數字。不必先租伺服器。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="RSS">
-              <summary>RSS<span class="role">固定訂閱的採購單</span></summary>
+              <summary data-c="43">RSS<span class="role">固定訂閱的採購單</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>網站主動提供的「最新文章清單」。</p>
-                <p><b>定義：</b>讓程式訂閱網站更新的標準資料格式。</p>
-                <p><b>在這個產品裡：</b>抓取已知內容來源的新文章，是題材的第一個入口。</p>
+                <p data-c="44"><b>白話：</b>網站主動提供的「最新文章清單」。</p>
+                <p data-c="45"><b>定義：</b>讓程式訂閱網站更新的標準資料格式。</p>
+                <p data-c="46"><b>在這個產品裡：</b>抓取已知內容來源的新文章，是題材的第一個入口。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="Tavily">
-              <summary>Tavily<span class="role">出去找資料的採購員</span></summary>
+              <summary data-c="47">Tavily<span class="role">出去找資料的採購員</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>替 AI 找網頁資料的搜尋幫手。</p>
-                <p><b>定義：</b>提供結構化搜尋結果的外部 API 服務。</p>
-                <p><b>在這個產品裡：</b>只在可信網域範圍內找公司資料與參考來源，不是整個網路亂搜。</p>
+                <p data-c="48"><b>白話：</b>替 AI 找網頁資料的搜尋幫手。</p>
+                <p data-c="49"><b>定義：</b>提供結構化搜尋結果的外部 API 服務。</p>
+                <p data-c="50"><b>在這個產品裡：</b>只在可信網域範圍內找公司資料與參考來源，不是整個網路亂搜。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="Gemini">
-              <summary>Gemini<span class="role">文字助手</span></summary>
+              <summary data-c="51">Gemini<span class="role">文字助手</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>能讀指示和材料、再產生文字的 AI 助手。</p>
-                <p><b>定義：</b>Google 的大型語言模型系列。</p>
-                <p><b>在這個產品裡：</b>依已蒐集的來源寫候選、正文與七頁草稿。免費 Gemini 是主方案，Groq 是可切換的備援。</p>
+                <p data-c="52"><b>白話：</b>能讀指示和材料、再產生文字的 AI 助手。</p>
+                <p data-c="53"><b>定義：</b>Google 的大型語言模型系列。</p>
+                <p data-c="54"><b>在這個產品裡：</b>依已蒐集的來源寫候選、正文與七頁草稿。免費 Gemini 是主方案，Groq 是可切換的備援。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="Playwright">
-              <summary>Playwright<span class="role">出圖攝影機</span></summary>
+              <summary data-c="55">Playwright<span class="role">出圖攝影機</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>一雙能自動打開網頁、點按鈕和拍照的機器手。</p>
-                <p><b>定義：</b>控制真實瀏覽器的自動化工具。</p>
-                <p><b>在這個產品裡：</b>把七頁品牌網頁逐張拍成 1080 × 1350 的 PNG，也用來檢查手機與桌機畫面。</p>
+                <p data-c="56"><b>白話：</b>一雙能自動打開網頁、點按鈕和拍照的機器手。</p>
+                <p data-c="57"><b>定義：</b>控制真實瀏覽器的自動化工具。</p>
+                <p data-c="58"><b>在這個產品裡：</b>把七頁品牌網頁逐張拍成 1080 × 1350 的 PNG，也用來檢查手機與桌機畫面。</p>
               </div>
             </details>
 
             <div class="prose">
-              <h3>兩條不能跨過的線</h3>
-              <p>
+              <h3 data-c="59">兩條不能跨過的線</h3>
+              <p data-c="60">
                 文字方面，AI 只能依已蒐集到的來源整理內容。資料不足時要把不確定性留著，不能自己補故事。
               </p>
-              <p>
+              <p data-c="61">
                 Logo 則只能從公司官網或官方品牌頁提出候選，最後仍然要由人確認。
                 網址看起來很像官網，不等於它就是官網。
               </p>
@@ -1155,15 +1155,15 @@
             <div class="chapter__head">
               <span class="chapter__num">03</span>
               <h2>我怎麼確保它沒寫歪</h2>
-              <p class="chapter__lede">
+              <p class="chapter__lede" data-c="62">
                 做法是每次只往前一小步，而且先裝好會報警的驗收條件。
                 但自動測試看不到畫面。下面這組修前／修後，就是它看不到的東西長什麼樣。
               </p>
             </div>
 
             <div class="prose">
-              <h3>99 個測試全綠，畫面還是錯的</h3>
-              <p>
+              <h3 data-c="63">99 個測試全綠，畫面還是錯的</h3>
+              <p data-c="64">
                 有一輪重整之後，99 個自動測試全部通過。我照樣打開瀏覽器，一頁一頁操作，
                 結果找到 24 個問題，其中 4 個是那 99 個測試連碰都沒碰到的。
                 最誇張的一個：正文寫了 134 字，切到別的主題再切回來，框就空了，
@@ -1173,102 +1173,102 @@
 
             <div class="compare">
               <figure>
-                <span class="compare__tag compare__tag--before">修之前</span>
+                <span class="compare__tag compare__tag--before" data-c="65">修之前</span>
                 <img src="{{IMG:ia-before}}" alt="修正前的首頁：側邊欄第一項顯示 app，三張數字卡樣式不一致" width="1120" height="700" />
               </figure>
               <figure>
-                <span class="compare__tag compare__tag--after">修之後</span>
+                <span class="compare__tag compare__tag--after" data-c="66">修之後</span>
                 <img src="{{IMG:ia-after}}" alt="修正後的首頁：側邊欄第一項改為概覽，三張數字卡樣式一致" width="1120" height="700" />
               </figure>
             </div>
 
             <table class="delta">
               <thead>
-                <tr><th scope="col">位置</th><th scope="col">修之前</th><th scope="col">修之後</th></tr>
+                <tr><th scope="col" data-c="67">位置</th><th scope="col" data-c="68">修之前</th><th scope="col" data-c="69">修之後</th></tr>
               </thead>
               <tbody>
                 <tr>
-                  <th scope="row">側邊欄第一項</th>
-                  <td><code>app</code></td>
-                  <td>概覽</td>
+                  <th scope="row" data-c="70">側邊欄第一項</th>
+                  <td data-c="71"><code class="mono">app</code></td>
+                  <td data-c="72">概覽</td>
                 </tr>
                 <tr>
-                  <th scope="row">三張數字卡</th>
-                  <td>兩個小圓圈加一個大數字，三張長得不一樣</td>
-                  <td>一致的大數字 2 / 1 / 0</td>
+                  <th scope="row" data-c="73">三張數字卡</th>
+                  <td data-c="74">兩個小圓圈加一個大數字，三張長得不一樣</td>
+                  <td data-c="75">一致的大數字 2 / 1 / 0</td>
                 </tr>
                 <tr>
-                  <th scope="row">第三張標籤</th>
-                  <td>已發</td>
-                  <td>本週已發</td>
+                  <th scope="row" data-c="76">第三張標籤</th>
+                  <td data-c="77">已發</td>
+                  <td data-c="78">本週已發</td>
                 </tr>
                 <tr>
-                  <th scope="row">右上角</th>
-                  <td>開發工具的按鈕全部露在外面</td>
-                  <td>只留必要的一個</td>
+                  <th scope="row" data-c="79">右上角</th>
+                  <td data-c="80">開發工具的按鈕全部露在外面</td>
+                  <td data-c="81">只留必要的一個</td>
                 </tr>
               </tbody>
             </table>
 
             <div class="prose">
-              <p>
+              <p data-c="82">
                 側邊欄那個 <code class="mono">app</code> 最值得看。那不是誰打錯字，
                 是介面工具直接把程式的檔名拿來當選單標籤。
                 程式完全正常，測試也全綠，只有真的打開來看的人會發現它不對。
               </p>
 
-              <blockquote class="pull">99 個測試，沒有一個會去看選單上寫了什麼字。</blockquote>
+              <blockquote class="pull" data-c="83">99 個測試，沒有一個會去看選單上寫了什麼字。</blockquote>
 
-              <h3>先寫會響的警報，再修電線</h3>
-              <p>
+              <h3 data-c="84">先寫會響的警報，再修電線</h3>
+              <p data-c="85">
                 每一個修正都照同一個順序走。以「刪除主題時，底下的題目也必須一起刪除」為例：
               </p>
-              <p>
+              <p data-c="86">
                 先把這句話寫成一條驗收條件，執行它，看到它失敗。這一步是在確認警報器真的會響。
                 接著只寫最少的程式讓它通過，不順手多加十個功能。
                 最後才在驗收條件維持通過的前提下，改善命名、拿掉重複的地方。
               </p>
-              <p>
+              <p data-c="87">
                 一次只做一條，做完再開下一條。
                 不要一次寫五條驗收再一次寫五段程式：那樣寫出來的東西是在驗證我想像中的行為，不是真實的行為。
               </p>
             </div>
 
             <details class="tech-note" data-tech="TDD">
-              <summary>TDD<span class="role">先驗收，再施工</span></summary>
+              <summary data-c="88">TDD<span class="role">先驗收，再施工</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>先寫驗收條件，再開始做。</p>
-                <p><b>定義：</b>測試驅動開發，Red → Green → Refactor 的循環。</p>
-                <p><b>在這個產品裡：</b>把功能切成一次只驗收一件事的小片，降低 AI 大改之後難以追查的風險。</p>
+                <p data-c="89"><b>白話：</b>先寫驗收條件，再開始做。</p>
+                <p data-c="90"><b>定義：</b>測試驅動開發，Red → Green → Refactor 的循環。</p>
+                <p data-c="91"><b>在這個產品裡：</b>把功能切成一次只驗收一件事的小片，降低 AI 大改之後難以追查的風險。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="Mock">
-              <summary>Mock<span class="role">先在室內排練</span></summary>
+              <summary data-c="92">Mock<span class="role">先在室內排練</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>朋友假裝是外送員，能確認我們會不會開門收餐，但不代表真實平台找得到地址。</p>
-                <p><b>定義：</b>用可控制的假物件代替外部服務，快速測內部邏輯。</p>
-                <p><b>在這個產品裡：</b>模擬搜尋與 AI 回應，讓大部分驗收跑得快、穩定，而且不花額度。</p>
+                <p data-c="93"><b>白話：</b>朋友假裝是外送員，能確認我們會不會開門收餐，但不代表真實平台找得到地址。</p>
+                <p data-c="94"><b>定義：</b>用可控制的假物件代替外部服務，快速測內部邏輯。</p>
+                <p data-c="95"><b>在這個產品裡：</b>模擬搜尋與 AI 回應，讓大部分驗收跑得快、穩定，而且不花額度。</p>
               </div>
             </details>
             <details class="tech-note" data-tech="契約測試">
-              <summary>契約測試<span class="role">真的叫一次外送</span></summary>
+              <summary data-c="96">契約測試<span class="role">真的叫一次外送</span></summary>
               <div class="note-body">
-                <p><b>白話：</b>實際打一次電話叫外送，確認地址、菜單、送達時間跟排練時說的一樣。</p>
-                <p><b>定義：</b>對真實系統邊界驗證雙方約定的輸入輸出格式。</p>
-                <p><b>在這個產品裡：</b>避免假 AI 永遠乖乖回傳整齊格式，但真的 Gemini 回應一變就整段壞掉。</p>
+                <p data-c="97"><b>白話：</b>實際打一次電話叫外送，確認地址、菜單、送達時間跟排練時說的一樣。</p>
+                <p data-c="98"><b>定義：</b>對真實系統邊界驗證雙方約定的輸入輸出格式。</p>
+                <p data-c="99"><b>在這個產品裡：</b>避免假 AI 永遠乖乖回傳整齊格式，但真的 Gemini 回應一變就整段壞掉。</p>
               </div>
             </details>
 
             <div class="prose">
-              <h3>做錯的地方，反而改變了方法</h3>
+              <h3 data-c="100">做錯的地方，反而改變了方法</h3>
             </div>
 
             <ul class="lessons">
               <li>
                 <span class="idx">01</span>
                 <div>
-                  <b>功能多，不等於判斷更容易</b>
-                  <p>早期加了很多分類與分數，實際使用卻只增加設定負擔。確認沒有幫助之後就移除了。</p>
+                  <b data-c="101">功能多，不等於判斷更容易</b>
+                  <p data-c="102">早期加了很多分類與分數，實際使用卻只增加設定負擔。確認沒有幫助之後就移除了。</p>
                   <div class="removed">
                     <span data-removed-feature="守門線">守門線</span>
                     <span data-removed-feature="來源分層">來源分層</span>
@@ -1279,22 +1279,22 @@
               <li>
                 <span class="idx">02</span>
                 <div>
-                  <b>驗收不能碰正式資料</b>
-                  <p>手動操作一律跑在資料庫複本上。這樣可以放心把東西弄壞，也不會拿真正累積的內容冒險。</p>
+                  <b data-c="103">驗收不能碰正式資料</b>
+                  <p data-c="104">手動操作一律跑在資料庫複本上。這樣可以放心把東西弄壞，也不會拿真正累積的內容冒險。</p>
                 </div>
               </li>
               <li>
                 <span class="idx">03</span>
                 <div>
-                  <b>假 AI 很乖，真 AI 不一定</b>
-                  <p>模擬回應通過只能證明內部邏輯。免費模型可能改格式、漏欄位或直接拒答，所以要另外對真實服務跑一次。</p>
+                  <b data-c="105">假 AI 很乖，真 AI 不一定</b>
+                  <p data-c="106">模擬回應通過只能證明內部邏輯。免費模型可能改格式、漏欄位或直接拒答，所以要另外對真實服務跑一次。</p>
                 </div>
               </li>
               <li>
                 <span class="idx">04</span>
                 <div>
-                  <b>出圖成功，不代表畫面正確</b>
-                  <p>指令顯示成功，文字仍然可能溢出、手機仍然可能破版。最後一定要看桌機與手機截圖。</p>
+                  <b data-c="107">出圖成功，不代表畫面正確</b>
+                  <p data-c="108">指令顯示成功，文字仍然可能溢出、手機仍然可能破版。最後一定要看桌機與手機截圖。</p>
                 </div>
               </li>
             </ul>
@@ -1305,7 +1305,7 @@
             <div class="chapter__head">
               <span class="chapter__num">04</span>
               <h2>你可以照這個順序做</h2>
-              <p class="chapter__lede">
+              <p class="chapter__lede" data-c="109">
                 不用先學完整套程式。這八步可以反覆循環，每次只把工具往前推一小段。
                 每一步後面都標了它在第一章哪個時刻出現過。
               </p>
@@ -1313,48 +1313,48 @@
 
             <ol class="recipe">
               <li>
-                <b>先寫一個真實痛點</b>
-                <p>描述誰在什麼情境卡住，不要從「我要用哪個技術」開始。</p>
-                <span class="ref">→ 01 起念：不是不想做，是做不起</span>
+                <b data-c="110">先寫一個真實痛點</b>
+                <p data-c="111">描述誰在什麼情境卡住，不要從「我要用哪個技術」開始。</p>
+                <span class="ref" data-c="112">→ 01 起念：不是不想做，是做不起</span>
               </li>
               <li>
-                <b>卡很久的時候，先確認是不是問錯問題</b>
-                <p>有些關卡不是資源不夠，是把需求想成了另一種東西。換個問法，限制可能就消失了。</p>
-                <span class="ref">→ 02 卡了很久，其實是問錯問題</span>
+                <b data-c="113">卡很久的時候，先確認是不是問錯問題</b>
+                <p data-c="114">有些關卡不是資源不夠，是把需求想成了另一種東西。換個問法，限制可能就消失了。</p>
+                <span class="ref" data-c="115">→ 02 卡了很久，其實是問錯問題</span>
               </li>
               <li>
-                <b>範圍不對就喊停</b>
-                <p>發現方向歪掉時停下來重新對齊，不要邊做邊修。這一步不寫程式，但省下最多時間。</p>
-                <span class="ref">→ 03 喊停：先對齊內容，不急著做圖</span>
+                <b data-c="116">範圍不對就喊停</b>
+                <p data-c="117">發現方向歪掉時停下來重新對齊，不要邊做邊修。這一步不寫程式，但省下最多時間。</p>
+                <span class="ref" data-c="118">→ 03 喊停：先對齊內容，不急著做圖</span>
               </li>
               <li>
-                <b>請 AI 比較方案，不要只接受第一個答案</b>
-                <p>要求它說明每個選項的優缺點、成本與風險，再自己決定。</p>
-                <span class="ref">→ 04 選出圖的方法</span>
+                <b data-c="119">請 AI 比較方案，不要只接受第一個答案</b>
+                <p data-c="120">要求它說明每個選項的優缺點、成本與風險，再自己決定。</p>
+                <span class="ref" data-c="121">→ 04 選出圖的方法</span>
               </li>
               <li>
-                <b>想不清楚的事先標成暫時決定</b>
-                <p>把它記下來、往下走，不要讓一個顏色擋住整條線。真正不能將就的是範圍和資料安全。</p>
-                <span class="ref">→ 05 配色與字體：先下暫時的決定</span>
+                <b data-c="122">想不清楚的事先標成暫時決定</b>
+                <p data-c="123">把它記下來、往下走，不要讓一個顏色擋住整條線。真正不能將就的是範圍和資料安全。</p>
+                <span class="ref" data-c="124">→ 05 配色與字體：先下暫時的決定</span>
               </li>
               <li>
-                <b>拆成一次可驗收一件事的小切片</b>
-                <p>每一片做完都能操作、能判斷通過或不通過。</p>
-                <span class="ref">→ 06 拍板，寫計畫，施工</span>
+                <b data-c="125">拆成一次可驗收一件事的小切片</b>
+                <p data-c="126">每一片做完都能操作、能判斷通過或不通過。</p>
+                <span class="ref" data-c="127">→ 06 拍板，寫計畫，施工</span>
               </li>
               <li>
-                <b>先寫失敗的驗收條件，再做最小實作</b>
-                <p>先確認警報真的會響，才讓 AI 動程式。</p>
-                <span class="ref">→ 03 先寫會響的警報</span>
+                <b data-c="128">先寫失敗的驗收條件，再做最小實作</b>
+                <p data-c="129">先確認警報真的會響，才讓 AI 動程式。</p>
+                <span class="ref" data-c="130">→ 03 先寫會響的警報</span>
               </li>
               <li>
-                <b>用真實畫面和真實服務驗收</b>
-                <p>模擬測試之外，親手走一次流程、看桌機和手機截圖，也確認外部服務真的照約定回應。</p>
-                <span class="ref">→ 03 測試全綠，畫面還是錯的</span>
+                <b data-c="131">用真實畫面和真實服務驗收</b>
+                <p data-c="132">模擬測試之外，親手走一次流程、看桌機和手機截圖，也確認外部服務真的照約定回應。</p>
+                <span class="ref" data-c="133">→ 03 測試全綠，畫面還是錯的</span>
               </li>
             </ol>
 
-            <p class="closing">
+            <p class="closing" data-c="134">
               Vibe Coding 把做軟體的門檻降低了很多，但它沒有把<strong>判斷</strong>一起接走。
               產品要解決什麼、哪些行為不能接受、資料安不安全、做出來到底好不好用，
               這幾件事還是只有人能決定。
