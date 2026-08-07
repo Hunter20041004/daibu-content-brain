@@ -468,6 +468,60 @@ with context_panel:
                 unsafe_allow_html=True,
             )
 
+    # 產品刻意收斂成單一系列，所以平常不給手動新增的入口
+    # （見 docs/superpowers/specs/2026-08-01-單一內容系列清理-design.md）。
+    # 但使用者可以把系列全部刪掉，而種子資料只載入一次，
+    # 刪光之後就再也回不來了。這裡只在零個系列時開一個救援出口。
+    if not themes:
+        with st.expander("新增內容系列", expanded=True):
+            st.caption("目前一個系列都沒有。先建立一個，才能開始找題材。")
+            with st.form("new-theme"):
+                new_theme_name = st.text_input(
+                    "內容系列名稱",
+                    key="new-theme-name",
+                    placeholder="例如：AI 工具週報",
+                )
+                new_theme_weekday = st.selectbox(
+                    "提醒星期",
+                    WEEKDAYS,
+                    key="new-theme-weekday",
+                )
+                new_theme_count = st.number_input(
+                    "每次產生幾則",
+                    min_value=1,
+                    max_value=12,
+                    value=3,
+                    key="new-theme-count",
+                )
+                new_theme_kind = st.selectbox(
+                    "內容型態",
+                    ("general", "company_profile"),
+                    format_func=lambda kind: (
+                        "介紹一家公司" if kind == "company_profile" else "一般內容"
+                    ),
+                    key="new-theme-kind",
+                )
+                if st.form_submit_button("建立內容系列", type="primary"):
+                    cleaned_name = new_theme_name.strip()
+                    if not cleaned_name:
+                        st.warning("請先填內容系列名稱。")
+                    elif any(theme.name == cleaned_name for theme in themes):
+                        st.warning(f"已經有叫「{cleaned_name}」的內容系列了。")
+                    else:
+                        created_theme_id = db.add_theme(
+                            conn,
+                            Theme(
+                                None,
+                                cleaned_name,
+                                WEEKDAYS.index(new_theme_weekday),
+                                [],
+                                int(new_theme_count),
+                                content_kind=new_theme_kind,
+                            ),
+                        )
+                        st.session_state.selected_theme_id = created_theme_id
+                        st.rerun()
+
     with st.expander("素材來源庫"):
         st.caption("來源可被多個內容系列共用；停用後不會再抓取。")
         with st.form("new-source"):
@@ -849,7 +903,7 @@ with candidate_column:
     else:
         st.markdown(
             '<div class="empty-state">'
-            "目前沒有內容系列；請透過專案設定新增。"
+            "目前沒有內容系列；用左邊的「新增內容系列」建立第一個。"
             "</div>",
             unsafe_allow_html=True,
         )

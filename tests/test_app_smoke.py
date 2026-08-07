@@ -77,7 +77,7 @@ def test_home_empty_series_points_to_project_settings(monkeypatch, tmp_path):
         element.value for elements in (app.markdown, app.info)
         for element in elements
     )
-    assert "目前沒有內容系列；請透過專案設定新增。" in visible_text
+    assert "目前沒有內容系列；到內容製作頁用「新增內容系列」建立第一個。" in visible_text
     assert "先建立第一個內容系列" not in visible_text
 
 
@@ -415,18 +415,19 @@ def test_selection_hides_manual_series_creation_but_lists_code_added_series(
     assert "建立內容系列" not in button_labels
 
 
-def test_selection_empty_series_points_to_project_settings(
+def test_selection_empty_series_points_at_the_form_on_this_page(
     monkeypatch,
     tmp_path,
 ):
+    """在內容製作頁上，空狀態要指向同一頁的表單，不是叫使用者去別頁。"""
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
     monkeypatch.setattr(seeds, "load", lambda conn: None)
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
 
     visible_text = " ".join(markdown.value for markdown in app.markdown)
-    assert "目前沒有內容系列；請透過專案設定新增。" in visible_text
-    assert "先建立一個內容系列" not in visible_text
+    assert "目前沒有內容系列；用左邊的「新增內容系列」建立第一個。" in visible_text
+    assert "到內容製作頁" not in visible_text, "已經在這一頁了，不該叫使用者再過來"
 
 
 def test_selection_shows_the_selected_theme_workspace(monkeypatch, tmp_path):
@@ -788,6 +789,61 @@ def test_delete_source_warns_usage_count(monkeypatch, tmp_path):
 
     warning_text = " ".join(warning.value for warning in app.warning)
     assert "這個來源正被 2 個內容系列使用" in warning_text
+
+
+def test_home_empty_state_points_at_a_real_entry_point(monkeypatch, tmp_path):
+    """空狀態不能把使用者指去一個沒有這個功能的頁面。"""
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.set_config(conn, "seeds_loaded", "1")
+
+    for page in ("app.py", "pages/1_選題.py"):
+        app = AppTest.from_file(PROJECT_ROOT / page)
+        app.run()
+
+        visible_text = " ".join(
+            element.value
+            for element in [
+                *app.markdown,
+                *app.title,
+                *app.subheader,
+                *app.info,
+                *app.warning,
+                *app.caption,
+            ]
+        )
+        assert "專案設定" not in visible_text, (
+            f"{page} 把使用者指去設定頁，但那裡沒有新增內容系列的功能"
+        )
+        assert "新增內容系列" in visible_text, f"{page} 沒有給出真正能用的入口"
+
+
+def test_selection_can_create_a_series_when_none_are_left(monkeypatch, tmp_path):
+    """使用者可以把內容系列全部刪掉，而種子資料只會載入一次。
+
+    沒有新增入口的話，刪光之後這個工具從介面上就再也回不來了。
+    """
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.set_config(conn, "seeds_loaded", "1")
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
+    app.run()
+
+    assert not app.exception
+    assert not db.get_themes(conn), "前置條件：這個測試要從零個系列開始"
+
+    app.text_input(key="new-theme-name").set_value("AI 工具週報")
+    next(
+        button for button in app.button
+        if "建立內容系列" in button.label
+    ).click().run()
+
+    assert [theme.name for theme in db.get_themes(conn)] == ["AI 工具週報"]
 
 
 def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
