@@ -1,0 +1,1447 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="一份給 Vibe Coding 初學者的呆一布內容工作站建造故事：用一個真實功能，完整走一次從發想到出圖。"
+    />
+    <title>我怎麼用 Vibe Coding 搭出呆一布內容工作站</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23244A5B'/%3E%3Ccircle cx='11' cy='15' r='2' fill='%23FBFAF7'/%3E%3Ccircle cx='21' cy='15' r='2' fill='%23FBFAF7'/%3E%3Cpath d='M11 21q5 4 10 0' fill='none' stroke='%236FC1CC' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&amp;family=Noto+Sans+TC:wght@400;500;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #fbfaf7;
+        --surface: #ffffff;
+        --wash: #e9f6ff;
+        --ink: #14202a;
+        --deep: #244a5b;
+        --deep-2: #315f73;
+        --accent: #6fc1cc;
+        --peach: #f8c0a0;
+        --rule: #ded8ce;
+        --muted: #5a6a74;
+        --shadow: 0 18px 40px rgba(36, 74, 91, 0.1);
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --motion-distance: 6px;
+        --font-serif: "Noto Serif TC", Georgia, serif;
+        --font-sans: "Noto Sans TC", system-ui, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        font-size: 1.0625rem;
+        line-height: 1.85;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-serif);
+        color: var(--deep);
+        line-height: 1.25;
+        margin: 0;
+      }
+
+      p {
+        margin: 0 0 1.15em;
+      }
+
+      a {
+        color: var(--deep-2);
+        text-underline-offset: 3px;
+      }
+
+      .mono {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---------- 進度條 ---------- */
+      .progress {
+        position: fixed;
+        inset: 0 0 auto 0;
+        height: 3px;
+        background: transparent;
+        z-index: 60;
+      }
+
+      .progress__bar {
+        height: 100%;
+        width: 100%;
+        transform: scaleX(0);
+        transform-origin: 0 50%;
+        background: linear-gradient(90deg, var(--deep), var(--accent));
+      }
+
+      /* ---------- 骨架 ---------- */
+      .shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 32px 96px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 168px minmax(0, 768px);
+        justify-content: center;
+        gap: 72px;
+        align-items: start;
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .toc {
+        position: sticky;
+        top: 48px;
+        padding-top: 8px;
+        border-top: 2px solid var(--deep);
+      }
+
+      .toc__label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
+
+      .toc a {
+        display: block;
+        padding: 7px 0;
+        font-size: 0.92rem;
+        color: var(--muted);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        padding-left: 12px;
+        margin-left: -12px;
+        transition: color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+      }
+
+      .toc a:hover,
+      .toc a.is-active {
+        color: var(--deep);
+        border-left-color: var(--accent);
+      }
+
+      .toc a .num {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--accent);
+        margin-right: 8px;
+      }
+
+      .nav-mobile {
+        display: none;
+      }
+
+      /* ---------- 首屏 ---------- */
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.45fr);
+        gap: 48px;
+        align-items: center;
+        padding: 88px 0 72px;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--deep-2);
+        margin-bottom: 26px;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 38px;
+        height: 2px;
+        background: var(--accent);
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 4.2vw, 2.95rem);
+        font-weight: 900;
+        letter-spacing: -0.01em;
+        text-wrap: balance;
+      }
+
+      .hero h1 em {
+        font-style: normal;
+        color: var(--deep-2);
+      }
+
+      /* 品牌名不可以被拆行 */
+      .keep {
+        white-space: nowrap;
+      }
+
+      .hero__lede {
+        margin-top: 28px;
+        font-size: 1.14rem;
+        color: var(--muted);
+        max-width: 34em;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 32px;
+      }
+
+      .meta span {
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+        color: var(--deep-2);
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 7px 15px;
+        background: var(--surface);
+      }
+
+      .hero__mascot {
+        position: relative;
+        background: var(--wash);
+        border: 1px solid var(--rule);
+        border-radius: 22px;
+        padding: 34px 28px 26px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero__mascot svg {
+        display: block;
+        width: 100%;
+        max-width: 240px;
+        height: auto;
+        margin: 0 auto;
+      }
+
+      .hero__mascot figcaption {
+        margin-top: 18px;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.1em;
+        color: var(--deep-2);
+      }
+
+      /* ---------- 章節 ---------- */
+      .chapter {
+        padding: 118px 0 0;
+        scroll-margin-top: 40px;
+      }
+
+      .chapter__head {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 24px;
+        align-items: baseline;
+        border-top: 2px solid var(--deep);
+        padding-top: 18px;
+        margin-bottom: 34px;
+      }
+
+      .chapter__num {
+        font-family: var(--font-mono);
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--accent);
+      }
+
+      .chapter__head h2 {
+        font-size: clamp(1.85rem, 3.4vw, 2.7rem);
+        font-weight: 700;
+      }
+
+      .chapter__lede {
+        grid-column: 2;
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+        max-width: 40em;
+      }
+
+      .prose {
+        max-width: none;
+      }
+
+      .prose h3 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 44px 0 14px;
+      }
+
+      .prose h3 .step {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--accent);
+        margin-right: 10px;
+      }
+
+      .prose strong {
+        color: var(--deep);
+      }
+
+      /* ---------- 拉引句 ---------- */
+      .pull {
+        margin: 44px 0;
+        padding: 4px 0 4px 28px;
+        border-left: 3px solid var(--accent);
+        font-family: var(--font-serif);
+        font-size: clamp(1.3rem, 2.4vw, 1.72rem);
+        font-weight: 500;
+        line-height: 1.55;
+        color: var(--deep);
+        max-width: 24ch;
+      }
+
+      /* ---------- 圖 ---------- */
+      figure {
+        margin: 40px 0;
+      }
+
+      figcaption {
+        margin-top: 12px;
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      /* 突出文字欄的規則放在 .compare 定義之後，見「響應式」上方 */
+
+      .carousel-out {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 2fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .carousel-out__lead img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 12px;
+        border: 1px solid var(--rule);
+        box-shadow: var(--shadow);
+      }
+
+      .carousel-out__rest {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .carousel-out__rest img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 8px;
+        border: 1px solid var(--rule);
+      }
+
+      /* ---------- 修前 / 修後 ---------- */
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin: 36px 0 8px;
+      }
+
+      .compare figure {
+        margin: 0;
+      }
+
+      .compare img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 10px;
+        border: 1px solid var(--rule);
+      }
+
+      .compare__tag {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 4px 11px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+
+      .compare__tag--before {
+        background: #fbe6da;
+        color: #9a4a2c;
+      }
+
+      .compare__tag--after {
+        background: #dcf0f2;
+        color: var(--deep);
+      }
+
+      .delta {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 28px 0 8px;
+        font-size: 0.95rem;
+      }
+
+      .delta th,
+      .delta td {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--rule);
+        vertical-align: top;
+      }
+
+      .delta thead th {
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 2px solid var(--deep);
+      }
+
+      .delta tbody th {
+        font-weight: 500;
+        color: var(--deep);
+        width: 26%;
+      }
+
+      .delta code {
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+        background: var(--wash);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      /* ---------- 資料旅程 ---------- */
+      .journey {
+        margin: 36px 0 0;
+      }
+
+      .journey__steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0;
+        margin: 0 0 22px;
+        list-style: none;
+      }
+
+      .journey__steps button {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        min-height: 44px;
+        padding: 10px 15px;
+        border-radius: 8px;
+        border: 1px solid var(--rule);
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+        transition: background 180ms var(--ease-out), color 180ms var(--ease-out),
+          border-color 180ms var(--ease-out);
+      }
+
+      .journey__steps button:hover {
+        border-color: var(--accent);
+        color: var(--deep);
+      }
+
+      .journey__steps button[aria-selected="true"] {
+        background: var(--deep);
+        border-color: var(--deep);
+        color: #fff;
+      }
+
+      .journey__steps button:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .journey__detail {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
+        padding: 24px 26px;
+      }
+
+      .journey__detail h4 {
+        margin: 0 0 14px;
+        font-family: var(--font-serif);
+        font-size: 1.15rem;
+        color: var(--deep);
+      }
+
+      .journey__detail dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px 18px;
+      }
+
+      .journey__detail dt {
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+        padding-top: 4px;
+      }
+
+      .journey__detail dd {
+        margin: 0;
+      }
+
+      /* ---------- 名詞展開 ---------- */
+      details.tech-note {
+        border-top: 1px solid var(--rule);
+        padding: 4px 0;
+      }
+
+      details.tech-note summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 14px 0;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+        color: var(--deep);
+      }
+
+      details.tech-note summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.tech-note summary::after {
+        content: "+";
+        margin-left: auto;
+        font-family: var(--font-mono);
+        color: var(--accent);
+        font-size: 1.1rem;
+      }
+
+      details.tech-note[open] summary::after {
+        content: "−";
+      }
+
+      details.tech-note summary .role {
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      details.tech-note .note-body {
+        padding: 0 0 20px;
+        font-size: 0.97rem;
+        color: var(--muted);
+      }
+
+      details.tech-note .note-body b {
+        color: var(--deep);
+        font-weight: 500;
+      }
+
+      /* ---------- 踩坑 ---------- */
+      .lessons {
+        margin: 34px 0 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--rule);
+      }
+
+      .lessons li {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 22px;
+        padding: 22px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .lessons .idx {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--accent);
+        padding-top: 5px;
+      }
+
+      .lessons b {
+        display: block;
+        font-family: var(--font-serif);
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--deep);
+        margin-bottom: 6px;
+      }
+
+      .lessons p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.97rem;
+      }
+
+      .removed {
+        display: inline-flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .removed span {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: #9a4a2c;
+        background: #fbe6da;
+        border-radius: 4px;
+        padding: 3px 9px;
+        text-decoration: line-through;
+      }
+
+      /* ---------- 建造公式 ---------- */
+      .recipe {
+        counter-reset: recipe;
+        list-style: none;
+        padding: 0;
+        margin: 30px 0 0;
+        max-width: 66ch;
+      }
+
+      .recipe li {
+        counter-increment: recipe;
+        position: relative;
+        padding: 20px 0 20px 62px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .recipe li::before {
+        content: counter(recipe, decimal-leading-zero);
+        position: absolute;
+        left: 0;
+        top: 22px;
+        font-family: var(--font-mono);
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .recipe b {
+        display: block;
+        font-family: var(--font-serif);
+        font-size: 1.12rem;
+        color: var(--deep);
+        margin-bottom: 5px;
+      }
+
+      .recipe p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.97rem;
+      }
+
+      .recipe .ref {
+        display: inline-block;
+        margin-top: 7px;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        color: var(--deep-2);
+      }
+
+      .closing {
+        margin: 56px 0 0;
+        padding: 34px 36px;
+        background: var(--deep);
+        color: #eaf3f6;
+        border-radius: 16px;
+        font-family: var(--font-serif);
+        font-size: 1.2rem;
+        line-height: 1.7;
+      }
+
+      .closing strong {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 46px 0 20px;
+        margin-top: 64px;
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+{{COMMENT_CSS}}
+
+      /* 圖片突出文字欄是雜誌版面的骨幹之一，但只在版面確定有餘裕時才做，
+         否則會撐出橫向捲動。必須排在 .figure-wide 與 .compare 的基本規則之後，
+         因為媒體查詢不會提高優先權，同分時由後面的規則勝出。 */
+      @media (min-width: 1240px) {
+        .figure-wide,
+        .compare {
+          width: calc(100% + 144px);
+          margin-left: -72px;
+          margin-right: -72px;
+        }
+      }
+
+      /* ---------- 響應式 ---------- */
+      @media (max-width: 1000px) {
+        .shell {
+          padding: 0 22px 72px;
+        }
+
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0;
+        }
+
+        .toc {
+          display: none;
+        }
+
+        .nav-mobile {
+          display: block;
+          position: sticky;
+          top: 0;
+          z-index: 40;
+          margin: 0 -22px 8px;
+          padding: 10px 22px;
+          background: rgba(251, 250, 247, 0.94);
+          backdrop-filter: blur(8px);
+          border-bottom: 1px solid var(--rule);
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-mobile ul {
+          display: flex;
+          gap: 8px;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .nav-mobile a {
+          display: inline-flex;
+          align-items: center;
+          min-height: 44px;
+          padding: 0 16px;
+          border-radius: 999px;
+          border: 1px solid var(--rule);
+          background: var(--surface);
+          color: var(--muted);
+          font-size: 0.85rem;
+          white-space: nowrap;
+          text-decoration: none;
+        }
+
+        .nav-mobile a.is-active {
+          background: var(--deep);
+          border-color: var(--deep);
+          color: #fff;
+        }
+
+        .hero {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 34px;
+          padding: 40px 0 52px;
+        }
+
+        .hero__mascot {
+          padding: 24px 20px 18px;
+        }
+
+        .hero__mascot svg {
+          max-width: 150px;
+        }
+
+        .chapter__head {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 6px;
+        }
+
+        .chapter__lede {
+          grid-column: 1;
+        }
+
+        /* 手機不做突出，否則會撐出橫向捲動 */
+        .figure-wide,
+        .compare {
+          width: 100%;
+          margin-left: 0;
+          margin-right: 0;
+        }
+
+        .carousel-out {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        /* 3 欄時每張只剩約 90px，看不出內容；改 2 欄 */
+        .carousel-out__rest {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .compare {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .journey__detail dl {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 4px 0;
+        }
+
+        .journey__detail dd {
+          margin-bottom: 12px;
+        }
+
+        .pull {
+          max-width: none;
+          font-size: 1.24rem;
+        }
+
+        .delta tbody th {
+          width: 34%;
+        }
+
+        .closing {
+          padding: 26px 24px;
+          font-size: 1.08rem;
+        }
+
+        footer {
+          flex-direction: column;
+          gap: 10px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --motion-distance: 0px;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+
+      @media print {
+        .progress,
+        .toc,
+        .nav-mobile,
+        .vt-comment-trigger,
+        .vt-comment-popup,
+        .vt-comment-pill,
+        .vt-comment-list {
+          display: none !important;
+        }
+
+        details.tech-note {
+          open: true;
+        }
+
+        body {
+          background: #fff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress"><div class="progress__bar" id="progress-bar"></div></div>
+
+    <div class="shell">
+      <div class="layout">
+        <nav class="toc" aria-label="章節導覽">
+          <p class="toc__label">目次</p>
+          <a href="#build"><span class="num">01</span>做出來</a>
+          <a href="#system"><span class="num">02</span>系統</a>
+          <a href="#verify"><span class="num">03</span>不寫歪</a>
+          <a href="#recipe"><span class="num">04</span>照著做</a>
+        </nav>
+
+        <main>
+          <nav class="nav-mobile" aria-label="章節捷徑">
+            <ul>
+              <li><a href="#build">01 做出來</a></li>
+              <li><a href="#system">02 系統</a></li>
+              <li><a href="#verify">03 不寫歪</a></li>
+              <li><a href="#recipe">04 照著做</a></li>
+            </ul>
+          </nav>
+
+          <header class="hero" id="hero">
+            <div>
+              <p class="eyebrow">呆一布內容工作站 · 建造故事</p>
+              <h1>我怎麼用 <em>Vibe&nbsp;Coding</em> 搭出<span class="keep">呆一布</span>內容工作站</h1>
+              <p class="hero__lede">
+                這是一個內容工作站：架構上可以跑不同的內容系列，目前先把「AI 新創介紹」這一條路走通。
+                下面用其中一個功能——把一篇寫好的文字變成七張輪播圖——完整走一次，
+                從我發現哪裡卡住，到七張圖真的存進資料夾。
+              </p>
+              <div class="meta">
+                <span>約 8 分鐘</span>
+                <span>不需要程式背景</span>
+                <span>2026 年 8 月整理</span>
+              </div>
+            </div>
+            <figure class="hero__mascot">
+              {{SVG:mascot}}
+              <figcaption>呆一布 · 內容工作站</figcaption>
+            </figure>
+          </header>
+
+          <!-- ============ 01 ============ -->
+          <section class="chapter" id="build">
+            <div class="chapter__head">
+              <span class="chapter__num">01</span>
+              <h2>一個功能，從發想到出圖</h2>
+              <p class="chapter__lede">
+                這一章是一條完整的線：2026 年 7 月 28 日晚上，大約 70 分鐘，我把「輪播圖產生器」從一句話推到可以施工的計畫。
+                後面三章講的方法，全部都掛在這條線上。
+              </p>
+            </div>
+
+            <div class="prose">
+              <h3><span class="step">01</span>起念：卡在最後一段</h3>
+              <p>
+                那時候工作站前面幾步已經串起來了：能從公開來源找到題材、能挑一則採用、能讓 AI 依據來源寫出正文。
+                但寫完之後我還是得自己開設計軟體排七張圖，一家公司排一次，每次都從頭來。
+                <strong>前面省下的時間，全部在最後一段吐回去。</strong>
+              </p>
+
+              <h3><span class="step">02</span>先看參考，再定調</h3>
+              <p>
+                我沒有先問「要用什麼技術」。先找了幾張自己看得順眼的參考圖，確定要走乾淨、帶一點手繪感的調性。
+                方向定了，後面討論版面和顏色時才有可以指著說「像這個、不像那個」的東西。
+              </p>
+
+              <h3><span class="step">03</span>喊停：先對齊內容，不急著做圖</h3>
+              <p>
+                原本規劃的七個頁型裡有「文組生用途」和「多少錢」。我在準備動工前停下來，說這不對：
+                這個系列要介紹的是<strong>公司本身，以及他們怎麼運用 AI</strong>，不是這個產品對某個族群划不划算、要花多少錢。
+              </p>
+              <p>
+                頁型改成：封面／這是什麼／它解決什麼問題／AI 在哪裡／成果／為什麼你該在意／結尾。
+                這一步花掉快二十分鐘，中間什麼程式都沒寫。但如果沒停，做出來的七張圖會整組要重做。
+              </p>
+
+              <blockquote class="pull">範圍講不清楚的時候，做得越快，要重做的東西越多。</blockquote>
+
+              <h3><span class="step">04</span>選出圖的方法</h3>
+              <p>
+                有三條路：用繪圖函式庫直接在程式裡畫、把排好的網頁用瀏覽器拍照、或接外部設計服務。
+                我選了第二條，用 Playwright。理由很實際——七頁本來就是用網頁排版做的，
+                讓瀏覽器照著排好的版面拍照，<strong>我改一行樣式就能一次改掉七張圖</strong>，不必去碰畫圖的程式碼。
+              </p>
+
+              <h3><span class="step">05</span>配色與字體：先下暫時的決定</h3>
+              <p>
+                第一版配色裡有一個薄荷綠，我不要。字體那時也還沒定案，但我沒有停在那裡挑到滿意為止，
+                而是先指定一組堪用的、標記成「暫時的，之後再改」，然後往下走。
+              </p>
+              <p>
+                這個做法我後來一直在用：<strong>把還沒想清楚的事情標成暫時決定，不要讓它擋住整條線。</strong>
+                真正不能將就的是範圍和資料安全，顏色永遠可以之後再調。
+              </p>
+
+              <h3><span class="step">06</span>拍板，寫計畫，施工</h3>
+              <p>
+                方向、頁型、技術、視覺都有答案之後，才進到寫實作計畫。
+                計畫是一步一步、每步都能單獨驗收的清單，不是「做一個輪播圖產生器」這種一整塊的任務。
+              </p>
+
+              <h3><span class="step">07</span>產出</h3>
+              <p>
+                下面是這條線走完之後，工具實際吐出來的一組成品——七張 1080 × 1350 的圖，
+                內容是 Railway 這家公司。這是「AI 新創介紹」這個系列的產出，不是這個工具唯一能做的東西。
+              </p>
+            </div>
+
+            <figure class="figure-wide">
+              <div class="carousel-out">
+                <div class="carousel-out__lead">
+                  <img src="{{IMG:carousel-01-cover}}" alt="封面：Railway，簡化軟體部署流程的 PaaS 平台" width="544" height="680" />
+                </div>
+                <div class="carousel-out__rest">
+                  <img src="{{IMG:carousel-02-who}}" alt="第二頁：公司速寫" width="544" height="680" />
+                  <img src="{{IMG:carousel-03-problem}}" alt="第三頁：它解決什麼問題" width="544" height="680" />
+                  <img src="{{IMG:carousel-04-how-ai}}" alt="第四頁：AI 在哪裡" width="544" height="680" />
+                  <img src="{{IMG:carousel-05-results}}" alt="第五頁：成果" width="544" height="680" />
+                  <img src="{{IMG:carousel-06-why-care}}" alt="第六頁：為什麼你該在意" width="544" height="680" />
+                  <img src="{{IMG:carousel-07-cta}}" alt="第七頁：結尾與行動呼籲" width="544" height="680" />
+                </div>
+              </div>
+              <figcaption>
+                七張 <span class="mono">1080 × 1350</span> PNG，由瀏覽器逐頁拍出，可以直接打包下載。
+                每一頁的事實段落都保留來源，文字可以逐頁修改後重拍。
+              </figcaption>
+            </figure>
+          </section>
+
+          <!-- ============ 02 ============ -->
+          <section class="chapter" id="system">
+            <div class="chapter__head">
+              <span class="chapter__num">02</span>
+              <h2>這中間，系統做了什麼</h2>
+              <p class="chapter__lede">
+                同一條線，換一個角度看：一筆內容從公開來源走到 PNG，中間經過七站，每一站由不同的角色負責。
+                點任何一站，看它收到什麼、做了什麼、交出什麼。
+              </p>
+            </div>
+
+            <div class="journey">
+              <ul class="journey__steps" role="tablist" aria-label="內容旅程">
+                <li><button type="button" role="tab" data-journey-step="source" aria-selected="true">01 公開來源</button></li>
+                <li><button type="button" role="tab" data-journey-step="research" aria-selected="false">02 公司研究</button></li>
+                <li><button type="button" role="tab" data-journey-step="ideas" aria-selected="false">03 候選題目</button></li>
+                <li><button type="button" role="tab" data-journey-step="adopt" aria-selected="false">04 人工採用</button></li>
+                <li><button type="button" role="tab" data-journey-step="draft" aria-selected="false">05 AI 正文</button></li>
+                <li><button type="button" role="tab" data-journey-step="pages" aria-selected="false">06 七頁草稿</button></li>
+                <li><button type="button" role="tab" data-journey-step="render" aria-selected="false">07 PNG 與 ZIP</button></li>
+              </ul>
+              <div class="journey__detail" id="journey-detail" role="tabpanel" aria-live="polite"></div>
+            </div>
+
+            <div class="prose">
+              <h3>六個角色，各站一個位置</h3>
+              <p>
+                不用先懂程式。把它想成一間內容餐廳：有人接單、有人料理、有人管庫存，也有人把成品拍好交付。
+                下面每一個名詞都可以展開，看它的白話說法、正式定義，以及在這個產品裡負責哪一段。
+              </p>
+            </div>
+
+            <details class="tech-note" data-tech="Streamlit">
+              <summary>Streamlit<span class="role">接待櫃台</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>把 Python 很快變成網頁工具的展示櫃。</p>
+                <p><b>定義：</b>一套用 Python 建立資料應用介面的開源框架。</p>
+                <p><b>在這個產品裡：</b>我實際看到、點擊和輸入內容的所有畫面——主題、候選、正文與輪播圖都在這裡操作。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="Python">
+              <summary>Python<span class="role">後場廚房</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>告訴電腦每一步要怎麼做的工作語言。</p>
+                <p><b>定義：</b>一種常用的通用程式語言。</p>
+                <p><b>在這個產品裡：</b>串起資料、搜尋、AI、狀態變更與出圖流程，也處理錯誤與順序。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="SQLite">
+              <summary>SQLite<span class="role">本機資料櫃</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>像一個會整理、會查找的電子檔案櫃。</p>
+                <p><b>定義：</b>儲存在單一檔案裡的關聯式資料庫。</p>
+                <p><b>在這個產品裡：</b>記住題目從候選到發佈的每個狀態，以及發佈之後的成效數字。不必先租伺服器。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="RSS">
+              <summary>RSS<span class="role">固定訂閱的採購單</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>網站主動提供的「最新文章清單」。</p>
+                <p><b>定義：</b>讓程式訂閱網站更新的標準資料格式。</p>
+                <p><b>在這個產品裡：</b>抓取已知內容來源的新文章，是題材的第一個入口。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="Tavily">
+              <summary>Tavily<span class="role">出去找資料的採購員</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>替 AI 找網頁資料的搜尋幫手。</p>
+                <p><b>定義：</b>提供結構化搜尋結果的外部 API 服務。</p>
+                <p><b>在這個產品裡：</b>只在可信網域範圍內找公司資料與參考來源，不是整個網路亂搜。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="Gemini">
+              <summary>Gemini<span class="role">文字助手</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>能讀指示和材料、再產生文字的 AI 助手。</p>
+                <p><b>定義：</b>Google 的大型語言模型系列。</p>
+                <p><b>在這個產品裡：</b>依已蒐集的來源寫候選、正文與七頁草稿。免費 Gemini 是主方案，Groq 是可切換的備援。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="Playwright">
+              <summary>Playwright<span class="role">出圖攝影機</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>一雙能自動打開網頁、點按鈕和拍照的機器手。</p>
+                <p><b>定義：</b>控制真實瀏覽器的自動化工具。</p>
+                <p><b>在這個產品裡：</b>把七頁品牌網頁逐張拍成 1080 × 1350 的 PNG，也用來檢查手機與桌機畫面。</p>
+              </div>
+            </details>
+
+            <div class="prose">
+              <h3>兩條不能跨過的線</h3>
+              <p>
+                <strong>文字：</strong>AI 只能依已蒐集到的來源整理內容。資料不足時要把不確定性留著，不能自己補故事。
+              </p>
+              <p>
+                <strong>品牌：</strong>Logo 只能從公司官網或官方品牌頁提出候選，最後仍要由人確認。
+                網址看起來很像官網，不等於它就是官網。
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ 03 ============ -->
+          <section class="chapter" id="verify">
+            <div class="chapter__head">
+              <span class="chapter__num">03</span>
+              <h2>我怎麼確保它沒寫歪</h2>
+              <p class="chapter__lede">
+                做法是每次只往前一小步，而且先裝好會報警的驗收條件。
+                但自動測試看不到畫面——下面這組修前／修後，就是它看不到的東西長什麼樣。
+              </p>
+            </div>
+
+            <div class="prose">
+              <h3>99 個測試全綠，畫面還是錯的</h3>
+              <p>
+                有一輪重整之後，自動測試全部通過。我照樣打開瀏覽器，一頁一頁看，
+                結果找到 24 個問題，其中 4 個會讓資料消失或互相污染。
+                下面是同一個首頁，修之前與修之後：
+              </p>
+            </div>
+
+            <div class="compare">
+              <figure>
+                <span class="compare__tag compare__tag--before">修之前</span>
+                <img src="{{IMG:ia-before}}" alt="修正前的首頁：側邊欄第一項顯示 app，三張數字卡樣式不一致" width="1120" height="700" />
+              </figure>
+              <figure>
+                <span class="compare__tag compare__tag--after">修之後</span>
+                <img src="{{IMG:ia-after}}" alt="修正後的首頁：側邊欄第一項改為概覽，三張數字卡樣式一致" width="1120" height="700" />
+              </figure>
+            </div>
+
+            <table class="delta">
+              <thead>
+                <tr><th scope="col">位置</th><th scope="col">修之前</th><th scope="col">修之後</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">側邊欄第一項</th>
+                  <td><code>app</code></td>
+                  <td>概覽</td>
+                </tr>
+                <tr>
+                  <th scope="row">三張數字卡</th>
+                  <td>兩個小圓圈加一個大數字，三張長得不一樣</td>
+                  <td>一致的大數字 2 / 1 / 0</td>
+                </tr>
+                <tr>
+                  <th scope="row">第三張標籤</th>
+                  <td>已發</td>
+                  <td>本週已發</td>
+                </tr>
+                <tr>
+                  <th scope="row">右上角</th>
+                  <td>開發工具的按鈕全部露在外面</td>
+                  <td>只留必要的一個</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="prose">
+              <p>
+                側邊欄那個 <code class="mono">app</code> 最值得看。那不是誰寫錯字，
+                是介面工具直接把程式的檔名拿來當選單標籤。
+                <strong>程式完全正常，測試也全綠，只有真的打開來看的人會發現它不對。</strong>
+              </p>
+
+              <blockquote class="pull">測試證明程式照我說的做；只有眼睛能證明它做對了。</blockquote>
+
+              <h3>先寫會響的警報，再修電線</h3>
+              <p>
+                每一個修正都照同一個順序走。以「刪除主題時，底下的題目也必須一起刪除」為例：
+              </p>
+              <p>
+                <strong>先證明現在做不到。</strong>把這句話寫成一條驗收條件，執行，看到它失敗——確認警報器真的會響。
+                <strong>再做剛好夠用的修正。</strong>不順手多加十個功能，只寫最少的程式讓它通過。
+                <strong>最後在保護下整理。</strong>驗收條件維持通過的前提下，改善命名、拿掉重複。
+              </p>
+              <p>
+                一次只做一條。做完一條再開下一條，不要一次寫五條驗收再一次寫五段程式——
+                那樣寫出來的東西，是在驗證我想像中的行為，不是真實的行為。
+              </p>
+            </div>
+
+            <details class="tech-note" data-tech="TDD">
+              <summary>TDD<span class="role">先驗收，再施工</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>先寫驗收條件，再開始做。</p>
+                <p><b>定義：</b>測試驅動開發，Red → Green → Refactor 的循環。</p>
+                <p><b>在這個產品裡：</b>把功能切成一次只驗收一件事的小片，降低 AI 大改之後難以追查的風險。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="Mock">
+              <summary>Mock<span class="role">先在室內排練</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>朋友假裝是外送員，能確認我們會不會開門收餐，但不代表真實平台找得到地址。</p>
+                <p><b>定義：</b>用可控制的假物件代替外部服務，快速測內部邏輯。</p>
+                <p><b>在這個產品裡：</b>模擬搜尋與 AI 回應，讓大部分驗收跑得快、穩定，而且不花額度。</p>
+              </div>
+            </details>
+            <details class="tech-note" data-tech="契約測試">
+              <summary>契約測試<span class="role">真的叫一次外送</span></summary>
+              <div class="note-body">
+                <p><b>白話：</b>實際打一次電話叫外送，確認地址、菜單、送達時間跟排練時說的一樣。</p>
+                <p><b>定義：</b>對真實系統邊界驗證雙方約定的輸入輸出格式。</p>
+                <p><b>在這個產品裡：</b>避免假 AI 永遠乖乖回傳整齊格式，但真的 Gemini 回應一變就整段壞掉。</p>
+              </div>
+            </details>
+
+            <div class="prose">
+              <h3>做錯的地方，反而改變了方法</h3>
+            </div>
+
+            <ul class="lessons">
+              <li>
+                <span class="idx">01</span>
+                <div>
+                  <b>功能多，不等於判斷更容易</b>
+                  <p>早期加了很多分類與分數，實際使用卻只增加設定負擔。確認沒有幫助之後就移除了。</p>
+                  <div class="removed">
+                    <span data-removed-feature="守門線">守門線</span>
+                    <span data-removed-feature="來源分層">來源分層</span>
+                    <span data-removed-feature="常青時效分類">常青／時效分類</span>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <span class="idx">02</span>
+                <div>
+                  <b>驗收不能碰正式資料</b>
+                  <p>手動操作一律跑在資料庫複本上。這樣可以放心把東西弄壞，也不會拿真正累積的內容冒險。</p>
+                </div>
+              </li>
+              <li>
+                <span class="idx">03</span>
+                <div>
+                  <b>假 AI 很乖，真 AI 不一定</b>
+                  <p>模擬回應通過只能證明內部邏輯。免費模型可能改格式、漏欄位或直接拒答，所以要另外對真實服務跑一次。</p>
+                </div>
+              </li>
+              <li>
+                <span class="idx">04</span>
+                <div>
+                  <b>出圖成功，不代表畫面正確</b>
+                  <p>指令顯示成功，文字仍然可能溢出、手機仍然可能破版。最後一定要看桌機與手機截圖。</p>
+                </div>
+              </li>
+            </ul>
+          </section>
+
+          <!-- ============ 04 ============ -->
+          <section class="chapter" id="recipe">
+            <div class="chapter__head">
+              <span class="chapter__num">04</span>
+              <h2>你可以照這個順序做</h2>
+              <p class="chapter__lede">
+                不用先學完整套程式。這八步可以反覆循環，每次只把工具往前推一小段。
+                每一步後面都標了它在第一章哪個時刻出現過。
+              </p>
+            </div>
+
+            <ol class="recipe">
+              <li>
+                <b>先寫一個真實痛點</b>
+                <p>描述誰在什麼情境卡住，不要從「我要用哪個技術」開始。</p>
+                <span class="ref">→ 01 起念：卡在最後一段</span>
+              </li>
+              <li>
+                <b>找到看得順眼的參考</b>
+                <p>先有可以指著說「像這個」的東西，後面討論才有依據。</p>
+                <span class="ref">→ 02 先看參考，再定調</span>
+              </li>
+              <li>
+                <b>範圍不對就喊停</b>
+                <p>發現方向歪掉時停下來重新對齊，不要邊做邊修。這一步不寫程式，但省下最多時間。</p>
+                <span class="ref">→ 03 喊停：先對齊內容</span>
+              </li>
+              <li>
+                <b>請 AI 比較方案，不要只接受第一個答案</b>
+                <p>要求它說明每個選項的優缺點、成本與風險，再自己決定。</p>
+                <span class="ref">→ 04 選出圖的方法</span>
+              </li>
+              <li>
+                <b>想不清楚的事先標成暫時決定</b>
+                <p>把它記下來、往下走，不要讓一個顏色擋住整條線。真正不能將就的是範圍和資料安全。</p>
+                <span class="ref">→ 05 配色與字體</span>
+              </li>
+              <li>
+                <b>拆成一次可驗收一件事的小切片</b>
+                <p>每一片做完都能操作、能判斷通過或不通過。</p>
+                <span class="ref">→ 06 拍板，寫計畫</span>
+              </li>
+              <li>
+                <b>先寫失敗的驗收條件，再做最小實作</b>
+                <p>先確認警報真的會響，才讓 AI 動程式。</p>
+                <span class="ref">→ 03 先寫會響的警報</span>
+              </li>
+              <li>
+                <b>用真實畫面和真實服務驗收</b>
+                <p>模擬測試之外，親手走一次流程、看桌機和手機截圖，也確認外部服務真的照約定回應。</p>
+                <span class="ref">→ 03 測試全綠，畫面還是錯的</span>
+              </li>
+            </ol>
+
+            <p class="closing">
+              Vibe Coding 把做軟體的門檻降低了很多，但它沒有把<strong>判斷</strong>一起接走。
+              產品要解決什麼、哪些行為不能接受、資料安不安全、做出來到底好不好用——
+              這幾件事還是只有人能決定。
+            </p>
+          </section>
+        </main>
+      </div>
+
+      <footer>
+        <span>呆一布 AI 共學實驗室 · 社群組</span>
+        <a href="#hero">回到開頭</a>
+      </footer>
+    </div>
+
+{{COMMENT_HTML}}
+
+    <script>
+      (() => {
+        const bar = document.getElementById("progress-bar");
+        const onScroll = () => {
+          const max = document.documentElement.scrollHeight - window.innerHeight;
+          const ratio = max > 0 ? window.scrollY / max : 0;
+          bar.style.transform = `scaleX(${Math.min(1, Math.max(0, ratio))})`;
+        };
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+
+        const JOURNEY = {
+          source: {
+            title: "01 · 公開來源",
+            in: "主題名稱與可信網域清單",
+            do: "讀取 RSS，或在限定網站範圍內搜尋",
+            out: "可回頭查證的網址與文字摘要",
+          },
+          research: {
+            title: "02 · 公司研究",
+            in: "一批候選網址與摘要",
+            do: "整理這家公司在做什麼、依據在哪裡",
+            out: "帶出處的公司描述",
+          },
+          ideas: {
+            title: "03 · 候選題目",
+            in: "公司描述與來源",
+            do: "請 AI 整理成幾則具體的候選，每則都要指向一家真實公司",
+            out: "候選清單，畫面上先說明它在做什麼",
+          },
+          adopt: {
+            title: "04 · 人工採用",
+            in: "候選清單",
+            do: "由我判斷要不要發，AI 不替我決定",
+            out: "一則被採用的題目，狀態寫進資料庫",
+          },
+          draft: {
+            title: "05 · AI 正文",
+            in: "採用的題目與已蒐集的來源",
+            do: "依來源寫初稿，資料不足處保留不確定性",
+            out: "可直接編輯的正文，加上查證來源清單",
+          },
+          pages: {
+            title: "06 · 七頁草稿",
+            in: "正文與品牌模板",
+            do: "拆成七頁敘事，套上品牌樣式，確認官方 Logo",
+            out: "七頁可逐頁修改的網頁草稿",
+          },
+          render: {
+            title: "07 · PNG 與 ZIP",
+            in: "確認過的七頁草稿",
+            do: "用瀏覽器逐頁拍照",
+            out: "七張 1080 × 1350 PNG，可打包下載",
+          },
+        };
+
+        const detail = document.getElementById("journey-detail");
+        const steps = Array.from(document.querySelectorAll("[data-journey-step]"));
+
+        const render = (key) => {
+          const item = JOURNEY[key];
+          if (!item) return;
+          detail.innerHTML = `
+            <h4>${item.title}</h4>
+            <dl>
+              <dt>收到</dt><dd>${item.in}</dd>
+              <dt>處理</dt><dd>${item.do}</dd>
+              <dt>產出</dt><dd>${item.out}</dd>
+            </dl>`;
+        };
+
+        steps.forEach((step) => {
+          step.addEventListener("click", () => {
+            steps.forEach((other) => other.setAttribute("aria-selected", String(other === step)));
+            render(step.dataset.journeyStep);
+          });
+        });
+        render("source");
+
+        const links = Array.from(document.querySelectorAll('.toc a, .nav-mobile a'));
+        const sections = Array.from(document.querySelectorAll(".chapter"));
+        const spy = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              const id = entry.target.id;
+              links.forEach((link) =>
+                link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`)
+              );
+            });
+          },
+          { rootMargin: "-30% 0px -60% 0px" }
+        );
+        sections.forEach((section) => spy.observe(section));
+      })();
+    </script>
+
+{{COMMENT_JS}}
+  </body>
+</html>
