@@ -67,15 +67,43 @@ def test_copy_round_trip_is_lossless():
     assert not mismatches, "這些段落匯入後會走樣：\n" + "\n".join(mismatches[:5])
 
 
-def test_story_has_four_chapter_structure():
+def test_story_has_three_chapter_structure():
+    """三章：怎麼做出來、系統是什麼、怎麼確認它沒寫歪。
+
+    第四章「你可以照這個順序做」是給讀者的建議，不是在講這個工具怎麼做出來的，
+    已經整章移除。
+    """
     source = HTML_PATH.read_text(encoding="utf-8")
     parser = StoryParser()
     parser.feed(source)
 
-    assert {"build", "system", "verify", "recipe"} <= parser.ids
+    assert {"build", "system", "verify"} <= parser.ids
 
-    retired = {"collaboration", "system-map", "content-journey", "timeline", "lessons"}
+    retired = {
+        "recipe",
+        "collaboration",
+        "system-map",
+        "content-journey",
+        "timeline",
+        "lessons",
+    }
     assert not (retired & parser.ids), f"舊章節仍在：{sorted(retired & parser.ids)}"
+
+
+def test_story_body_has_no_first_person():
+    """正文只講事實與決定，不寫作者的心境。標題保留署名。"""
+    source = HTML_PATH.read_text(encoding="utf-8")
+    body = source.split("<body>", 1)[1]
+    body = body.split('<button class="vt-comment-trigger"', 1)[0]  # 評論工具是介面，不是文章
+    body = re.sub(r"<script.*?</script>", "", body, flags=re.S)
+    body = re.sub(r"<h1[^>]*>.*?</h1>", "", body, flags=re.S)
+
+    offenders = [
+        " ".join(text.split())
+        for text in re.findall(r">([^<]*我[^<]*)<", body)
+        if text.strip()
+    ]
+    assert not offenders, "正文出現第一人稱：\n" + "\n".join(offenders[:5])
 
 
 def test_story_opens_with_title_and_outcome():
