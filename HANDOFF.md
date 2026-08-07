@@ -26,10 +26,14 @@
 - **舊正式站未更新**：`https://daibu-vibe-coding-story.workspace-249035.chatgpt.site` 仍服務舊的八章版本（已實際抓取確認，目次仍是八節）。該網域屬於 Codex 雲端工作區，這個 repo 沒有任何部署設定驅動它，本機無法重新部署。
 - **新發佈位置**：`https://claude.ai/code/artifact/f9b4ff4f-1aee-4829-bde2-4ff04d9440d1`（Artifact，預設私人，要分享得從頁面的分享選單開啟）。由 `docs/build-story/build_artifact.py` 產生：拿掉 Tailwind CDN 與 Google Fonts（Artifact 沙箱擋外部連線），字型改成 Songti TC／PingFang TC 系統堆疊，並補上深色主題。實測 console 錯誤 0、外部請求 0、圖片全部載入、淺色與深色都無橫向捲動。
 
+## 後續（同日）
+
+- **文案人性化**（`afac739`）：依 humanizer-zh 清單過一遍正文。破折號 9 處減到 0、粗體 11 處減到 2、兩句對仗式格言的拉引句換成具體的話、拆掉 Red／Green／Refactor 的三段式排比。
+- **修好內容系列的死路**（`aaf963e`）：選題頁可以刪系列，而 `seeds.load` 被 `seeds_loaded` 旗標擋住只跑一次。實測確認刪光後重開 App 系列不會回來，空狀態卻叫使用者去設定頁新增，而設定頁沒有這個功能。現在零個系列時才顯示「新增內容系列」表單當救援出口；有系列時維持隱藏，不牴觸 2026-08-01 單一系列收斂的決定。三處空狀態文案一併修正。
+
 ## 下一步
 
-1. 舊網址的連結若已發給組員，等 Codex 額度恢復後重新部署原網址，兩個版本才不會並存。
-2. `daibu/overview.py:112` 的空狀態指引「請透過專案設定新增」指向不存在的入口——設定頁沒有新增內容系列的功能。已另開背景任務。
+1. 舊網址的連結若已發給組員，等 Codex 額度恢復後重新部署原網址，兩個版本才不會並存。**刪除舊站需要在 Codex／ChatGPT 的介面上操作**，本機沒有任何憑證或設定可以碰到 `workspace-249035.chatgpt.site`。
 
 ## 前一輪：自動文案與官方 Logo 修復
 
