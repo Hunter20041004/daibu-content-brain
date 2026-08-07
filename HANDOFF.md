@@ -19,12 +19,16 @@
 - **視覺驗收第一輪**：五項不合格——桌機右側大片死空間、窄文字欄與滿版元素對不齊、章節節奏不足、手機七張成品排 3 欄每張只剩 90px、主標把「呆一布」拆成兩行。
 - **視覺驗收第二輪**：內容置中、圖片突出文字欄、章節間距 118px、手機成品改 2 欄、品牌名加 `.keep` 不換行。修完後八項檢查全過。過程中測試抓到 1280px 有 8px 橫向溢出，根因是 `.compare` 自己的 `margin` 簡寫寫在媒體查詢之後把負邊界蓋掉（媒體查詢不提高優先權）；已把突出規則移到基本規則之後。
 - **產品程式與資料**：未修改 Streamlit、資料表、AI 指令或真實資料庫；本輪沒有呼叫 Tavily／Gemini。
-- **已推送**：`origin/main` 已包含 `a9922bb`。
-- **正式站尚未更新**：`https://daibu-vibe-coding-story.workspace-249035.chatgpt.site` 目前仍服務舊的八章版本（已實際抓取確認，目次仍是八節）。該網域屬於 Codex 雲端工作區，這個 repo 沒有任何部署設定驅動它，本機無法重新部署。等待使用者決定改用哪個方式發佈。
+- **抽 partial 的錯誤與修正**：從舊 HTML 抽評論工具時整個 `<script>` 都拿了，但裡面有兩個 IIFE，第一個是舊版的 journey／進度條／目次腳本。產出檔因此同時載入新舊兩套 journey 邏輯，載入與每次點擊都丟 TypeError（舊腳本找 `#reading-progress` 得到 null；舊鍵名 `sources`／`idea`／`cards` 與新版 `source`／`ideas`／`pages` 對不上）。既有測試沒抓到，因為新的 handler 先註冊先跑完。已只保留評論工具那一個 IIFE，並補上 `test_page_loads_and_interacts_without_console_errors`——先在未重建的產出檔上看到紅燈，重建後轉綠。
+- **色彩 token 重整**：`--deep` 原本同時當標題文字色與實心區塊底色，深色主題下會變成淺字配淺底。已抽出 `--fill-strong`／`--on-fill-strong`／`--warn-*`／`--ok-*`。淺色模式的計算值不變，測試維持通過。
+- **最終全套**：`467 passed, 13 deselected, 1 warning in 105.03s`。
+- **已推送**：`origin/main` 已包含 `7e8f61f`。
+- **舊正式站未更新**：`https://daibu-vibe-coding-story.workspace-249035.chatgpt.site` 仍服務舊的八章版本（已實際抓取確認，目次仍是八節）。該網域屬於 Codex 雲端工作區，這個 repo 沒有任何部署設定驅動它，本機無法重新部署。
+- **新發佈位置**：`https://claude.ai/code/artifact/f9b4ff4f-1aee-4829-bde2-4ff04d9440d1`（Artifact，預設私人，要分享得從頁面的分享選單開啟）。由 `docs/build-story/build_artifact.py` 產生：拿掉 Tailwind CDN 與 Google Fonts（Artifact 沙箱擋外部連線），字型改成 Songti TC／PingFang TC 系統堆疊，並補上深色主題。實測 console 錯誤 0、外部請求 0、圖片全部載入、淺色與深色都無橫向捲動。
 
 ## 下一步
 
-1. 決定新版怎麼發佈：等 Codex 額度恢復後重新部署原網址，或改用其他方式（會產生新網址，舊連結仍停在舊版）。
+1. 舊網址的連結若已發給組員，等 Codex 額度恢復後重新部署原網址，兩個版本才不會並存。
 2. `daibu/overview.py:112` 的空狀態指引「請透過專案設定新增」指向不存在的入口——設定頁沒有新增內容系列的功能。已另開背景任務。
 
 ## 前一輪：自動文案與官方 Logo 修復
