@@ -183,6 +183,40 @@ def test_get_ideas_returns_newest_first(tmp_path):
     ] == [newer_id, older_id]
 
 
+def test_get_idea_exclusions_includes_every_status_and_skips_blank_companies(
+    tmp_path,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "公司介紹", 0, [], 3))
+    other_theme_id = db.add_theme(conn, Theme(None, "其他系列", 1, [], 1))
+    rows = (
+        ("候選題", "Railway", "候選"),
+        ("採用題", "Cloudflare", "採用"),
+        ("已發題", "Moove", "已發"),
+        ("淘汰題", "Acme", "已淘汰"),
+        ("空白公司題", "   ", "候選"),
+    )
+    for title, company, status in rows:
+        db.add_idea(
+            conn,
+            theme_id,
+            Idea(title, "角度", "", company=company),
+            status=status,
+        )
+    db.add_idea(
+        conn,
+        other_theme_id,
+        Idea("別的系列題", "角度", "", company="Other"),
+        status="候選",
+    )
+
+    titles, companies = db.get_idea_exclusions(conn, theme_id)
+
+    assert titles == [title for title, _, _ in rows]
+    assert companies == ["Railway", "Cloudflare", "Moove", "Acme"]
+
+
 def test_init_schema_creates_all_product_tables(tmp_path):
     conn = db.connect(str(tmp_path / "t.db"))
     db.init_schema(conn)

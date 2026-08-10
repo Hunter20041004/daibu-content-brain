@@ -840,6 +840,28 @@ def get_rejected_titles(
     return [row["title"] for row in rows]
 
 
+def get_idea_exclusions(
+    conn: sqlite3.Connection,
+    theme_id: int | None,
+) -> tuple[list[str], list[str]]:
+    rows = conn.execute(
+        """
+        SELECT title, company
+        FROM ideas
+        WHERE theme_id = ?
+        ORDER BY created_at, id
+        """,
+        (theme_id,),
+    ).fetchall()
+    titles = [row["title"] for row in rows]
+    companies = [
+        row["company"].strip()
+        for row in rows
+        if row["company"].strip()
+    ]
+    return titles, companies
+
+
 def update_idea_content(
     conn: sqlite3.Connection,
     idea_id: int,
