@@ -1,12 +1,44 @@
-# HANDOFF — 建造故事 HTML 改版
+# HANDOFF — macOS 登入後自動保持開啟
 
-> 2026-08-06 更新。使用者回饋舊版「內容不對、看起來不好看」，經 grill-me 逐題對齊後重寫。未修改產品程式碼。
+> 2026-08-10 更新。修復 `localhost:8501` 因手動 Streamlit 程序結束而拒絕連線，改由 macOS LaunchAgent 自動啟動與恢復。
 
 ## 本輪目標與驗收
 
-依 `docs/superpowers/specs/2026-08-06-建造故事改版-design.md` 重寫建造故事 HTML：從八章的方法論教材，改成用一個真實功能貫穿全篇的四章教學；視覺從「只用品牌最淡幾階」改成編輯式雜誌骨架，把深色階拉回來當結構色。
+- 使用者登入這台 Mac 後，工具自動在 `http://localhost:8501` 啟動，不需開 Terminal。
+- Streamlit 程序意外停止後，由 macOS `launchd` 自動重開。
+- 服務只綁 `127.0.0.1:8501`，不開放區域網路或公開網路。
+- plist、啟動命令與紀錄不得含 API key；既有資料庫與使用者文件不得被修改。
 
 ## 本輪狀態
+
+- **根因**：失敗時 `lsof` 確認 8501 沒有監聽程序；瀏覽器網址存在，但提供頁面的 Streamlit 已經結束。
+- **服務**：已安裝使用者層級 LaunchAgent `io.daibu.content-brain`，設定在 `/Users/cengweiting/Library/LaunchAgents/io.daibu.content-brain.plist`。使用 `RunAtLoad=true`、`KeepAlive=true`、`ThrottleInterval=10`。
+- **啟動鏈**：macOS `launchd` → 專案 `.venv/bin/streamlit` → `server.py` → `127.0.0.1:8501`。工作目錄固定為 `/Users/cengweiting/Developer/daibu-content-brain`。
+- **管理命令**：新增 `.venv/bin/python -m daibu.local_service install|status|uninstall`。`uninstall` 只移除背景服務與 plist，保留 `.env`、資料庫、Logo 與紀錄。
+- **秘密檔**：原本 `.env` 不存在；安裝時由 `.env.example` 建立空白 `.env`，權限實測為 `600`。沒有代填或顯示秘密，因此首頁目前會提醒尚未設定 Gemini key。
+- **安全校準**：先用已知含 key 名稱的 `.env.example` 確認掃描方法有效，再掃 plist、stdout 與 stderr；三處都沒有 Gemini、Groq 或 Tavily API key 名稱。
+- **第一次啟動**：安裝前健康檢查明確連線失敗；安裝後第 1 次輪詢即回應 `ok`。`launchctl` 顯示 `state=running`，`lsof` 顯示只監聽 `127.0.0.1:8501`。
+- **自動恢復**：精確驗證 8501 舊 PID `14386` 的命令屬於本專案後送出 `TERM`；第 2 次輪詢出現新 PID `14439` 並恢復 `health=ok`，沒有用廣泛程序名稱終止其他程序。
+- **瀏覽器驗收**：實際開啟首頁，標題為「呆一布 內容工作站」，既有「AI 新創介紹」系列與 9 則候選正常顯示；browser console 的 error／warning 均為 0。
+- **TDD**：新增 10 個本機服務測試，逐一看見預期失敗後完成最小實作。涵蓋 plist、安全綁定位址、安裝前檢查、`.env` 建立與保護、launchctl 邊界、健康狀態、外來程序占用、無資料損失移除與白話錯誤訊息。
+- **功能分支全套**：`481 passed, 13 deselected, 1 warning in 75.96s`。
+- **合併 main 後全套**：`481 passed, 13 deselected, 1 warning in 85.44s`。13 個預設略過項目需外部服務；唯一 warning 是既有 Starlette／httpx 棄用提示。
+- **紀錄**：`/Users/cengweiting/Library/Logs/DaibuContentBrain/stdout.log` 與 `stderr.log`。
+- **成本與限制**：使用 macOS 內建服務，沒有訂閱費。Mac 關機、登出或睡眠時 localhost 仍不可用；若要 24 小時與他人共用，需另做雲端部署。
+
+## 下一個使用者操作
+
+在本機把 Gemini 與 Tavily key 填入 `.env`，再重啟背景服務。API key 不可貼進聊天；一次只引導一個本機操作。
+
+## 前一輪：建造故事 HTML 改版
+
+> 2026-08-06 更新。使用者回饋舊版「內容不對、看起來不好看」，經 grill-me 逐題對齊後重寫。未修改產品程式碼。
+
+### 目標與驗收
+
+依 `docs/superpowers/specs/2026-08-06-建造故事改版-design.md` 重寫建造故事 HTML：從八章的方法論教材，改成用一個真實功能貫穿全篇的四章教學；視覺從「只用品牌最淡幾階」改成編輯式雜誌骨架，把深色階拉回來當結構色。
+
+### 交付狀態
 
 - **十個拍板決策**：見設計文件第 3 節。關鍵三項是「不引用任何對話原文」、「主線用七張輪播圖產生器」、「工具定位寫成通用架構＋目前一個系列」。
 - **章節**：八章砍到四章——做出來／系統／不寫歪／照著做。起點、分工、時間軸被主線吸收。
@@ -44,7 +76,7 @@
 - **補了三個名詞的白話定義**（內容系列、候選、採用），因為後面一直用到。
 - 全套 `471 passed`。整頁 8598px。
 
-## 下一步
+## 舊建造故事交付的下一步
 
 1. 舊網址的連結若已發給組員，等 Codex 額度恢復後重新部署原網址，兩個版本才不會並存。**刪除舊站需要在 Codex／ChatGPT 的介面上操作**，本機沒有任何憑證或設定可以碰到 `workspace-249035.chatgpt.site`。
 
