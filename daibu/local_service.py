@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import plistlib
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -190,3 +192,45 @@ def uninstall(
 ) -> None:
     command(["launchctl", "bootout", service_target()])
     paths.plist.unlink(missing_ok=True)
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="管理呆一布本機背景服務")
+    parser.add_argument(
+        "action",
+        choices=("install", "status", "uninstall"),
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    paths = resolve_paths()
+    try:
+        if args.action == "install":
+            created_env = install(paths)
+            print("背景服務已安裝並要求啟動。")
+            if created_env:
+                print(
+                    f"已建立 {paths.env_file}；API key 必須在本機填入。"
+                )
+            return 0
+        if args.action == "uninstall":
+            uninstall(paths)
+            print("背景服務已移除；資料庫、.env 與紀錄均保留。")
+            return 0
+        current = status(paths)
+        print(f"已載入：{'是' if current.loaded else '否'}")
+        print(f"網站健康：{'是' if current.healthy else '否'}")
+        if current.occupied_by_other_process:
+            print("8501 已由其他程序使用；不會自動終止該程序。")
+        print(f"設定：{current.plist_path}")
+        print(f"錯誤紀錄：{current.stderr_log}")
+        return 0 if current.loaded and current.healthy else 1
+    except InvalidLocalService as error:
+        print(f"錯誤：{error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

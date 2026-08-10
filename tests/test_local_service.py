@@ -1,4 +1,5 @@
 import plistlib
+from pathlib import Path
 
 import pytest
 
@@ -189,3 +190,45 @@ def test_uninstall_removes_only_the_service_plist(tmp_path):
     )
     assert database.read_bytes() == b"database"
     assert paths.stderr_log.read_text(encoding="utf-8") == "old log"
+
+
+def test_main_status_returns_failure_until_the_service_is_healthy(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(
+        local_service,
+        "status",
+        lambda _paths: local_service.ServiceStatus(
+            loaded=True,
+            healthy=False,
+            occupied_by_other_process=False,
+            plist_path=Path("agent.plist"),
+            stderr_log=Path("stderr.log"),
+        ),
+    )
+
+    exit_code = local_service.main(["status"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "已載入：是" in output
+    assert "網站健康：否" in output
+    assert "stderr.log" in output
+
+
+def test_main_install_reports_a_short_error_without_a_traceback(
+    monkeypatch,
+    capsys,
+):
+    def fail_install(_paths):
+        raise local_service.InvalidLocalService("缺少 Streamlit")
+
+    monkeypatch.setattr(local_service, "install", fail_install)
+
+    exit_code = local_service.main(["install"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert captured.err == "錯誤：缺少 Streamlit\n"

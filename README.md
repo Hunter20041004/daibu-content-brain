@@ -25,6 +25,24 @@ cp .env.example .env    # 填入免費 API key（Gemini 或 Groq、Tavily）
 .venv/bin/streamlit run server.py
 ```
 
+## Mac 登入後自動保持開啟
+
+在專案資料夾執行：
+
+```bash
+.venv/bin/python -m daibu.local_service install
+.venv/bin/python -m daibu.local_service status
+```
+
+工具網址：<http://localhost:8501>
+
+錯誤紀錄位於 `~/Library/Logs/DaibuContentBrain/`。若要移除自動啟動但保留
+資料、API key 與紀錄：
+
+```bash
+.venv/bin/python -m daibu.local_service uninstall
+```
+
 ## 測試
 
 ```bash
