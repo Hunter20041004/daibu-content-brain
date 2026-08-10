@@ -1,4 +1,30 @@
-# HANDOFF — 公司介紹候選排重與舊資料相容
+# HANDOFF — 新創公司資格查核
+
+> 2026-08-10 更新。公司介紹候選現在必須以可追溯的公開證據確認成立不超過十年、未上市、未被收購，且仍為私人獨立公司。
+
+## 本輪目標與驗收
+
+- Cloudflare 等上市／已收購／超過十年的公司不得進入或留在可見候選。
+- 每個沒查過的公司最多搜尋一次，整批公司只呼叫一次免費 LLM；已有資格快取的不重查。
+- LLM 提供的網址與逐字引文必須實際出現在 Tavily 結果，否則判定 unknown 並排除。
+- 舊候選只新增公司資格 metadata，不刪除或修改任何 `ideas` 欄位。
+
+## 本輪狀態
+
+- **根因**：舊流程只確認候選公司與素材網址／引文一致，沒有查成立年份、上市或收購狀態，因此 2009 年成立且 2019 年上市的 Cloudflare 仍可進入候選。
+- **架構**：新增獨立 `company_eligibility` 表，保存 `eligible / ineligible / unknown`、成立年、所有權狀態、理由、原始證據 URL／逐字引文與查核時間；不與 `ideas` 做破壞性綁定。
+- **資料流**：產生公司候選 → 排除歷史／同批重複 → 讀資格快取 → 每家未知公司 Tavily 一次 → 整批 Gemini 一次 → 程式核對 URL 與 quote → 先快取全部判定 → 只寫入 eligible 候選。
+- **防誤判**：十年邊界可通過；十一年以上、已上市或已收購有證據即不合格；網址錯、引文不存在、缺少私人公司證據或證據矛盾一律 unknown，不讓模型自行放行。
+- **舊資料回填**：`python -m daibu.company_eligibility backfill --db <path>` 只查尚未有快取的公司；重跑時不再呼叫 Tavily／LLM。
+- **副本演練**：先用已知 10 筆 ideas 校準完整資料指紋。副本回填前後 SHA-256 均為 `bd13bc29e909606f08e315f86a87d5a2c64467258a409683dbe3011369fcb4d2`，10 筆與全部欄位不變。
+- **真實邊界**：以實際 Tavily＋Gemini 查 Cloudflare、Moove、Railway；Cloudflare=`ineligible/public/2009`，Moove 與 Railway=`eligible/private_independent/2020`，三者各保存兩筆匹配證據。
+- **API 成本**：每個新公司一次 Tavily、每批一次 Gemini。單家公司搜尋失敗只讓該公司 unknown，不重試湊滿三則，也不把原始錯誤或 API key 顯示給使用者。
+- **TDD**：依垂直切片逐一看見 schema、證據驗證、上市／收購、矛盾、批次呼叫、快取、顯示過濾、回填與 idempotency 測試先失敗再通過；CLI 副本演練另抓到入口位置造成的 `NameError`，修正後同流程成功查核三家公司。
+- **測試**：功能分支全套 `508 passed, 14 deselected, 1 warning in 94.16s`；14 個預設略過項目是需外部服務的契約測試，唯一 warning 是既有相依套件提示。
+- **視覺驗收**：副本在 1280×800 與 375×812 各跑兩輪；候選為 2、Moove／Railway 可見、Cloudflare 不可見，375px 水平 overflow 為 0。最終證據：`.screenshots/startup-eligibility-round2-desktop.png`、`.screenshots/startup-eligibility-round2-mobile.png`。
+- **限制**：公開網頁日後可能更新，目前快取沒有自動過期；公司後續上市或被收購時需重新查核。中文子路徑仍有既有的 Streamlit `_stcore/health`／`host-config` 404，但頁面資料與核心互動不受影響。
+
+## 前一輪：公司介紹候選排重與舊資料相容
 
 > 2026-08-10 更新。修復公司介紹系列混入舊通用題目，以及「再產生」重複推薦已出現公司的問題。
 
