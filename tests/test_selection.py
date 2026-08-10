@@ -2,7 +2,27 @@ import pytest
 
 from daibu import db, selection
 from daibu.llm.base import Idea
-from daibu.models import Material, Theme
+from daibu.models import Material, StoredIdea, Theme
+
+
+def _stored_idea(
+    idea_id: int,
+    company: str,
+    created_at: str,
+    title: str | None = None,
+) -> StoredIdea:
+    return StoredIdea(
+        id=idea_id,
+        theme_id=3,
+        title=title or f"{company or '通用'}題目 {idea_id}",
+        angle="角度",
+        source_url="",
+        status="候選",
+        body="",
+        created_at=created_at,
+        published_at=None,
+        company=company,
+    )
 
 
 def test_generate_persists_candidates(tmp_path, monkeypatch):
@@ -36,6 +56,29 @@ def test_generate_persists_candidates(tmp_path, monkeypatch):
     assert len(ids) == 1
     assert len(rows) == 1
     assert rows[0].source_url == "https://example.com/a"
+
+
+def test_visible_company_profile_ideas_keeps_earliest_valid_company():
+    later_railway = _stored_idea(
+        12,
+        " railway ",
+        "2026-08-05 10:01:00",
+        "後來的 Railway 題目",
+    )
+    moove = _stored_idea(11, "Moove", "2026-08-05 10:00:30")
+    earliest_railway = _stored_idea(
+        10,
+        "Railway",
+        "2026-08-05 10:00:00",
+        "第一次 Railway 題目",
+    )
+    legacy = _stored_idea(8, "   ", "2026-07-25 09:00:00")
+    ideas = [later_railway, moove, earliest_railway, legacy]
+
+    visible = selection.visible_company_profile_ideas(ideas)
+
+    assert [idea.id for idea in visible] == [moove.id, earliest_railway.id]
+    assert ideas == [later_railway, moove, earliest_railway, legacy]
 
 
 def test_generate_passes_rejected_titles_of_that_theme(

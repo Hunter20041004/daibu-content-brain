@@ -413,9 +413,29 @@ def carousel_checklist_markup(items: tuple[workspace.ChecklistItem, ...]) -> str
 
 themes = db.get_themes(conn)
 sources = db.get_sources(conn)
-candidates = db.get_ideas(conn, status="候選")
-adopted_ideas = db.get_ideas(conn, status="採用")
-published_ideas = db.get_ideas(conn, status="已發")
+all_ideas = db.get_ideas(conn)
+company_profile_theme_ids = {
+    theme.id for theme in themes if theme.content_kind == "company_profile"
+}
+company_profile_ideas = [
+    idea for idea in all_ideas
+    if idea.theme_id in company_profile_theme_ids
+]
+visible_company_profile_ids = {
+    idea.id
+    for idea in selection.visible_company_profile_ideas(
+        company_profile_ideas,
+    )
+}
+visible_ideas = [
+    idea
+    for idea in all_ideas
+    if idea.theme_id not in company_profile_theme_ids
+    or idea.id in visible_company_profile_ids
+]
+candidates = [idea for idea in visible_ideas if idea.status == "候選"]
+adopted_ideas = [idea for idea in visible_ideas if idea.status == "採用"]
+published_ideas = [idea for idea in visible_ideas if idea.status == "已發"]
 provider_config = dict(os.environ)
 provider_config["LLM_PROVIDER"] = db.get_config(
     conn,

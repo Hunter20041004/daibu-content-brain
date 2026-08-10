@@ -1951,6 +1951,69 @@ def test_company_candidate_decision_view_shows_only_company_and_description(
     assert {"採用並繼續寫內容", "淘汰"} <= button_labels
 
 
+def test_company_candidate_view_hides_legacy_and_later_duplicate_rows(
+    tmp_path,
+    monkeypatch,
+):
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [],
+            3,
+            content_kind="company_profile",
+        ),
+    )
+    legacy_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("通用觀點文", "角度", ""),
+    )
+    railway_first_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("第一次 Railway 題目", "角度", "", company="Railway"),
+    )
+    railway_later_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("後來的 Railway 題目", "角度", "", company=" railway "),
+    )
+    cloudflare_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("Cloudflare 題目", "角度", "", company="Cloudflare"),
+    )
+    for idea_id, created_at in (
+        (legacy_id, "2026-07-25 09:00:00"),
+        (railway_first_id, "2026-08-05 10:00:00"),
+        (railway_later_id, "2026-08-05 10:01:00"),
+        (cloudflare_id, "2026-08-05 10:02:00"),
+    ):
+        conn.execute(
+            "UPDATE ideas SET created_at = ? WHERE id = ?",
+            (created_at, idea_id),
+        )
+    conn.commit()
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    button_labels = {button.label for button in app.button}
+    subheaders = {item.value for item in app.subheader}
+    assert "候選（2）" in subheaders
+    assert "Railway｜第一次 Railway 題目" in button_labels
+    assert "Cloudflare｜Cloudflare 題目" in button_labels
+    assert "後來的 Railway 題目" not in " ".join(button_labels)
+    assert "通用觀點文" not in " ".join(button_labels)
+    assert len(db.get_ideas(conn, status="候選")) == 4
+
+
 def test_general_candidate_view_keeps_title_and_angle(tmp_path, monkeypatch):
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
