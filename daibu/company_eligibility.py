@@ -178,10 +178,6 @@ def _main() -> None:
         print(f"已查核 {len(records)} 家公司。")
 
 
-if __name__ == "__main__":
-    _main()
-
-
 def _decode_array(raw: str) -> list[object]:
     start = raw.find("[")
     if start < 0:
@@ -342,3 +338,7 @@ def verify_response(
     for company_key, company in requested.items():
         records.setdefault(company_key, _unknown(company, checked_at))
     return records
+
+
+if __name__ == "__main__":
+    _main()
