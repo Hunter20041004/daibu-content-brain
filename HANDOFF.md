@@ -21,8 +21,11 @@
 - **API 成本**：每個新公司一次 Tavily、每批一次 Gemini。單家公司搜尋失敗只讓該公司 unknown，不重試湊滿三則，也不把原始錯誤或 API key 顯示給使用者。
 - **TDD**：依垂直切片逐一看見 schema、證據驗證、上市／收購、矛盾、批次呼叫、快取、顯示過濾、回填與 idempotency 測試先失敗再通過；CLI 副本演練另抓到入口位置造成的 `NameError`，修正後同流程成功查核三家公司。
 - **測試**：功能分支全套 `508 passed, 14 deselected, 1 warning in 94.16s`；14 個預設略過項目是需外部服務的契約測試，唯一 warning 是既有相依套件提示。
+- **合併 main 後全套**：`508 passed, 14 deselected, 1 warning in 75.19s`，exit code 0；`origin/main` 與本機 `main` 均包含本輪提交。
 - **視覺驗收**：副本在 1280×800 與 375×812 各跑兩輪；候選為 2、Moove／Railway 可見、Cloudflare 不可見，375px 水平 overflow 為 0。最終證據：`.screenshots/startup-eligibility-round2-desktop.png`、`.screenshots/startup-eligibility-round2-mobile.png`。
-- **限制**：公開網頁日後可能更新，目前快取沒有自動過期；公司後續上市或被收購時需重新查核。中文子路徑仍有既有的 Streamlit `_stcore/health`／`host-config` 404，但頁面資料與核心互動不受影響。
+- **正式資料回填**：先用 SQLite `.backup` 建立 `backups/daibu-before-startup-eligibility-20260810-1330.db`；備份與正式庫均為 10 筆且 ideas 指紋同為 `bd13bc29e909606f08e315f86a87d5a2c64467258a409683dbe3011369fcb4d2`。回填後仍為同一指紋，只新增 Cloudflare／Moove／Railway 三筆資格紀錄。
+- **正式 localhost 驗收**：重啟時再次遇到既有 `bootout`／`bootstrap` 時序問題；確認服務未載入後以精確標籤 `io.daibu.content-brain` 執行 bootstrap＋kickstart，最終 `loaded=yes`、`health=yes`、只監聽 `127.0.0.1:8501`。正式頁顯示「候選（2）」、Moove／Railway 可見、Cloudflare 不可見，1280px 無橫向溢出，browser console 0 errors／warnings。
+- **限制**：公開網頁日後可能更新，目前快取沒有自動過期；公司後續上市或被收購時需重新查核。副本的第一次中文子路徑載入曾有既有 Streamlit `_stcore/health`／`host-config` 404，但正式 8501 最終驗收為 0 console errors／warnings。
 
 ## 前一輪：公司介紹候選排重與舊資料相容
 
