@@ -1,12 +1,17 @@
 import sqlite3
+from datetime import datetime
 
-from daibu import db
-from daibu.fetch import collector
+from daibu import company_eligibility, db
+from daibu.fetch import collector, search
 from daibu.llm.base import Idea, LLMProvider
 from daibu.models import Material, Source, StoredIdea, Theme
 
 
 class NoVerifiedCompanyCandidatesError(RuntimeError):
+    pass
+
+
+class CompanyEligibilityVerificationError(RuntimeError):
     pass
 
 
@@ -60,6 +65,17 @@ def generate_for_theme(
             conn,
             theme.id,
         )
+        eligibility_cache = db.get_company_eligibilities(conn)
+        avoided_keys = {
+            _normalize_identity(company) for company in avoid_companies
+        }
+        for record in eligibility_cache.values():
+            if record.verdict not in {"ineligible", "unknown"}:
+                continue
+            if record.company_key in avoided_keys:
+                continue
+            avoid_companies.append(record.company)
+            avoided_keys.add(record.company_key)
         generated = provider.generate_ideas(
             theme.name,
             materials,
@@ -96,7 +112,41 @@ def generate_for_theme(
             accepted.append(idea)
             seen_companies.add(company_key)
             seen_titles.add(title_key)
-        generated = accepted
+        cached_eligible: set[str] = set()
+        unseen: dict[str, str] = {}
+        for idea in accepted:
+            company_key = _normalize_identity(idea.company)
+            cached = eligibility_cache.get(company_key)
+            if cached is None:
+                unseen.setdefault(company_key, idea.company.strip())
+            elif cached.verdict == "eligible":
+                cached_eligible.add(company_key)
+        fresh: dict[str, object] = {}
+        if unseen:
+            try:
+                fresh = company_eligibility.evaluate_companies(
+                    list(unseen.values()),
+                    search.search_web,
+                    getattr(provider, "generate_text", lambda _prompt: ""),
+                    current_year=datetime.now().year,
+                )
+            except Exception as error:
+                raise CompanyEligibilityVerificationError(
+                    "公司新創資格查核失敗，這次沒有新增候選，請稍後再試。"
+                ) from error
+            for record in fresh.values():
+                db.save_company_eligibility(conn, record)
+        generated = [
+            idea
+            for idea in accepted
+            if _normalize_identity(idea.company) in cached_eligible
+            or getattr(
+                fresh.get(_normalize_identity(idea.company)),
+                "verdict",
+                None,
+            )
+            == "eligible"
+        ]
         if not generated:
             raise NoVerifiedCompanyCandidatesError(
                 "這次沒有找到可核對的公司；只有新的公司才會建立候選。"

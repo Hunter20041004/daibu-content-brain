@@ -1,8 +1,36 @@
 import pytest
 
-from daibu import db, selection
+from daibu import company_eligibility, db, selection
 from daibu.llm.base import Idea
-from daibu.models import Material, StoredIdea, Theme
+from daibu.models import CompanyEligibility, Material, StoredIdea, Theme
+
+
+@pytest.fixture(autouse=True)
+def qualify_unseen_test_companies(monkeypatch):
+    def fake_evaluate(
+        companies,
+        search_fn,
+        generate_text,
+        *,
+        current_year,
+        checked_at=None,
+    ):
+        del search_fn, generate_text, current_year
+        return {
+            company.strip().casefold(): CompanyEligibility(
+                company.strip().casefold(),
+                company.strip(),
+                "eligible",
+                2022,
+                "private_independent",
+                "測試預設為合格",
+                (),
+                checked_at or "2026-08-10 13:00:00",
+            )
+            for company in companies
+        }
+
+    monkeypatch.setattr(company_eligibility, "evaluate_companies", fake_evaluate)
 
 
 def _stored_idea(
@@ -588,3 +616,214 @@ def test_fully_duplicated_company_response_preserves_existing_rows(
         )
 
     assert [idea.id for idea in db.get_ideas(conn)] == [existing_id]
+
+
+def test_company_generation_uses_cache_and_checks_only_unseen(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme = Theme(
+        None,
+        "AI 新創介紹",
+        4,
+        [],
+        4,
+        content_kind="company_profile",
+    )
+    for company, verdict, status in [
+        ("PublicCo", "ineligible", "public"),
+        ("MysteryCo", "unknown", "unknown"),
+        ("GoodCo", "eligible", "private_independent"),
+    ]:
+        db.save_company_eligibility(
+            conn,
+            CompanyEligibility(
+                company.casefold(),
+                company,
+                verdict,
+                2022 if verdict != "unknown" else None,
+                status,
+                "快取結果",
+                (),
+                "2026-08-10 13:00:00",
+            ),
+        )
+    materials = [
+        Material(
+            company,
+            f"https://example.com/{company.casefold()}",
+            f"{company} 發表新產品。",
+        )
+        for company in ("PublicCo", "MysteryCo", "GoodCo", "NewCo")
+    ]
+    monkeypatch.setattr(
+        selection.collector,
+        "collect",
+        lambda selected_theme, sources: materials,
+    )
+    evaluated: list[list[str]] = []
+
+    def fake_evaluate(companies, *args, **kwargs):
+        evaluated.append(companies)
+        return {
+            "newco": CompanyEligibility(
+                "newco",
+                "NewCo",
+                "eligible",
+                2024,
+                "private_independent",
+                "查核合格",
+                (),
+                "2026-08-10 13:10:00",
+            )
+        }
+
+    monkeypatch.setattr(company_eligibility, "evaluate_companies", fake_evaluate)
+    captured: dict[str, list[str]] = {}
+
+    class FakeProvider:
+        def generate_ideas(self, *args, **kwargs):
+            captured["avoid_companies"] = kwargs["avoid_companies"]
+            return [
+                Idea(
+                    f"{material.title} 在做什麼",
+                    "值得看",
+                    material.url,
+                    company=material.title,
+                    source_excerpt=material.snippet,
+                )
+                for material in materials
+            ]
+
+        def generate_text(self, prompt):
+            raise AssertionError(f"fake evaluator should intercept: {prompt}")
+
+    ids = selection.generate_for_theme(conn, theme, FakeProvider(), [])
+
+    assert set(captured["avoid_companies"]) == {"PublicCo", "MysteryCo"}
+    assert evaluated == [["NewCo"]]
+    assert len(ids) == 2
+    assert {idea.company for idea in db.get_ideas(conn)} == {"GoodCo", "NewCo"}
+
+
+def test_company_generation_caches_every_fresh_verdict_and_persists_only_eligible(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    companies = ("GoodCo", "PublicCo", "MysteryCo")
+    materials = [
+        Material(
+            company,
+            f"https://example.com/{company.casefold()}",
+            f"{company} 最新消息。",
+        )
+        for company in companies
+    ]
+    monkeypatch.setattr(selection.collector, "collect", lambda *_: materials)
+
+    def fake_evaluate(*args, **kwargs):
+        del args, kwargs
+        return {
+            "goodco": CompanyEligibility(
+                "goodco", "GoodCo", "eligible", 2023,
+                "private_independent", "合格", (), "2026-08-10 13:00:00",
+            ),
+            "publicco": CompanyEligibility(
+                "publicco", "PublicCo", "ineligible", 2020,
+                "public", "已上市", (), "2026-08-10 13:00:00",
+            ),
+            "mysteryco": CompanyEligibility(
+                "mysteryco", "MysteryCo", "unknown", None,
+                "unknown", "資料不足", (), "2026-08-10 13:00:00",
+            ),
+        }
+
+    monkeypatch.setattr(company_eligibility, "evaluate_companies", fake_evaluate)
+
+    class FakeProvider:
+        def generate_ideas(self, *args, **kwargs):
+            return [
+                Idea(
+                    f"{item.title} 在做什麼",
+                    "值得看",
+                    item.url,
+                    company=item.title,
+                    source_excerpt=item.snippet,
+                )
+                for item in materials
+            ]
+
+    ids = selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 3, "company_profile"),
+        FakeProvider(),
+        [],
+    )
+
+    assert len(ids) == 1
+    assert [idea.company for idea in db.get_ideas(conn)] == ["GoodCo"]
+    assert {
+        key: record.verdict
+        for key, record in db.get_company_eligibilities(conn).items()
+    } == {
+        "goodco": "eligible",
+        "mysteryco": "unknown",
+        "publicco": "ineligible",
+    }
+
+
+def test_eligibility_batch_failure_adds_no_ideas(tmp_path, monkeypatch):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    existing_id = db.add_idea(
+        conn,
+        None,
+        Idea("原本題目", "原本角度", "https://example.com/old"),
+        status="候選",
+    )
+    material = Material(
+        "Acme",
+        "https://example.com/acme",
+        "Acme 發表新產品。",
+    )
+    monkeypatch.setattr(selection.collector, "collect", lambda *_: [material])
+
+    def fail_evaluation(*args, **kwargs):
+        raise company_eligibility.EligibilityResponseError("壞掉且含敏感內容")
+
+    monkeypatch.setattr(
+        company_eligibility,
+        "evaluate_companies",
+        fail_evaluation,
+    )
+
+    class FakeProvider:
+        def generate_ideas(self, *args, **kwargs):
+            return [
+                Idea(
+                    "Acme 在做什麼",
+                    "值得看",
+                    material.url,
+                    company="Acme",
+                    source_excerpt=material.snippet,
+                )
+            ]
+
+    with pytest.raises(
+        selection.CompanyEligibilityVerificationError,
+        match="沒有新增候選",
+    ) as error:
+        selection.generate_for_theme(
+            conn,
+            Theme(None, "AI 新創介紹", 4, [], 3, "company_profile"),
+            FakeProvider(),
+            [],
+        )
+
+    assert "敏感內容" not in str(error.value)
+    assert [idea.id for idea in db.get_ideas(conn)] == [existing_id]
+    assert db.get_company_eligibilities(conn) == {}

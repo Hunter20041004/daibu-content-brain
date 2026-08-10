@@ -442,9 +442,14 @@ def test_build_prompt_applies_company_rules_only_to_company_profiles():
     assert "沒有公司名" in company_text
     # 寧可少產也不要湊數
     assert "寧可少產" in company_text
+    assert "成立不超過十年" in company_text
+    assert "私人且獨立" in company_text
+    assert "已上市" in company_text
+    assert "被收購" in company_text
     assert "每一則候選必須是**一家具體的公司**" not in general_text
     assert "沒有公司名" not in general_text
     assert "company、title" not in general_text
+    assert "成立不超過十年" not in general_text
 
 
 def test_carousel_prompt_limits_copy_to_verified_sources():
