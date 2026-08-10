@@ -25,6 +25,7 @@
 - **集中測試**：`PYTHON_DOTENV_DISABLED=1 ... pytest -q tests/test_db.py tests/test_llm.py tests/test_selection.py tests/test_app_smoke.py` 為 `192 passed in 26.24s`。停用 dotenv 是為了讓既有「金鑰尚未設定」測試不被本機真實 `.env` 影響。
 - **真實 Gemini 契約**：`pytest -q -m contract tests/test_llm_contract.py::test_real_llm_returns_parsable_ideas` 為 `1 passed in 4.29s`；真實回應仍能解析為公司候選欄位。
 - **功能分支全套**：`PYTHON_DOTENV_DISABLED=1 pytest -q` 為 `489 passed, 13 deselected, 1 warning in 54.05s`。13 個預設略過項目需要外部服務；唯一 warning 是既有 Starlette／httpx 棄用提示。
+- **合併 main 後全套**：同一指令為 `489 passed, 13 deselected, 1 warning in 52.10s`，確認合併結果沒有引入差異。
 - **視覺驗收第一輪**：桌機與手機的層次、留白、字體、配色、對齊、響應式、狀態與動效全數合格，沒有新增 CSS 修正。
 - **視覺驗收第二輪**：重新載入後結果穩定。375px 與 1280px 的 `scrollWidth` 都等於 viewport；候選標題為 3，三家公司齊全，舊通用題不可見，`比較｜` 為 0，browser console 0 errors／warnings。最終截圖：`.screenshots/dedup-round2-desktop.png`、`.screenshots/dedup-round2-mobile.png`。
 - **成本與限制**：沒有新依賴或付費服務，也不自動重試湊滿三則。精準比對無法自動合併 `Cloudflare` 與 `Cloudflare, Inc.` 這類別名；後續若要做別名需另有人工確認設計。
