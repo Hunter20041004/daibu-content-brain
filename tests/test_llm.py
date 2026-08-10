@@ -80,6 +80,22 @@ def test_build_prompt_asks_ai_to_avoid_rejected_titles():
     assert "舊題" in text
 
 
+def test_company_profile_prompt_avoids_seen_companies_and_titles():
+    text = prompt.build(
+        theme_name="AI 新創介紹",
+        materials=[],
+        n=3,
+        avoid_titles=["Railway 舊題"],
+        content_kind="company_profile",
+        avoid_companies=["Railway", "Cloudflare"],
+    )
+
+    assert "已出現公司" in text
+    assert "Railway" in text and "Cloudflare" in text
+    assert "已出現題目" in text and "Railway 舊題" in text
+    assert "不得再次使用" in text
+
+
 def test_build_prompt_omits_avoid_section_when_nothing_rejected():
     text = prompt.build(
         theme_name="AI 近期大事",
@@ -117,6 +133,28 @@ def test_gemini_provider_maps_model_response(monkeypatch):
 
     assert [idea.title for idea in ideas] == ["題目"]
     assert "舊題" in prompts[0]
+
+
+def test_gemini_provider_forwards_seen_companies(monkeypatch):
+    provider = GeminiProvider(api_key="fake")
+    prompts = []
+
+    def fake_generate(text):
+        prompts.append(text)
+        return "[]"
+
+    monkeypatch.setattr(provider, "generate_text", fake_generate)
+
+    provider.generate_ideas(
+        "AI 新創介紹",
+        [],
+        3,
+        content_kind="company_profile",
+        avoid_companies=["Railway"],
+    )
+
+    assert "已出現公司" in prompts[0]
+    assert "Railway" in prompts[0]
 
 
 def test_groq_provider_maps_model_response(monkeypatch):

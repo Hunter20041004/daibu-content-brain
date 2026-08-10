@@ -14,6 +14,7 @@ def build(
     n: int,
     avoid_titles: list[str] | None = None,
     content_kind: str = "general",
+    avoid_companies: list[str] | None = None,
 ) -> str:
     material_payload = [
         {
@@ -23,12 +24,23 @@ def build(
         }
         for material in materials
     ]
-    avoid_section = (
+    avoid_title_label = (
+        "已出現題目" if content_kind == "company_profile" else "已淘汰題目"
+    )
+    avoid_title_section = (
         ""
         if not avoid_titles
         else (
-            "\n請避開以下已淘汰題目：\n"
+            f"\n請避開以下{avoid_title_label}：\n"
             f"{json.dumps(avoid_titles, ensure_ascii=False)}"
+        )
+    )
+    avoid_company_section = (
+        ""
+        if not avoid_companies
+        else (
+            "\n已出現公司如下，不得再次使用：\n"
+            f"{json.dumps(avoid_companies, ensure_ascii=False)}"
         )
     )
     if content_kind == "company_profile":
@@ -55,7 +67,8 @@ def build(
 
 素材：
 {json.dumps(material_payload, ensure_ascii=False)}
-{avoid_section}
+{avoid_title_section}
+{avoid_company_section}
 
 要求：
 - 切入角度使用文組視角，拆解邏輯，避免紅海 hype 腔。

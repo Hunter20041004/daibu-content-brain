@@ -42,6 +42,7 @@ class LLMProvider(Protocol):
         n: int,
         avoid_titles: list[str] | None = None,
         content_kind: str = "general",
+        avoid_companies: list[str] | None = None,
     ) -> list[Idea]: ...
 
 

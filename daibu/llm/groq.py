@@ -32,6 +32,7 @@ class GroqProvider:
         n: int,
         avoid_titles: list[str] | None = None,
         content_kind: str = "general",
+        avoid_companies: list[str] | None = None,
     ) -> list[Idea]:
         text = prompt.build(
             theme_name,
@@ -39,5 +40,6 @@ class GroqProvider:
             n,
             avoid_titles,
             content_kind,
+            avoid_companies,
         )
         return generate_and_parse(self.generate_text, text)
