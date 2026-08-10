@@ -10,6 +10,10 @@ LABEL = "io.daibu.content-brain"
 PORT = 8501
 
 
+class InvalidLocalService(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class ServicePaths:
     project_root: Path
@@ -67,3 +71,12 @@ def build_plist(paths: ServicePaths) -> dict[str, object]:
         "StandardErrorPath": str(paths.stderr_log),
         "EnvironmentVariables": {"PYTHONUNBUFFERED": "1"},
     }
+
+
+def validate_project(paths: ServicePaths) -> None:
+    required = (paths.streamlit, paths.server, paths.env_example)
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        raise InvalidLocalService(
+            "無法安裝呆一布背景服務，缺少：" + "、".join(missing)
+        )
