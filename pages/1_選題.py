@@ -727,7 +727,7 @@ with candidate_column:
             ),
             "decide": (
                 "think",
-                "一次比較一則候選",
+                "一次查看一則候選",
                 "看不懂或不通順就微調；內容值不值得發，由你決定。",
             ),
             "write": (
@@ -750,7 +750,7 @@ with candidate_column:
         if just_generated_here:
             pose = "happy"
             coach_title = "候選整理好了"
-            coach_message = "從比較清單挑一則來看；是否採用，最後由你決定。"
+            coach_message = "從候選清單挑一則來看；是否採用，最後由你決定。"
             coach_tone = "success"
         elif just_completed_step == "decide" and journey.current == "write":
             pose = "happy"
@@ -896,7 +896,7 @@ with candidate_column:
                         mascot_coach(
                             "think",
                             "呆一布正在讀資料",
-                            "正在比對可信網域與文章內容，完成後會帶你逐則比較。",
+                            "正在比對可信網域與文章內容，完成後會帶你逐則查看。",
                         ),
                         unsafe_allow_html=True,
                     )
@@ -979,9 +979,9 @@ with candidate_column:
         )
         with st.container(key="candidate-comparison"):
             st.caption(
-                "先比較公司與它在做什麼，再一次專心判斷一則。"
+                "先瀏覽公司與它在做什麼，再一次專心判斷一則。"
                 if is_company_profile
-                else "先比較標題與公司，再一次專心判斷一則。"
+                else "先瀏覽題目，再一次專心判斷一則。"
             )
             comparison_columns = st.columns(
                 min(len(decision_candidates), 3),
@@ -991,7 +991,7 @@ with candidate_column:
                 comparison_label = (
                     f"{candidate.company.strip()}｜{candidate.title}"
                     if is_company_profile and candidate.company.strip()
-                    else f"比較｜{candidate.title}"
+                    else f"查看｜{candidate.title}"
                 )
                 if comparison_columns[index % len(comparison_columns)].button(
                     comparison_label,

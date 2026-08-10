@@ -336,12 +336,12 @@ def test_candidate_comparison_shows_one_detail_at_a_time(
         if markdown.value.startswith('<h3 class="candidate-card__title">')
     ]
     assert len(candidate_details) == 1
-    comparison_buttons = {
+    candidate_buttons = {
         button.label
         for button in app.button
-        if button.label.startswith("比較｜")
+        if button.label.startswith("查看｜")
     }
-    assert comparison_buttons == {"比較｜候選甲", "比較｜候選乙"}
+    assert candidate_buttons == {"查看｜候選甲", "查看｜候選乙"}
 
 
 def test_candidate_stage_has_one_primary_decision(monkeypatch, tmp_path):
@@ -1261,7 +1261,7 @@ def test_writing_stage_hides_earlier_research_and_candidate_tools(
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
 
     assert not any(
-        button.label.startswith(("比較｜", "再產生", "開始找題材"))
+        button.label.startswith(("查看｜", "再產生", "開始找題材"))
         for button in app.button
     )
     assert any(area.label == "正文" for area in app.text_area)
@@ -2006,9 +2006,12 @@ def test_company_candidate_view_hides_legacy_and_later_duplicate_rows(
 
     button_labels = {button.label for button in app.button}
     subheaders = {item.value for item in app.subheader}
+    captions = {item.value for item in app.caption}
     assert "候選（2）" in subheaders
+    assert "先瀏覽公司與它在做什麼，再一次專心判斷一則。" in captions
     assert "Railway｜第一次 Railway 題目" in button_labels
     assert "Cloudflare｜Cloudflare 題目" in button_labels
+    assert not any(label.startswith("比較｜") for label in button_labels)
     assert "後來的 Railway 題目" not in " ".join(button_labels)
     assert "通用觀點文" not in " ".join(button_labels)
     assert len(db.get_ideas(conn, status="候選")) == 4
