@@ -10,6 +10,10 @@ class NoVerifiedCompanyCandidatesError(RuntimeError):
     pass
 
 
+def _normalize_identity(value: str) -> str:
+    return value.strip().casefold()
+
+
 def _is_verified_company_candidate(
     idea: Idea,
     materials: list[Material],
@@ -34,23 +38,51 @@ def generate_for_theme(
     sources: list[Source],
 ) -> list[int]:
     materials = collector.collect(theme, sources)
-    avoid_titles = db.get_rejected_titles(conn, theme.id)
-    generated = provider.generate_ideas(
-        theme.name,
-        materials,
-        theme.n_ideas,
-        avoid_titles=avoid_titles,
-        content_kind=theme.content_kind,
-    )
     if theme.content_kind == "company_profile":
-        generated = [
-            idea
-            for idea in generated
-            if _is_verified_company_candidate(idea, materials)
-        ]
+        avoid_titles, avoid_companies = db.get_idea_exclusions(
+            conn,
+            theme.id,
+        )
+        generated = provider.generate_ideas(
+            theme.name,
+            materials,
+            theme.n_ideas,
+            avoid_titles=avoid_titles,
+            content_kind=theme.content_kind,
+            avoid_companies=avoid_companies,
+        )
+    else:
+        avoid_titles = db.get_rejected_titles(conn, theme.id)
+        avoid_companies = []
+        generated = provider.generate_ideas(
+            theme.name,
+            materials,
+            theme.n_ideas,
+            avoid_titles=avoid_titles,
+            content_kind=theme.content_kind,
+        )
+    if theme.content_kind == "company_profile":
+        seen_companies = {
+            _normalize_identity(company) for company in avoid_companies
+        }
+        seen_titles = {
+            _normalize_identity(title) for title in avoid_titles
+        }
+        accepted: list[Idea] = []
+        for idea in generated:
+            company_key = _normalize_identity(idea.company)
+            title_key = _normalize_identity(idea.title)
+            if not _is_verified_company_candidate(idea, materials):
+                continue
+            if company_key in seen_companies or title_key in seen_titles:
+                continue
+            accepted.append(idea)
+            seen_companies.add(company_key)
+            seen_titles.add(title_key)
+        generated = accepted
         if not generated:
             raise NoVerifiedCompanyCandidatesError(
-                "這次沒有找到可核對的公司，沒有建立空候選。"
+                "這次沒有找到可核對的公司；只有新的公司才會建立候選。"
             )
     return [
         db.add_idea(conn, theme.id, idea, status="候選")
