@@ -17,7 +17,13 @@ from daibu.cards.schema import (
 )
 from daibu.clock import now as _now
 from daibu.llm.base import Idea
-from daibu.models import Source, StoredIdea, Theme
+from daibu.models import (
+    CompanyEligibility,
+    EligibilityEvidence,
+    Source,
+    StoredIdea,
+    Theme,
+)
 
 
 SINGLE_SERIES_CLEANUP_KEY = "single_series_cleanup_v1"
@@ -372,6 +378,23 @@ def init_schema(conn: sqlite3.Connection) -> None:
             local_path TEXT NOT NULL,
             official_source_url TEXT NOT NULL,
             verified_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS company_eligibility (
+            company_key TEXT PRIMARY KEY,
+            company TEXT NOT NULL,
+            verdict TEXT NOT NULL CHECK (
+                verdict IN ('eligible', 'ineligible', 'unknown')
+            ),
+            founded_year INTEGER,
+            ownership_status TEXT NOT NULL CHECK (
+                ownership_status IN (
+                    'private_independent', 'public', 'acquired', 'unknown'
+                )
+            ),
+            reason TEXT NOT NULL,
+            evidence_json TEXT NOT NULL DEFAULT '[]',
+            checked_at TEXT NOT NULL
         );
         """
     )
@@ -860,6 +883,89 @@ def get_idea_exclusions(
         if row["company"].strip()
     ]
     return titles, companies
+
+
+def _company_eligibility_from_row(
+    row: sqlite3.Row,
+) -> CompanyEligibility:
+    evidence = tuple(
+        EligibilityEvidence(
+            claim=str(item.get("claim", "")),
+            source_url=str(item.get("source_url", "")),
+            quote=str(item.get("quote", "")),
+        )
+        for item in json.loads(row["evidence_json"])
+        if isinstance(item, dict)
+    )
+    return CompanyEligibility(
+        company_key=row["company_key"],
+        company=row["company"],
+        verdict=row["verdict"],
+        founded_year=row["founded_year"],
+        ownership_status=row["ownership_status"],
+        reason=row["reason"],
+        evidence=evidence,
+        checked_at=row["checked_at"],
+    )
+
+
+def save_company_eligibility(
+    conn: sqlite3.Connection,
+    record: CompanyEligibility,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO company_eligibility (
+            company_key, company, verdict, founded_year,
+            ownership_status, reason, evidence_json, checked_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(company_key) DO UPDATE SET
+            company = excluded.company,
+            verdict = excluded.verdict,
+            founded_year = excluded.founded_year,
+            ownership_status = excluded.ownership_status,
+            reason = excluded.reason,
+            evidence_json = excluded.evidence_json,
+            checked_at = excluded.checked_at
+        """,
+        (
+            record.company_key,
+            record.company,
+            record.verdict,
+            record.founded_year,
+            record.ownership_status,
+            record.reason,
+            json.dumps(
+                [asdict(item) for item in record.evidence],
+                ensure_ascii=False,
+            ),
+            record.checked_at,
+        ),
+    )
+    conn.commit()
+
+
+def get_company_eligibility(
+    conn: sqlite3.Connection,
+    company_key: str,
+) -> CompanyEligibility | None:
+    row = conn.execute(
+        "SELECT * FROM company_eligibility WHERE company_key = ?",
+        (company_key.strip().casefold(),),
+    ).fetchone()
+    return None if row is None else _company_eligibility_from_row(row)
+
+
+def get_company_eligibilities(
+    conn: sqlite3.Connection,
+) -> dict[str, CompanyEligibility]:
+    rows = conn.execute(
+        "SELECT * FROM company_eligibility ORDER BY company_key"
+    ).fetchall()
+    return {
+        row["company_key"]: _company_eligibility_from_row(row)
+        for row in rows
+    }
 
 
 def update_idea_content(

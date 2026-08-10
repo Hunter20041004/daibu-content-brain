@@ -4,7 +4,12 @@ import pytest
 
 from daibu import db, performance, pipeline
 from daibu.llm.base import Idea
-from daibu.models import Source, Theme
+from daibu.models import (
+    CompanyEligibility,
+    EligibilityEvidence,
+    Source,
+    Theme,
+)
 
 
 def test_add_and_get_theme(tmp_path):
@@ -234,6 +239,98 @@ def test_init_schema_creates_all_product_tables(tmp_path):
         "ideas",
         "performance",
     } <= table_names
+
+
+def test_init_schema_creates_company_eligibility_audit_table(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+
+    columns = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(company_eligibility)")
+    }
+
+    assert columns == {
+        "company_key",
+        "company",
+        "verdict",
+        "founded_year",
+        "ownership_status",
+        "reason",
+        "evidence_json",
+        "checked_at",
+    }
+
+
+def test_company_eligibility_round_trip_preserves_evidence_and_null_year(
+    tmp_path,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    record = CompanyEligibility(
+        company_key="cloudflare",
+        company="Cloudflare",
+        verdict="ineligible",
+        founded_year=None,
+        ownership_status="public",
+        reason="已公開上市",
+        evidence=(
+            EligibilityEvidence(
+                "public",
+                "https://example.com/ipo",
+                "Cloudflare became publicly traded in 2019.",
+            ),
+            EligibilityEvidence(
+                "founded",
+                "https://example.com/about",
+                "Cloudflare was founded in 2009.",
+            ),
+        ),
+        checked_at="2026-08-10 13:00:00",
+    )
+
+    db.save_company_eligibility(conn, record)
+
+    assert db.get_company_eligibility(conn, "cloudflare") == record
+    assert db.get_company_eligibilities(conn) == {
+        "cloudflare": record,
+    }
+
+
+def test_saving_company_eligibility_does_not_change_ideas(tmp_path):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "公司介紹", 0, [], 1))
+    db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "候選題",
+            "角度",
+            "https://example.com/story",
+            company="Cloudflare",
+            source_excerpt="來源引文",
+        ),
+        status="候選",
+    )
+    before = [dict(row) for row in conn.execute("SELECT * FROM ideas")]
+
+    db.save_company_eligibility(
+        conn,
+        CompanyEligibility(
+            company_key="cloudflare",
+            company="Cloudflare",
+            verdict="ineligible",
+            founded_year=2009,
+            ownership_status="public",
+            reason="已公開上市",
+            evidence=(),
+            checked_at="2026-08-10 13:00:00",
+        ),
+    )
+
+    after = [dict(row) for row in conn.execute("SELECT * FROM ideas")]
+    assert after == before
 
 
 def test_add_and_get_candidate_idea(tmp_path):

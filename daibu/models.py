@@ -48,3 +48,22 @@ class StoredIdea:
     published_at: str | None
     company: str = ""
     source_excerpt: str = ""
+
+
+@dataclass(frozen=True)
+class EligibilityEvidence:
+    claim: str
+    source_url: str
+    quote: str
+
+
+@dataclass(frozen=True)
+class CompanyEligibility:
+    company_key: str
+    company: str
+    verdict: str
+    founded_year: int | None
+    ownership_status: str
+    reason: str
+    evidence: tuple[EligibilityEvidence, ...]
+    checked_at: str
