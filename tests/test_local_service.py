@@ -45,3 +45,40 @@ def test_validate_project_lists_every_missing_runtime_file(tmp_path):
     assert str(paths.streamlit) in message
     assert str(paths.server) in message
     assert str(paths.env_example) in message
+
+
+def test_ensure_env_file_copies_the_example_with_owner_only_permissions(
+    tmp_path,
+):
+    paths = local_service.resolve_paths(
+        tmp_path / "project",
+        tmp_path / "home",
+    )
+    paths.project_root.mkdir(parents=True)
+    paths.env_example.write_text("GEMINI_API_KEY=\n", encoding="utf-8")
+
+    created = local_service.ensure_env_file(paths)
+
+    assert created is True
+    assert paths.env_file.read_text(encoding="utf-8") == "GEMINI_API_KEY=\n"
+    assert paths.env_file.stat().st_mode & 0o777 == 0o600
+
+
+def test_ensure_env_file_never_replaces_an_existing_secret_file(tmp_path):
+    paths = local_service.resolve_paths(
+        tmp_path / "project",
+        tmp_path / "home",
+    )
+    paths.project_root.mkdir(parents=True)
+    paths.env_example.write_text("GEMINI_API_KEY=\n", encoding="utf-8")
+    paths.env_file.write_text(
+        "GEMINI_API_KEY=existing-local-value\n",
+        encoding="utf-8",
+    )
+
+    created = local_service.ensure_env_file(paths)
+
+    assert created is False
+    assert paths.env_file.read_text(encoding="utf-8") == (
+        "GEMINI_API_KEY=existing-local-value\n"
+    )

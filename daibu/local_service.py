@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -80,3 +82,11 @@ def validate_project(paths: ServicePaths) -> None:
         raise InvalidLocalService(
             "無法安裝呆一布背景服務，缺少：" + "、".join(missing)
         )
+
+
+def ensure_env_file(paths: ServicePaths) -> bool:
+    if paths.env_file.exists():
+        return False
+    shutil.copyfile(paths.env_example, paths.env_file)
+    os.chmod(paths.env_file, 0o600)
+    return True
