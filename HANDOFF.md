@@ -28,6 +28,9 @@
 - **合併 main 後全套**：同一指令為 `489 passed, 13 deselected, 1 warning in 52.10s`，確認合併結果沒有引入差異。
 - **視覺驗收第一輪**：桌機與手機的層次、留白、字體、配色、對齊、響應式、狀態與動效全數合格，沒有新增 CSS 修正。
 - **視覺驗收第二輪**：重新載入後結果穩定。375px 與 1280px 的 `scrollWidth` 都等於 viewport；候選標題為 3，三家公司齊全，舊通用題不可見，`比較｜` 為 0，browser console 0 errors／warnings。最終截圖：`.screenshots/dedup-round2-desktop.png`、`.screenshots/dedup-round2-mobile.png`。
+- **正式 localhost 驗收**：推送後重啟 `io.daibu.content-brain`。管理命令第一次在 `bootout` 後立刻 `bootstrap` 遇到 macOS 時序失敗；確認 plist 完整且服務未載入後，精確執行同一標籤的 `launchctl bootstrap` 與 `kickstart`，最終 `loaded=yes`、`health=yes`、只監聽 `127.0.0.1:8501`。
+- **使用者畫面驗收**：實際開啟 `http://127.0.0.1:8501/選題`，頁面標題正確，顯示「候選（3）」與 Moove／Railway／Cloudflare；Railway 按鈕只有 1 個，`比較｜` 為 0，舊通用題不可見，1280px 無橫向溢出，browser console 0 errors／warnings。
+- **資料保留複驗**：正式畫面驗收後直接查 SQLite，仍是 10 筆候選、6 筆空白公司，Cloudflare 1／Moove 1／Railway 2。數字來自 `ideas` 表按 `status` 與 `LOWER(TRIM(company))` 分組，證明本輪只改顯示與未來寫入規則，沒有刪除舊資料。
 - **成本與限制**：沒有新依賴或付費服務，也不自動重試湊滿三則。精準比對無法自動合併 `Cloudflare` 與 `Cloudflare, Inc.` 這類別名；後續若要做別名需另有人工確認設計。
 
 ## 前一輪：macOS 登入後自動保持開啟
