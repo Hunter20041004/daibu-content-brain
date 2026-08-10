@@ -347,3 +347,131 @@ def test_malformed_batch_json_raises_a_clear_error():
             current_year=2026,
             checked_at="2026-08-10 13:00:00",
         )
+
+
+def test_evaluate_searches_each_company_once_and_generates_one_batch():
+    search_calls: list[tuple[str, int]] = []
+    generated_prompts: list[str] = []
+
+    def fake_search(query: str, limit: int) -> list[Material]:
+        search_calls.append((query, limit))
+        company = next(
+            name for name in ["Acme", "Beta", "Gamma"] if name in query
+        )
+        return [
+            Material(
+                f"About {company}",
+                f"https://{company.lower()}.example/about",
+                f"{company} was founded in 2020 and remains privately held.",
+            )
+        ]
+
+    def fake_generate(prompt: str) -> str:
+        generated_prompts.append(prompt)
+        return json.dumps(
+            [
+                {
+                    "company": company,
+                    "founded_year": 2020,
+                    "ownership_status": "private_independent",
+                    "reason": "符合條件",
+                    "evidence": [
+                        {
+                            "claim": "founded",
+                            "source_url": f"https://{company.lower()}.example/about",
+                            "quote": f"{company} was founded in 2020",
+                        },
+                        {
+                            "claim": "private_independent",
+                            "source_url": f"https://{company.lower()}.example/about",
+                            "quote": "remains privately held",
+                        },
+                    ],
+                }
+                for company in ["Acme", "Beta", "Gamma"]
+            ]
+        )
+
+    records = company_eligibility.evaluate_companies(
+        ["Acme", "Beta", "Gamma"],
+        fake_search,
+        fake_generate,
+        current_year=2026,
+        checked_at="2026-08-10 13:00:00",
+    )
+
+    assert len(search_calls) == 3
+    assert all(limit == 5 for _, limit in search_calls)
+    assert len(generated_prompts) == 1
+    assert all(name in generated_prompts[0] for name in ["Acme", "Beta", "Gamma"])
+    assert all(records[key].verdict == "eligible" for key in records)
+
+
+def test_one_search_failure_becomes_unknown_without_losing_other_company():
+    def fake_search(query: str, limit: int) -> list[Material]:
+        assert limit == 5
+        if "Broken" in query:
+            raise RuntimeError("secret-key-should-not-escape")
+        return [
+            Material(
+                "About Good",
+                "https://good.example/about",
+                "Good was founded in 2022 and remains privately held.",
+            )
+        ]
+
+    def fake_generate(_prompt: str) -> str:
+        return json.dumps(
+            [
+                {
+                    "company": "Good",
+                    "founded_year": 2022,
+                    "ownership_status": "private_independent",
+                    "evidence": [
+                        {
+                            "claim": "founded",
+                            "source_url": "https://good.example/about",
+                            "quote": "Good was founded in 2022",
+                        },
+                        {
+                            "claim": "private_independent",
+                            "source_url": "https://good.example/about",
+                            "quote": "remains privately held",
+                        },
+                    ],
+                }
+            ]
+        )
+
+    records = company_eligibility.evaluate_companies(
+        ["Broken", "Good"],
+        fake_search,
+        fake_generate,
+        current_year=2026,
+        checked_at="2026-08-10 13:00:00",
+    )
+
+    assert records["broken"].verdict == "unknown"
+    assert "secret-key" not in records["broken"].reason
+    assert records["good"].verdict == "eligible"
+
+
+def test_company_missing_from_batch_response_is_filled_as_unknown():
+    calls: list[str] = []
+
+    def fake_search(query: str, limit: int) -> list[Material]:
+        calls.append(query)
+        assert limit == 5
+        return []
+
+    records = company_eligibility.evaluate_companies(
+        ["Acme", " acme ", "Missing"],
+        fake_search,
+        lambda _prompt: "[]",
+        current_year=2026,
+        checked_at="2026-08-10 13:00:00",
+    )
+
+    assert len(calls) == 2
+    assert set(records) == {"acme", "missing"}
+    assert all(record.verdict == "unknown" for record in records.values())

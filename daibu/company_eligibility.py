@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
+from daibu import clock
 from daibu.models import (
     CompanyEligibility,
     EligibilityEvidence,
@@ -25,6 +27,85 @@ class EligibilityResponseError(ValueError):
 
 def normalize_company(company: str) -> str:
     return company.strip().casefold()
+
+
+def build_prompt(
+    companies: list[str],
+    materials_by_company: dict[str, list[Material]],
+    *,
+    current_year: int,
+) -> str:
+    source_payload = {
+        company: [
+            {
+                "title": material.title,
+                "url": material.url,
+                "snippet": material.snippet,
+            }
+            for material in materials_by_company.get(normalize_company(company), [])
+        ]
+        for company in companies
+    }
+    return f"""你是新創公司資格查核員。現在是 {current_year} 年。
+只根據下方搜尋資料，逐家公司判斷：
+1. 成立年份；2. 是否仍為私人且獨立的公司；3. 是否已上市或被收購。
+成立至今不得超過十年，且必須仍為私人獨立公司，才可能符合資格。
+
+只回傳 JSON 陣列，不要 markdown。每家公司都必須有一筆：
+{{"company":"原名","founded_year":2020 或 null,
+"ownership_status":"private_independent|public|acquired|unknown",
+"reason":"簡短繁體中文理由",
+"evidence":[{{"claim":"founded|private_independent|public|acquired",
+"source_url":"必須逐字取自搜尋資料的 URL",
+"quote":"必須逐字取自該 URL snippet 的短引文"}}]}}
+沒有足夠證據就用 unknown，不可臆測。募資輪次或投資人資料可作為仍為私人獨立公司的證據；
+IPO、股票代號或公開交易是 public；完成收購或成為子公司是 acquired。
+
+待查公司：{json.dumps(companies, ensure_ascii=False)}
+搜尋資料：{json.dumps(source_payload, ensure_ascii=False)}
+"""
+
+
+def evaluate_companies(
+    companies: list[str],
+    search_fn: Callable[..., list[Material]],
+    generate_text: Callable[[str], str],
+    *,
+    current_year: int,
+    checked_at: str | None = None,
+) -> dict[str, CompanyEligibility]:
+    unique = {
+        normalize_company(company): company.strip()
+        for company in companies
+        if company.strip()
+    }
+    if not unique:
+        return {}
+    materials_by_company: dict[str, list[Material]] = {}
+    for company_key, company in unique.items():
+        query = (
+            f"{company} founded founding year funding private company IPO "
+            "publicly traded acquired acquisition subsidiary official"
+        )
+        try:
+            materials_by_company[company_key] = search_fn(query, limit=5)
+        except Exception:
+            materials_by_company[company_key] = []
+    company_names = list(unique.values())
+    raw = generate_text(
+        build_prompt(
+            company_names,
+            materials_by_company,
+            current_year=current_year,
+        )
+    )
+    return verify_response(
+        raw,
+        company_names,
+        materials_by_company,
+        current_year=current_year,
+        checked_at=checked_at or clock.now(),
+    )
 
 
 def _decode_array(raw: str) -> list[object]:
