@@ -1,5 +1,20 @@
-from daibu import local_service
+import plistlib
+
 import pytest
+
+from daibu import local_service
+
+
+def _runnable_paths(tmp_path):
+    paths = local_service.resolve_paths(
+        tmp_path / "project",
+        tmp_path / "home",
+    )
+    paths.streamlit.parent.mkdir(parents=True)
+    paths.streamlit.write_text("#!/bin/sh\n", encoding="utf-8")
+    paths.server.write_text("# server\n", encoding="utf-8")
+    paths.env_example.write_text("GEMINI_API_KEY=\n", encoding="utf-8")
+    return paths
 
 
 def test_build_plist_runs_the_supported_server_only_on_localhost(tmp_path):
@@ -82,3 +97,26 @@ def test_ensure_env_file_never_replaces_an_existing_secret_file(tmp_path):
     assert paths.env_file.read_text(encoding="utf-8") == (
         "GEMINI_API_KEY=existing-local-value\n"
     )
+
+
+def test_install_writes_the_plist_then_reloads_and_starts_the_service(
+    tmp_path,
+):
+    paths = _runnable_paths(tmp_path)
+    calls = []
+
+    created_env = local_service.install(
+        paths,
+        command=lambda args: calls.append(args) or 0,
+    )
+
+    assert created_env is True
+    with paths.plist.open("rb") as handle:
+        assert plistlib.load(handle) == local_service.build_plist(paths)
+    target = local_service.service_target()
+    domain = local_service.service_domain()
+    assert calls == [
+        ["launchctl", "bootout", target],
+        ["launchctl", "bootstrap", domain, str(paths.plist)],
+        ["launchctl", "kickstart", "-k", target],
+    ]

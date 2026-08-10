@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import os
+import plistlib
 import shutil
+import subprocess
+import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -90,3 +94,53 @@ def ensure_env_file(paths: ServicePaths) -> bool:
     shutil.copyfile(paths.env_example, paths.env_file)
     os.chmod(paths.env_file, 0o600)
     return True
+
+
+Command = Callable[[list[str]], int]
+
+
+def default_command(args: list[str]) -> int:
+    return subprocess.run(
+        args,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode
+
+
+def service_domain(uid: int | None = None) -> str:
+    return f"gui/{uid if uid is not None else os.getuid()}"
+
+
+def service_target(uid: int | None = None) -> str:
+    return f"{service_domain(uid)}/{LABEL}"
+
+
+def _write_plist(paths: ServicePaths) -> None:
+    paths.launch_agent_dir.mkdir(parents=True, exist_ok=True)
+    paths.log_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        dir=paths.launch_agent_dir,
+        prefix=f".{LABEL}.",
+        delete=False,
+    ) as handle:
+        temporary = Path(handle.name)
+        plistlib.dump(build_plist(paths), handle)
+    temporary.replace(paths.plist)
+
+
+def install(
+    paths: ServicePaths,
+    command: Command = default_command,
+) -> bool:
+    validate_project(paths)
+    created_env = ensure_env_file(paths)
+    _write_plist(paths)
+    command(["launchctl", "bootout", service_target()])
+    if command(
+        ["launchctl", "bootstrap", service_domain(), str(paths.plist)]
+    ):
+        raise InvalidLocalService("macOS 無法載入呆一布背景服務")
+    if command(["launchctl", "kickstart", "-k", service_target()]):
+        raise InvalidLocalService("macOS 無法啟動呆一布背景服務")
+    return created_env
