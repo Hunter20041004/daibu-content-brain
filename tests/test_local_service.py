@@ -120,3 +120,72 @@ def test_install_writes_the_plist_then_reloads_and_starts_the_service(
         ["launchctl", "bootstrap", domain, str(paths.plist)],
         ["launchctl", "kickstart", "-k", target],
     ]
+
+
+def test_status_requires_both_launchctl_and_the_health_endpoint(tmp_path):
+    paths = _runnable_paths(tmp_path)
+    paths.launch_agent_dir.mkdir(parents=True)
+    paths.plist.write_bytes(plistlib.dumps(local_service.build_plist(paths)))
+    calls = []
+
+    result = local_service.status(
+        paths,
+        command=lambda args: calls.append(args) or 0,
+        health=lambda url: (
+            url == "http://127.0.0.1:8501/_stcore/health"
+        ),
+    )
+
+    assert result.loaded is True
+    assert result.healthy is True
+    assert result.plist_path == paths.plist
+    assert result.stderr_log == paths.stderr_log
+    assert calls == [
+        ["launchctl", "print", local_service.service_target()]
+    ]
+
+
+def test_status_identifies_a_healthy_listener_not_owned_by_the_launch_agent(
+    tmp_path,
+):
+    paths = _runnable_paths(tmp_path)
+
+    result = local_service.status(
+        paths,
+        command=lambda _args: 1,
+        health=lambda _url: True,
+    )
+
+    assert result.loaded is False
+    assert result.healthy is True
+    assert result.occupied_by_other_process is True
+
+
+def test_uninstall_removes_only_the_service_plist(tmp_path):
+    paths = _runnable_paths(tmp_path)
+    paths.launch_agent_dir.mkdir(parents=True)
+    paths.plist.write_text("plist", encoding="utf-8")
+    paths.env_file.write_text(
+        "GEMINI_API_KEY=keep-me\n",
+        encoding="utf-8",
+    )
+    database = paths.project_root / "daibu.db"
+    database.write_bytes(b"database")
+    paths.log_dir.mkdir(parents=True)
+    paths.stderr_log.write_text("old log", encoding="utf-8")
+    calls = []
+
+    local_service.uninstall(
+        paths,
+        command=lambda args: calls.append(args) or 0,
+    )
+
+    assert calls == [
+        ["launchctl", "bootout", local_service.service_target()]
+    ]
+    assert not paths.plist.exists()
+    assert paths.env_file.read_text(encoding="utf-8") == (
+        "GEMINI_API_KEY=keep-me\n"
+    )
+    assert database.read_bytes() == b"database"
+    assert paths.stderr_log.read_text(encoding="utf-8") == "old log"

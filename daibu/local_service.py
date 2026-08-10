@@ -10,6 +10,8 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
 
 
 LABEL = "io.daibu.content-brain"
@@ -144,3 +146,47 @@ def install(
     if command(["launchctl", "kickstart", "-k", service_target()]):
         raise InvalidLocalService("macOS 無法啟動呆一布背景服務")
     return created_env
+
+
+@dataclass(frozen=True)
+class ServiceStatus:
+    loaded: bool
+    healthy: bool
+    occupied_by_other_process: bool
+    plist_path: Path
+    stderr_log: Path
+
+
+def health_check(
+    url: str = f"http://127.0.0.1:{PORT}/_stcore/health",
+) -> bool:
+    try:
+        with urlopen(url, timeout=2) as response:
+            return response.status == 200 and response.read().strip() == b"ok"
+    except (OSError, URLError):
+        return False
+
+
+def status(
+    paths: ServicePaths,
+    command: Command = default_command,
+    health: Callable[[str], bool] = health_check,
+) -> ServiceStatus:
+    loaded = command(["launchctl", "print", service_target()]) == 0
+    url = f"http://127.0.0.1:{PORT}/_stcore/health"
+    healthy = health(url)
+    return ServiceStatus(
+        loaded,
+        healthy,
+        healthy and not loaded,
+        paths.plist,
+        paths.stderr_log,
+    )
+
+
+def uninstall(
+    paths: ServicePaths,
+    command: Command = default_command,
+) -> None:
+    command(["launchctl", "bootout", service_target()])
+    paths.plist.unlink(missing_ok=True)
