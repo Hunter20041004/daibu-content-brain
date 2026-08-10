@@ -2,8 +2,9 @@ import json
 
 import pytest
 
-from daibu import company_eligibility
-from daibu.models import Material
+from daibu import company_eligibility, db
+from daibu.llm.base import Idea
+from daibu.models import Material, Theme
 
 
 def test_matching_founded_and_private_evidence_is_eligible_at_ten_year_boundary():
@@ -475,3 +476,101 @@ def test_company_missing_from_batch_response_is_filled_as_unknown():
     assert len(calls) == 2
     assert set(records) == {"acme", "missing"}
     assert all(record.verdict == "unknown" for record in records.values())
+
+
+def test_backfill_checks_unique_profile_companies_without_changing_ideas(
+    tmp_path,
+):
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    profile_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 3, "company_profile"),
+    )
+    general_id = db.add_theme(conn, Theme(None, "一般系列", 1, [], 1))
+    db.add_idea(
+        conn,
+        profile_id,
+        Idea("Railway 一", "角度", "https://example.com/r1", company="Railway"),
+    )
+    db.add_idea(
+        conn,
+        profile_id,
+        Idea("Railway 二", "角度", "https://example.com/r2", company=" railway "),
+    )
+    db.add_idea(
+        conn,
+        profile_id,
+        Idea("Cloudflare", "角度", "https://example.com/c", company="Cloudflare"),
+    )
+    db.add_idea(
+        conn,
+        general_id,
+        Idea("GeneralCo", "角度", "https://example.com/g", company="GeneralCo"),
+    )
+    before = [tuple(row) for row in conn.execute("SELECT * FROM ideas ORDER BY id")]
+    search_calls: list[str] = []
+    generation_calls: list[str] = []
+
+    def fake_search(query: str, limit: int) -> list[Material]:
+        search_calls.append(query)
+        assert limit == 5
+        company = "Railway" if "Railway" in query else "Cloudflare"
+        return [
+            Material(
+                company,
+                f"https://example.com/{company.casefold()}",
+                f"{company} was founded in 2020 and remains privately held.",
+            )
+        ]
+
+    class FakeProvider:
+        def generate_text(self, _prompt: str) -> str:
+            generation_calls.append(_prompt)
+            return json.dumps(
+                [
+                    {
+                        "company": company,
+                        "founded_year": 2020,
+                        "ownership_status": "private_independent",
+                        "evidence": [
+                            {
+                                "claim": "founded",
+                                "source_url": f"https://example.com/{company.casefold()}",
+                                "quote": f"{company} was founded in 2020",
+                            },
+                            {
+                                "claim": "private_independent",
+                                "source_url": f"https://example.com/{company.casefold()}",
+                                "quote": "remains privately held",
+                            },
+                        ],
+                    }
+                    for company in ("Railway", "Cloudflare")
+                ]
+            )
+
+    records = company_eligibility.backfill_existing(
+        conn,
+        FakeProvider(),
+        fake_search,
+        current_year=2026,
+    )
+
+    after = [tuple(row) for row in conn.execute("SELECT * FROM ideas ORDER BY id")]
+    assert len(search_calls) == 2
+    assert set(records) == {"railway", "cloudflare"}
+    assert set(db.get_company_eligibilities(conn)) == {"railway", "cloudflare"}
+    assert after == before
+
+    search_calls.clear()
+    second = company_eligibility.backfill_existing(
+        conn,
+        FakeProvider(),
+        fake_search,
+        current_year=2026,
+    )
+
+    assert second == {}
+    assert search_calls == []
+    assert len(generation_calls) == 1

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
+import sqlite3
 from collections.abc import Callable
+from datetime import datetime
 
-from daibu import clock
+from daibu import clock, db
 from daibu.models import (
     CompanyEligibility,
     EligibilityEvidence,
@@ -106,6 +109,77 @@ def evaluate_companies(
         current_year=current_year,
         checked_at=checked_at or clock.now(),
     )
+
+
+def backfill_existing(
+    conn: sqlite3.Connection,
+    provider: object,
+    search_fn: Callable[..., list[Material]],
+    *,
+    current_year: int | None = None,
+) -> dict[str, CompanyEligibility]:
+    cached = db.get_company_eligibilities(conn)
+    rows = conn.execute(
+        """
+        SELECT ideas.company
+        FROM ideas
+        JOIN themes ON themes.id = ideas.theme_id
+        WHERE themes.content_kind = 'company_profile'
+          AND TRIM(ideas.company) <> ''
+        ORDER BY ideas.id
+        """
+    ).fetchall()
+    unchecked: dict[str, str] = {}
+    for row in rows:
+        company = str(row["company"]).strip()
+        company_key = normalize_company(company)
+        if company_key not in cached:
+            unchecked.setdefault(company_key, company)
+    if not unchecked:
+        return {}
+    generate_text = getattr(provider, "generate_text")
+    records = evaluate_companies(
+        list(unchecked.values()),
+        search_fn,
+        generate_text,
+        current_year=current_year or datetime.now().year,
+    )
+    for record in records.values():
+        db.save_company_eligibility(conn, record)
+    return records
+
+
+def _main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="回填既有公司的新創資格")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    backfill_parser = subparsers.add_parser("backfill")
+    backfill_parser.add_argument(
+        "--db",
+        default=os.getenv("DAIBU_DB_PATH", "daibu.db"),
+        help="SQLite 資料庫路徑",
+    )
+    args = parser.parse_args()
+    if args.command == "backfill":
+        from daibu.fetch import search
+        from daibu.llm import base
+
+        conn = db.connect(args.db)
+        try:
+            db.init_schema(conn)
+            records = backfill_existing(
+                conn,
+                base.get_provider_from_env(),
+                search.search_web,
+            )
+        finally:
+            conn.close()
+        print(f"已查核 {len(records)} 家公司。")
+
+
+if __name__ == "__main__":
+    _main()
 
 
 def _decode_array(raw: str) -> list[object]:

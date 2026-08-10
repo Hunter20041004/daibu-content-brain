@@ -9,7 +9,7 @@ from daibu import copywriting, db, performance, pipeline, seeds, selection
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.llm.base import Idea
-from daibu.models import Source, SourceSuggestion, Theme
+from daibu.models import CompanyEligibility, Source, SourceSuggestion, Theme
 
 PROJECT_ROOT = Path(__file__).parents[1]
 
@@ -1990,11 +1990,30 @@ def test_company_candidate_view_hides_legacy_and_later_duplicate_rows(
         theme_id,
         Idea("Cloudflare 題目", "角度", "", company="Cloudflare"),
     )
+    moove_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("Moove 題目", "角度", "", company="Moove"),
+    )
+    db.save_company_eligibility(
+        conn,
+        CompanyEligibility(
+            "cloudflare",
+            "Cloudflare",
+            "ineligible",
+            2009,
+            "public",
+            "已上市",
+            (),
+            "2026-08-10 13:00:00",
+        ),
+    )
     for idea_id, created_at in (
         (legacy_id, "2026-07-25 09:00:00"),
         (railway_first_id, "2026-08-05 10:00:00"),
         (railway_later_id, "2026-08-05 10:01:00"),
         (cloudflare_id, "2026-08-05 10:02:00"),
+        (moove_id, "2026-08-05 10:03:00"),
     ):
         conn.execute(
             "UPDATE ideas SET created_at = ? WHERE id = ?",
@@ -2010,11 +2029,12 @@ def test_company_candidate_view_hides_legacy_and_later_duplicate_rows(
     assert "候選（2）" in subheaders
     assert "先瀏覽公司與它在做什麼，再一次專心判斷一則。" in captions
     assert "Railway｜第一次 Railway 題目" in button_labels
-    assert "Cloudflare｜Cloudflare 題目" in button_labels
+    assert "Moove｜Moove 題目" in button_labels
+    assert "Cloudflare｜Cloudflare 題目" not in button_labels
     assert not any(label.startswith("比較｜") for label in button_labels)
     assert "後來的 Railway 題目" not in " ".join(button_labels)
     assert "通用觀點文" not in " ".join(button_labels)
-    assert len(db.get_ideas(conn, status="候選")) == 4
+    assert len(db.get_ideas(conn, status="候選")) == 5
 
 
 def test_general_candidate_view_keeps_title_and_angle(tmp_path, monkeypatch):

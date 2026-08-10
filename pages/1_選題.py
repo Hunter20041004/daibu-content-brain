@@ -421,10 +421,16 @@ company_profile_ideas = [
     idea for idea in all_ideas
     if idea.theme_id in company_profile_theme_ids
 ]
+disallowed_company_keys = {
+    company_key
+    for company_key, record in db.get_company_eligibilities(conn).items()
+    if record.verdict in {"ineligible", "unknown"}
+}
 visible_company_profile_ids = {
     idea.id
     for idea in selection.visible_company_profile_ideas(
         company_profile_ideas,
+        disallowed_company_keys=disallowed_company_keys,
     )
 }
 visible_ideas = [

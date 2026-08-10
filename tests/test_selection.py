@@ -109,6 +109,19 @@ def test_visible_company_profile_ideas_keeps_earliest_valid_company():
     assert ideas == [later_railway, moove, earliest_railway, legacy]
 
 
+def test_visible_company_profiles_hide_explicitly_disallowed_companies():
+    cloudflare = _stored_idea(1, "Cloudflare", "2026-08-01 09:00:00")
+    railway = _stored_idea(2, "Railway", "2026-08-01 09:01:00")
+    moove_without_cache = _stored_idea(3, "Moove", "2026-08-01 09:02:00")
+
+    visible = selection.visible_company_profile_ideas(
+        [cloudflare, railway, moove_without_cache],
+        disallowed_company_keys={"cloudflare", "unknownco"},
+    )
+
+    assert [idea.company for idea in visible] == ["Railway", "Moove"]
+
+
 def test_generate_passes_rejected_titles_of_that_theme(
     tmp_path,
     monkeypatch,

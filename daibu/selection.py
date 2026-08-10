@@ -21,12 +21,16 @@ def _normalize_identity(value: str) -> str:
 
 def visible_company_profile_ideas(
     ideas: list[StoredIdea],
+    disallowed_company_keys: set[str] | None = None,
 ) -> list[StoredIdea]:
+    disallowed = disallowed_company_keys or set()
     keeper_ids: set[int] = set()
     seen_companies: set[tuple[int | None, str]] = set()
     for idea in sorted(ideas, key=lambda item: (item.created_at, item.id)):
         company_key = _normalize_identity(idea.company)
         if not company_key:
+            continue
+        if company_key in disallowed:
             continue
         series_company = (idea.theme_id, company_key)
         if series_company in seen_companies:
