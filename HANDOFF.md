@@ -18,7 +18,7 @@
 5. **設計理由**：「這是哪家公司」、「現在為什麼值得寫」、「它是否符合系列資格」是三個不同問題，分開證據才不會把 API 繁忙誤當成資格過嚴。
 6. **替代方案**：RSS-only 最省事，但容易只看到新聞熱度而非新公司；directory-only 公司身分比較穩，但缺少「為什麼是現在」。採用目錄＋新聞＋資格證據的三層組合。
 7. **安全與成本**：只讀公開目錄，沒有新付費服務或新金鑰；每個未查公司最多一次 Tavily、每批最多一次資格 LLM，不重試湊滿三則。紀錄不含 API key、完整 prompt 或整頁下載內容。
-8. **測試證據**：每個切片都先看見失敗測試再實作轉綠。最終聚焦套件 `209 passed, 5 deselected in 36.56s`；狀態修正後全套為 `532 passed, 13 deselected, 1 warning in 77.20s`。YC Launches、YC Companies、Speedrun 與 TechCrunch 真實契約合計 `5 passed, 7 deselected in 2.51s`。
+8. **測試證據**：每個切片都先看見失敗測試再實作轉綠。最終聚焦套件 `209 passed, 5 deselected in 36.56s`；狀態修正後分支全套為 `532 passed, 13 deselected, 1 warning in 77.20s`，合併 main 後同套件為 `532 passed, 13 deselected, 1 warning in 108.00s`。YC Launches、YC Companies、Speedrun 與 TechCrunch 真實契約合計 `5 passed, 7 deselected in 2.51s`。
 9. **剩餘限制**：公開網頁格式未來可能改版；目前沒有排程自動更新，也沒有處理公司別名；免費 Gemini 仍可能暂時繁忙。
 
 - **舊來源處理**：Y Combinator Blog 保留、啟用，但不再綁在「AI 新創介紹」；舊 a16z RSS 保留成停用記錄且解除綁定；其他系列與來源不變。
@@ -33,7 +33,9 @@
   | 失敗後同時顯示「正在讀資料」與失敗原因 | 等待時只有載入提示，結束後只顯示成功或實際失敗階段 | 避免互相矛盾的狀態讓人誤判根因 |
   | 公司目錄無專屬抓取類型 | 來源編輯器有「公司目錄」，且只接受核可的三個網址 | 不讓畫面假裝任意目錄都會解析 |
 
-- **正式資料導入**：尚未開始；必須在修正後全套測試通過並先建立正式 SQLite 備份後才執行。
+- **正式資料導入**：導入前用 SQLite Backup API 建立 `backups/daibu-before-startup-sources-20260813-1130.db`；備份與正式庫均為 `integrity_check=ok`、10 筆 ideas、7 筆資格紀錄，ideas 指紋同為 `b4908c2ec754419927b83bbe5a7efaebbcda4dcb9add57de9f5538f1fd31d9c8`。移轉後該指紋仍不變，`config.startup_source_strategy_v1=1`，四個新來源精確綁定，YC Blog 與舊 a16z 皆無綁定。
+- **正式一次核心流程**：只點擊一次「再產生 3 則」，成功新增 Dipole Labs 與 Risklytics，兩家均為 2026 年成立、`eligible/private_independent`，來源都是 YC Launches 的可點擊 HTTPS 頁面。正式庫現為 12 筆 ideas、10 筆資格紀錄，舊 10 筆與備份逐欄指紋仍完全相同。
+- **正式 localhost 驗收**：第一次服務 install 再次遇到既有 `launchctl` 時序問題；確認 plist 完整、舊服務已離開後，以精確標籤 `io.daibu.content-brain` bootstrap＋kickstart 恢復。最終 `state=running`、健康檢查成功、只監聽 `127.0.0.1:8501`；畫面顯示「候選（4）」與「候選整理好了」，1280px 與 375px 皆無水平溢出，browser console 0 errors／0 warnings。正式最終截圖：`.screenshots/startup-sources-production-desktop.png`、`.screenshots/startup-sources-production-mobile.png`。stderr 最後修改時間為 09:16，本次 11:27 重啟與真實流程未寫入新錯誤。
 
 ## 前一輪：新創公司資格查核
 
