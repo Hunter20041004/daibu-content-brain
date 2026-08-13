@@ -1,5 +1,6 @@
 from daibu import db
-from daibu.models import Theme
+from daibu.llm.base import Idea
+from daibu.models import CompanyEligibility, Source, Theme
 
 
 def _old_connection(tmp_path):
@@ -315,6 +316,143 @@ def test_migration_removes_retired_gate_line_config(tmp_path):
     }
     assert "gate_line" not in config
     assert config["llm_provider"] == "groq"
+
+
+def test_startup_source_strategy_migrates_without_changing_content(tmp_path):
+    conn = db.connect(str(tmp_path / "startup-sources.db"))
+    db.init_schema(conn)
+    yc_id = db.add_source(
+        conn,
+        Source(
+            None,
+            "Y Combinator Blog",
+            "https://www.ycombinator.com/blog/rss",
+            "rss",
+            True,
+        ),
+    )
+    a16z_id = db.add_source(
+        conn,
+        Source(None, "a16z", "https://a16z.com/feed/", "rss", True),
+    )
+    other_id = db.add_source(
+        conn,
+        Source(None, "Hacker News", "https://hnrss.org/frontpage", "rss", True),
+    )
+    theme_id = db.add_theme(
+        conn,
+        Theme(
+            None,
+            "AI 新創介紹",
+            4,
+            [yc_id, a16z_id],
+            3,
+            "company_profile",
+        ),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "Existing idea",
+            "Existing angle",
+            "https://example.com/existing",
+            company="ExistingCo",
+            source_excerpt="Exact excerpt",
+        ),
+    )
+    conn.execute(
+        """
+        INSERT INTO idea_sources (
+            idea_id, source_key, publisher, published_at,
+            url, excerpt, source_kind
+        ) VALUES (?, 'primary', 'Publisher', '2026-08-01',
+                  'https://example.com/source', 'Quote', 'manual')
+        """,
+        (idea_id,),
+    )
+    conn.execute(
+        """
+        INSERT INTO carousel_sources (
+            idea_id, source_key, position, publisher, published_at,
+            url, excerpt, source_kind
+        ) VALUES (?, 'primary', 0, 'Publisher', '2026-08-01',
+                  'https://example.com/source', 'Quote', 'manual')
+        """,
+        (idea_id,),
+    )
+    conn.execute(
+        """
+        INSERT INTO carousel_pages (
+            idea_id, page_no, page_type, heading, body
+        ) VALUES (?, 1, 'cover', 'Heading', 'Body')
+        """,
+        (idea_id,),
+    )
+    db.save_company_eligibility(
+        conn,
+        CompanyEligibility(
+            "existingco",
+            "ExistingCo",
+            "eligible",
+            2022,
+            "private_independent",
+            "Verified",
+            (),
+            "2026-08-01 09:00:00",
+        ),
+    )
+    conn.commit()
+    protected_tables = (
+        "ideas",
+        "idea_sources",
+        "carousel_sources",
+        "carousel_pages",
+        "company_eligibility",
+    )
+    before = {
+        table: [
+            tuple(row)
+            for row in conn.execute(
+                f"SELECT * FROM {table} ORDER BY rowid"
+            )
+        ]
+        for table in protected_tables
+    }
+
+    db.init_schema(conn)
+    db.init_schema(conn)
+
+    by_name = {source.name: source for source in db.get_sources(conn)}
+    theme = next(
+        item for item in db.get_themes(conn) if item.id == theme_id
+    )
+    bound_names = {
+        by_name[source_name].name
+        for source_name in by_name
+        if by_name[source_name].id in theme.source_ids
+    }
+    after = {
+        table: [
+            tuple(row)
+            for row in conn.execute(
+                f"SELECT * FROM {table} ORDER BY rowid"
+            )
+        ]
+        for table in protected_tables
+    }
+
+    assert by_name["Y Combinator Blog"].enabled is True
+    assert by_name["a16z"].enabled is False
+    assert by_name["Hacker News"].id == other_id
+    assert bound_names == {
+        "YC Launches",
+        "YC Companies",
+        "a16z Speedrun Companies",
+        "TechCrunch Startups",
+    }
+    assert before == after
+    assert db.get_config(conn, "startup_source_strategy_v1") == "1"
 
 
 def test_adds_company_and_excerpt_columns_to_existing_db(tmp_path):
@@ -640,6 +778,9 @@ def test_single_series_cleanup_keeps_target_graph_and_shared_assets(tmp_path):
         ).fetchone()["count"] == 1
     assert conn.execute(
         "SELECT COUNT(*) AS count FROM sources"
+    ).fetchone()["count"] == 5
+    assert conn.execute(
+        "SELECT COUNT(*) AS count FROM sources WHERE name = '共同來源'"
     ).fetchone()["count"] == 1
     assert conn.execute(
         "SELECT COUNT(*) AS count FROM brand_assets"

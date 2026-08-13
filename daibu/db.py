@@ -28,6 +28,29 @@ from daibu.models import (
 
 SINGLE_SERIES_CLEANUP_KEY = "single_series_cleanup_v1"
 SINGLE_SERIES_NAME = "AI 新創介紹"
+STARTUP_SOURCE_STRATEGY_KEY = "startup_source_strategy_v1"
+STARTUP_DISCOVERY_SOURCES = (
+    (
+        "YC Launches",
+        "https://www.ycombinator.com/launches",
+        "directory",
+    ),
+    (
+        "YC Companies",
+        "https://www.ycombinator.com/companies",
+        "directory",
+    ),
+    (
+        "a16z Speedrun Companies",
+        "https://speedrun.a16z.com/companies",
+        "directory",
+    ),
+    (
+        "TechCrunch Startups",
+        "https://techcrunch.com/category/startups/feed/",
+        "rss",
+    ),
+)
 
 
 def connect(path: str) -> sqlite3.Connection:
@@ -262,6 +285,63 @@ def _cleanup_to_single_series(conn: sqlite3.Connection) -> bool:
     except Exception:
         conn.execute("ROLLBACK TO SAVEPOINT single_series_cleanup")
         conn.execute("RELEASE SAVEPOINT single_series_cleanup")
+        raise
+    return True
+
+
+def _migrate_startup_source_strategy(conn: sqlite3.Connection) -> bool:
+    if conn.execute(
+        "SELECT 1 FROM config WHERE key = ?",
+        (STARTUP_SOURCE_STRATEGY_KEY,),
+    ).fetchone():
+        return True
+    theme = conn.execute(
+        "SELECT id FROM themes WHERE name = ?",
+        (SINGLE_SERIES_NAME,),
+    ).fetchone()
+    if theme is None:
+        return False
+
+    conn.execute("SAVEPOINT startup_source_strategy")
+    try:
+        for name, url, fetch_type in STARTUP_DISCOVERY_SOURCES:
+            conn.execute(
+                """
+                INSERT INTO sources (name, url, fetch_type, enabled)
+                SELECT ?, ?, ?, 1
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM sources WHERE name = ?
+                )
+                """,
+                (name, url, fetch_type, name),
+            )
+        conn.execute(
+            "UPDATE sources SET enabled = 0 WHERE name = 'a16z'"
+        )
+        conn.execute(
+            "DELETE FROM theme_sources WHERE theme_id = ?",
+            (theme["id"],),
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO theme_sources (theme_id, source_id)
+            SELECT ?, id
+            FROM sources
+            WHERE name IN (?, ?, ?, ?)
+            """,
+            (
+                theme["id"],
+                *(item[0] for item in STARTUP_DISCOVERY_SOURCES),
+            ),
+        )
+        conn.execute(
+            "INSERT INTO config (key, value) VALUES (?, '1')",
+            (STARTUP_SOURCE_STRATEGY_KEY,),
+        )
+        conn.execute("RELEASE SAVEPOINT startup_source_strategy")
+    except Exception:
+        conn.execute("ROLLBACK TO SAVEPOINT startup_source_strategy")
+        conn.execute("RELEASE SAVEPOINT startup_source_strategy")
         raise
     return True
 
@@ -516,6 +596,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
             "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
             ("startup_sources_fixed", "1"),
         )
+    _migrate_startup_source_strategy(conn)
     conn.execute(
         "DELETE FROM config WHERE key = ?",
         ("gate_line",),
