@@ -1,6 +1,7 @@
 import pytest
 
 from daibu import company_eligibility, db, selection, startup_discovery
+from daibu.llm import base
 from daibu.llm.base import Idea
 from daibu.models import (
     CompanyEligibility,
@@ -1092,3 +1093,83 @@ def test_eligibility_batch_failure_adds_no_ideas(tmp_path, monkeypatch):
     assert "敏感內容" not in str(error.value)
     assert [idea.id for idea in db.get_ideas(conn)] == [existing_id]
     assert db.get_company_eligibilities(conn) == {}
+
+
+def _assert_eligibility_llm_error_propagates(
+    tmp_path,
+    monkeypatch,
+    error,
+):
+    conn = db.connect(str(tmp_path / "llm-error.db"))
+    db.init_schema(conn)
+    material = Material(
+        "Acme",
+        "https://example.com/acme",
+        "Acme 發表新產品。",
+    )
+    monkeypatch.setattr(selection.collector, "collect", lambda *_: [material])
+
+    def fail_with_llm_error(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(
+        company_eligibility,
+        "evaluate_companies",
+        fail_with_llm_error,
+    )
+
+    class FakeProvider:
+        def generate_ideas(self, *_args, **_kwargs):
+            return [
+                Idea(
+                    "Acme 在做什麼",
+                    "值得看",
+                    material.url,
+                    company="Acme",
+                    source_excerpt=material.snippet,
+                )
+            ]
+
+    with pytest.raises(type(error), match=str(error)):
+        selection.generate_for_theme(
+            conn,
+            Theme(None, "AI 新創介紹", 4, [], 3, "company_profile"),
+            FakeProvider(),
+            [],
+        )
+
+    assert db.get_ideas(conn) == []
+    assert db.get_company_eligibilities(conn) == {}
+
+
+def test_eligibility_batch_preserves_gemini_quota_error(
+    tmp_path,
+    monkeypatch,
+):
+    _assert_eligibility_llm_error_propagates(
+        tmp_path,
+        monkeypatch,
+        base.LLMQuotaError("raw quota detail"),
+    )
+
+
+def test_eligibility_batch_preserves_gemini_timeout_error(
+    tmp_path,
+    monkeypatch,
+):
+    _assert_eligibility_llm_error_propagates(
+        tmp_path,
+        monkeypatch,
+        base.LLMTimeoutError("raw timeout detail"),
+    )
+
+
+def test_eligibility_batch_preserves_gemini_unavailable_error(
+    tmp_path,
+    monkeypatch,
+):
+    _assert_eligibility_llm_error_propagates(
+        tmp_path,
+        monkeypatch,
+        base.LLMUnavailableError("raw unavailable detail"),
+    )

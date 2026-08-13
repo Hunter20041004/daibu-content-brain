@@ -1,5 +1,6 @@
 import base64
 import html
+import logging
 import os
 from dataclasses import replace
 from datetime import date
@@ -39,6 +40,8 @@ from daibu.ui import (
     show_queued_toast,
 )
 
+logger = logging.getLogger("daibu.generation")
+
 WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
 THREADS_CHARACTER_LIMIT = 500
 INSTAGRAM_CHARACTER_LIMIT = 2200
@@ -70,6 +73,20 @@ def generation_error_message(error: Exception) -> str:
         return "找到公司，但沒有符合本系列資格的公司。"
     if isinstance(error, base.LLMUnavailableError):
         return "Gemini 暫時繁忙，請稍後再試。"
+    if isinstance(error, base.LLMQuotaError):
+        return (
+            "Gemini 免費額度已用完，請稍後再試；"
+            "若已設定 Groq，也可以切換 Groq。"
+        )
+    if isinstance(error, base.LLMTimeoutError):
+        return "Gemini 回應超時，原本內容都還在；請稍後再試。"
+    if isinstance(error, selection.CompanyEligibilityVerificationError):
+        return (
+            "公司資格查核暫時失敗，這次沒有新增候選；"
+            "原本內容都還在。"
+        )
+    if isinstance(error, base.LLMResponseError):
+        return "模型回覆格式不完整，這次沒有新增候選；原本內容都還在。"
     return "這次沒有完成，原本內容都還在；請稍後再試。"
 
 
@@ -973,6 +990,12 @@ with candidate_column:
                 queue_toast(st.session_state, "候選已產生。")
                 st.rerun()
             except Exception as error:
+                cause = error.__cause__
+                logger.warning(
+                    "generation_failed error_type=%s cause_type=%s",
+                    type(error).__name__,
+                    type(cause).__name__ if cause is not None else "none",
+                )
                 for warning in generation_warnings:
                     st.warning(warning)
                 st.markdown(

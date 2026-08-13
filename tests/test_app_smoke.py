@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from datetime import date, timedelta
 from pathlib import Path
@@ -713,6 +714,78 @@ def test_generation_shows_precise_gemini_unavailable_error(
 
     assert "Gemini 暫時繁忙" in rendered
     assert "raw detail" not in rendered
+
+
+def test_generation_shows_precise_gemini_quota_error(monkeypatch, tmp_path):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        base.LLMQuotaError("raw quota detail"),
+    )
+
+    assert "Gemini 免費額度已用完" in rendered
+    assert "可以切換 Groq" in rendered
+    assert "raw quota detail" not in rendered
+
+
+def test_generation_shows_precise_gemini_timeout_error(monkeypatch, tmp_path):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        base.LLMTimeoutError("raw timeout detail"),
+    )
+
+    assert "Gemini 回應超時" in rendered
+    assert "raw timeout detail" not in rendered
+
+
+def test_generation_shows_precise_eligibility_service_error(
+    monkeypatch,
+    tmp_path,
+):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        selection.CompanyEligibilityVerificationError(
+            "raw eligibility detail"
+        ),
+    )
+
+    assert "公司資格查核暫時失敗" in rendered
+    assert "這次沒有新增候選" in rendered
+    assert "raw eligibility detail" not in rendered
+
+
+def test_generation_shows_precise_model_response_error(monkeypatch, tmp_path):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        base.LLMResponseError("raw model response"),
+    )
+
+    assert "模型回覆格式不完整" in rendered
+    assert "原本內容都還在" in rendered
+    assert "raw model response" not in rendered
+
+
+def test_unknown_generation_error_logs_only_safe_error_types(
+    monkeypatch,
+    tmp_path,
+    caplog,
+):
+    error = RuntimeError("raw outer secret")
+    error.__cause__ = ValueError("raw cause secret")
+    caplog.set_level(logging.WARNING)
+
+    rendered = _render_generation_error(monkeypatch, tmp_path, error)
+    messages = " ".join(record.getMessage() for record in caplog.records)
+
+    assert "這次沒有完成" in rendered
+    assert "generation_failed" in messages
+    assert "error_type=RuntimeError" in messages
+    assert "cause_type=ValueError" in messages
+    assert "raw outer secret" not in messages
+    assert "raw cause secret" not in messages
 
 
 def test_directory_source_rejects_an_unapproved_url(monkeypatch, tmp_path):
