@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from daibu.fetch import startup_directories
 from daibu.models import CompanyLead
 
@@ -69,3 +71,51 @@ def test_public_yc_company_is_an_early_rejection(monkeypatch):
     enriched = startup_directories.enrich_yc_company(lead)
 
     assert enriched.ownership_status == "public"
+
+
+def test_speedrun_keeps_ai_categories_and_newest_cohort(monkeypatch):
+    html_text = Path("tests/fixtures/speedrun_companies.html").read_text()
+    cohort_json = Path("tests/fixtures/speedrun_cohort.json").read_text()
+    responses = iter((html_text, cohort_json))
+    calls = []
+    monkeypatch.setattr(
+        startup_directories,
+        "_get_text",
+        lambda url: calls.append(url) or next(responses),
+    )
+
+    leads = startup_directories.fetch_speedrun_companies(
+        "https://speedrun.a16z.com/companies"
+    )
+
+    assert calls == [
+        "https://speedrun.a16z.com/companies",
+        "https://speedrun-be.a16z.com/api/companies/companies/"
+        "?limit=100&cohort=SR006",
+    ]
+    assert [lead.company for lead in leads] == ["Acceler8"]
+    assert leads[0].batch_or_cohort == "SR006"
+    assert "AI Agents" in leads[0].tags
+    assert leads[0].founded_year == 2025
+    assert leads[0].official_url == "https://useacceler8.com"
+
+
+def test_speedrun_rejects_an_unapproved_api_host(monkeypatch):
+    html_text = Path("tests/fixtures/speedrun_companies.html").read_text()
+    html_text = html_text.replace(
+        "speedrun-be.a16z.com",
+        "evil.example",
+    )
+    calls = []
+    monkeypatch.setattr(
+        startup_directories,
+        "_get_text",
+        lambda url: calls.append(url) or html_text,
+    )
+
+    with pytest.raises(ValueError, match="Speedrun API 網址不合法"):
+        startup_directories.fetch_speedrun_companies(
+            "https://speedrun.a16z.com/companies"
+        )
+
+    assert calls == ["https://speedrun.a16z.com/companies"]

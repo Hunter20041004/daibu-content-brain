@@ -2,6 +2,7 @@ import html
 import json
 import re
 from dataclasses import replace
+from urllib.parse import quote, urlparse
 
 import httpx
 
@@ -14,6 +15,14 @@ AI_TAGS = {
     "generative ai",
     "machine learning",
 }
+SPEEDRUN_AI_TAGS = {
+    "AI Agents",
+    "AI Infra",
+    "AI Models / Research",
+    "AI Voice",
+    "AI Generative Media",
+}
+SPEEDRUN_API_HOST = "speedrun-be.a16z.com"
 
 
 def _get_text(url: str) -> str:
@@ -104,3 +113,55 @@ def enrich_yc_company(lead: CompanyLead) -> CompanyLead:
         ownership_status=mapped,
         tags=tuple(str(tag) for tag in company.get("tags", [])) or lead.tags,
     )
+
+
+def _speedrun_page_data(text: str) -> dict[str, object]:
+    match = re.search(
+        r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+        text,
+        re.DOTALL,
+    )
+    if not match:
+        raise ValueError("Speedrun 找不到目錄資料")
+    return json.loads(match.group(1))["props"]["pageProps"]
+
+
+def _latest_speedrun_url(page: dict[str, object]) -> str:
+    cohorts = page["cohorts"]
+    companies = page["companies"]
+    cohort = max(str(item["name"]) for item in cohorts)
+    parsed = urlparse(str(companies["next"]))
+    if parsed.scheme != "https" or parsed.netloc != SPEEDRUN_API_HOST:
+        raise ValueError("Speedrun API 網址不合法")
+    return (
+        f"https://{SPEEDRUN_API_HOST}{parsed.path}"
+        f"?limit=100&cohort={quote(cohort)}"
+    )
+
+
+def fetch_speedrun_companies(url: str) -> list[CompanyLead]:
+    page = _speedrun_page_data(_get_text(url))
+    newest = max(str(item["name"]) for item in page["cohorts"])
+    rows = json.loads(_get_text(_latest_speedrun_url(page))).get("results", [])
+    leads = []
+    for row in rows:
+        tags = tuple(str(item) for item in row.get("industries", []))
+        if not SPEEDRUN_AI_TAGS.intersection(tags):
+            continue
+        slug = str(row.get("slug", "")).strip()
+        profile_url = f"https://speedrun.a16z.com/companies/{slug}"
+        year = row.get("founded_year")
+        leads.append(
+            CompanyLead(
+                company=str(row.get("name", "")).strip(),
+                description=str(row.get("preamble", "")).strip(),
+                discovery_url=profile_url,
+                profile_url=profile_url,
+                official_url=str(row.get("website_url", "")).strip(),
+                founded_year=year if isinstance(year, int) else None,
+                batch_or_cohort=newest,
+                tags=tags,
+                source_name="a16z Speedrun Companies",
+            )
+        )
+    return [lead for lead in leads if lead.company and lead.discovery_url]

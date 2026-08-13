@@ -1,0 +1,24 @@
+{
+  "count": 2,
+  "next": null,
+  "results": [
+    {
+      "slug": "acceler8",
+      "name": "Acceler8",
+      "cohort": "SR006",
+      "preamble": "AI for Workforce Intelligence and Planning",
+      "industries": ["HR Tech / Talent", "AI Agents"],
+      "founded_year": 2025,
+      "website_url": "https://useacceler8.com"
+    },
+    {
+      "slug": "game-only",
+      "name": "Game Only",
+      "cohort": "SR006",
+      "preamble": "A multiplayer game",
+      "industries": ["Gaming"],
+      "founded_year": 2025,
+      "website_url": "https://game.example"
+    }
+  ]
+}
