@@ -1,4 +1,7 @@
+import html
 import json
+import re
+from dataclasses import replace
 
 import httpx
 
@@ -69,3 +72,35 @@ def fetch_yc_launches(
             "https://www.ycombinator.com/companies/"
         )
     ]
+
+
+def _yc_company_url(lead: CompanyLead) -> str:
+    prefix = "https://www.ycombinator.com/companies/"
+    if not lead.profile_url.startswith(prefix):
+        raise ValueError("YC Companies 公司網址不合法")
+    return lead.profile_url
+
+
+def _extract_yc_company(html_text: str) -> dict[str, object]:
+    match = re.search(r'data-page="([^"]+)"', html_text)
+    if not match:
+        raise ValueError("YC Companies 找不到公司資料")
+    page = json.loads(html.unescape(match.group(1)))
+    company = page.get("props", {}).get("company")
+    if not isinstance(company, dict):
+        raise ValueError("YC Companies 公司資料格式改變")
+    return company
+
+
+def enrich_yc_company(lead: CompanyLead) -> CompanyLead:
+    company = _extract_yc_company(_get_text(_yc_company_url(lead)))
+    status = str(company.get("ycdc_status", "")).casefold()
+    mapped = status if status in {"active", "public", "acquired"} else "unknown"
+    year = company.get("year_founded")
+    return replace(
+        lead,
+        official_url=str(company.get("website", "")).strip(),
+        founded_year=year if isinstance(year, int) else None,
+        ownership_status=mapped,
+        tags=tuple(str(tag) for tag in company.get("tags", [])) or lead.tags,
+    )
