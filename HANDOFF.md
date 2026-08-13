@@ -21,9 +21,12 @@
 - **一次完整產生**：8502 僅點擊一次，候選由 4 增為 7，副本 ideas 由 12 增為 15；新增 Parasma、Billow AI Labs、Almanac。正式庫仍為 12，指紋仍為 `405c…9da`；副本 `integrity_check=ok`，browser console 0 errors／0 warnings。
 - **視覺 QA**：設定頁完成多輪 1280×800 與 375×812。第一輪抓到任務說明不完整後補上正文／資格分工；直接重新整理中文子路徑會產生既有 `_stcore` 相對路徑 404，最終改由首頁正常導覽。最終兩尺寸模型值正確、手機 `scrollWidth=clientWidth=375`、console 0 errors／0 warnings。截圖：`.screenshots/gemma-routing-final-desktop.png`、`.screenshots/gemma-routing-final-mobile.png`。
 - **全套測試**：功能分支為 `560 passed, 14 deselected, 1 warning in 66.83s`；14 個略過項目需真實外部服務，唯一 warning 是既有 Starlette/httpx 提醒。
+- **main 全套測試**：先確認未隔離測試會被正式 `.env` 重新注入 key，另有一次既有 AppTest 3 秒逾時；用 `PYTHON_DOTENV_DISABLED=1` 讓每個案例只使用自己注入的測試環境後，結果為 `560 passed, 14 deselected, 1 warning in 63.23s`。
 - **安全與自審**：compileall、`git diff --check` 通過；秘密掃描先以合成 AIza key 校準後掃 production diff，沒有 Google、Groq 或 Tavily key。因本輪禁止子代理，依 review checklist 自審，未發現 Critical／Important 問題。
+- **正式設定備份**：切換前建立 `backups/daibu-before-gemma-routing-20260813-140254.db`，正式庫與備份均為 `integrity_check=ok`、12 ideas、13 筆資格。
+- **正式模型設定**：只更新三列為 `llm_provider=gemini`、`llm_idea_model=gemma-4-26b-a4b-it`、`llm_model=gemini-3.5-flash-lite`；與備份逐列比對，ideas 差異 0、資格差異 0。
 - **剩餘限制**：Gemma 與 Gemini 共用 Google API，只能分散模型別配額／容量，不能處理 Google 整體故障；跨平台備援仍需日後設定 Groq key。
-- **狀態**：程式、真實模型契約、資料副本、完整候選流程、全套測試與最終畫面均已驗收；待合併 main 後複驗、更新正式模型設定、推送與重啟正式服務。
+- **狀態**：程式、真實模型契約、資料副本、完整候選流程、main 全套測試、正式設定與最終畫面均已驗收；待推送、重啟與正式服務複驗。
 
 ---
 
