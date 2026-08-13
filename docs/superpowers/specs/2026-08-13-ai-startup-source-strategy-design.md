@@ -32,7 +32,7 @@
 ```text
 YC Launches + a16z Speedrun Companies
   → 找近期、早期且 AI 相關的公司
-  → YC Companies / Speedrun 公司頁補成立年份、狀態、官網與分類
+  → YC Companies 公司頁／Speedrun 當期目錄資料補成立年份、狀態、官網與分類
   → 排除歷史重複與目錄已明示 Public / Acquired 的公司
   → TechCrunch Startups 補近期事件與選題理由
   → 既有 Tavily + 免費 LLM 資格查核
@@ -72,7 +72,7 @@ YC Launches + a16z Speedrun Companies
 
 - YC Launches 回傳結構化 JSON；最新頁每頁 20 筆，含公司名稱、官網、標籤、batch、發佈時間與來源頁。
 - YC Companies 公司頁可讀成立年份與 `Active / Public / Acquired` 狀態。
-- Speedrun 目錄與公司頁可讀 cohort、成立年份、團隊人數、AI 分類、官網與公司介紹。
+- Speedrun 公開目錄資料已可一次讀到 cohort、成立年份、團隊人數、AI 分類、官網與公司介紹；無需逐家開詳情頁。
 - TechCrunch Startups RSS 可讀，且文章帶 `AI`、`Startups`、`Fundraising` 等分類標籤。
 
 ### 既有來源處置
@@ -94,6 +94,7 @@ YC Launches + a16z Speedrun Companies
 - `company`：公司名稱。
 - `description`：目錄或新聞提供的公司描述。
 - `discovery_url`：找到公司的公開頁面。
+- `profile_url`：目錄內的公司詳情頁，可為空；不與 launch 或新聞網址混用。
 - `official_url`：目錄提供的公司官網，可為空。
 - `founded_year`：目錄明示的成立年份，可為空。
 - `ownership_status`：`active`、`public`、`acquired` 或 `unknown`。
@@ -121,7 +122,7 @@ RSS 與網域搜尋維持原本行為。介面以白話顯示「RSS／網域搜�
 1. 讀 YC Launches 最近 40 筆，依 AI 標籤與時間排序。
 2. 讀 Speedrun 目錄，優先最高 cohort 且帶 AI 分類的公司。
 3. 讀本系列歷史公司、標題與 `company_eligibility` 快取，先排除重複、`ineligible` 與 `unknown`。
-4. YC 公司線索以 YC Companies 詳情補成立年份與狀態；Speedrun 線索讀對應公司頁。
+4. YC 公司線索以 YC Companies 詳情補成立年份與狀態；Speedrun 線索直接使用當期目錄內的結構化欄位。
 5. 目錄明示 `Public` 或 `Acquired` 時直接排除；`Active` 或沒有狀態不能直接視為合格。
 6. 從 TechCrunch Startups 最近 20 篇中保留同時帶 AI 與 Startups 的文章，排除 IPO、完成收購與純爭議事件。
 7. 建立最多 2 個目錄線索＋1 個近期新聞線索；同家公司只保留一次。若新聞線索不足，
@@ -133,7 +134,7 @@ RSS 與網域搜尋維持原本行為。介面以白話顯示「RSS／網域搜�
 ## 成本與快取
 
 - 公司目錄與 RSS 本身不需要新 API key，也沒有訂閱費。
-- YC Companies 與 Speedrun 詳情只查本批真正可能使用的公司，不逐頁掃完整目錄。
+- YC Companies 詳情只查本批真正可能使用的公司；Speedrun 只讀目錄頁與最新 cohort 的一批結構化資料，不掃完整歷史目錄。
 - 既有公司排重與資格快取要在詳情頁與 Tavily 前執行，避免浪費網路請求與免費額度。
 - 每家公司仍最多一次 Tavily 資格搜尋；整批仍只做一次資格判定 LLM。
 - 不為湊滿 3 則反覆呼叫免費 LLM。
@@ -176,7 +177,7 @@ RSS 與網域搜尋維持原本行為。介面以白話顯示「RSS／網域搜�
 
 1. `CompanyLead` 與來源 adapter 契約；先測 YC Launches 一筆映射，再做最小實作。
 2. YC Companies 狀態與成立年份；先重現 Public 公司未能前置排除，再實作。
-3. Speedrun 公司列表與詳情；先測 AI 分類、cohort、成立年份與官網。
+3. Speedrun 目錄與當期結構化資料；先測 AI 分類、cohort、成立年份與官網。
 4. TechCrunch Startups 標籤與 IPO／收購排除；一次補一種行為。
 5. 歷史排重在詳情與 Tavily 前發生，驗證不需要的外部呼叫為零。
 6. 2 個目錄＋1 個新聞的組合，並測不足時少產與新聞不足時由目錄補足。
