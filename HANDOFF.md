@@ -25,8 +25,10 @@
 - **安全與自審**：compileall、`git diff --check` 通過；秘密掃描先以合成 AIza key 校準後掃 production diff，沒有 Google、Groq 或 Tavily key。因本輪禁止子代理，依 review checklist 自審，未發現 Critical／Important 問題。
 - **正式設定備份**：切換前建立 `backups/daibu-before-gemma-routing-20260813-140254.db`，正式庫與備份均為 `integrity_check=ok`、12 ideas、13 筆資格。
 - **正式模型設定**：只更新三列為 `llm_provider=gemini`、`llm_idea_model=gemma-4-26b-a4b-it`、`llm_model=gemini-3.5-flash-lite`；與備份逐列比對，ideas 差異 0、資格差異 0。
+- **正式服務**：管理命令再次遇到既有 `launchctl` 卸載後立即載入的時序問題；確認服務已卸載、plist `OK`、8501 無占用後，只對 `io.daibu.content-brain` bootstrap＋kickstart。最終 LaunchAgent `running`、health `ok`，只監聽 `127.0.0.1:8501`，stderr 最後修改時間仍為 12:45:16，沒有新增 server error。
+- **正式使用者視角**：從首頁正常導覽到設定頁，正式畫面顯示 Gemma 4 26B 與 Gemini 3.5 Flash-Lite，1280×800 與 375×812 都無水平溢出，console 0 errors／0 warnings；截圖為 `.screenshots/gemma-routing-production-desktop.png`、`.screenshots/gemma-routing-production-mobile.png`。再進內容製作，候選（4）與 Risklytics 正常出現，未點擊正式產生按鈕。
 - **剩餘限制**：Gemma 與 Gemini 共用 Google API，只能分散模型別配額／容量，不能處理 Google 整體故障；跨平台備援仍需日後設定 Groq key。
-- **狀態**：程式、真實模型契約、資料副本、完整候選流程、main 全套測試、正式設定與最終畫面均已驗收；待推送、重啟與正式服務複驗。
+- **狀態**：程式、真實模型契約、資料副本、完整候選流程、main 全套測試、正式設定、推送、正式服務與正式畫面皆已驗收。
 
 ---
 
