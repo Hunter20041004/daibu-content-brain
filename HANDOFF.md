@@ -1,4 +1,40 @@
-# HANDOFF — Gemma 選題與 Gemini 備援
+# HANDOFF — AI 新創選題多樣性
+
+> 2026-08-13 17:00 更新。使用者核可每批五則、AI 基礎建設最多一則、企業／產業應用與其他單一類別最多兩則、至少三類，並允許最多檢查四十家公司。
+
+## 本輪目標與驗收
+
+- AI 新創介紹每次產生 5 則；一般系列不改。
+- 公司依核心產品與主要客戶分成六個主類別；每批 AI 基礎建設最多 1、任何其他單一類別最多 2、至少 3 類。
+- 先看 15 家，不足再擴到 25、最多 40；每次只分類新增加的公司。
+- 40 家仍無解、分類失敗、資格不足或模型回傳不完整時，新增 ideas 必須是 0。
+- 五則必須一次成功寫入；中途資料庫錯誤不可留下半批。
+
+## 本輪狀態
+
+- **產品能力**：新增六類公司分類與硬性配額選擇器。分類依公司核心產品／客戶，不依貼文角度；可行組合中優先選類別數較多者。
+- **來源取捨**：保留 YC Launches、YC Companies、a16z Speedrun 與 TechCrunch Startups；YC 與 a16z 目錄改成交錯取樣，避免前 40 家被單一目錄佔滿。TechCrunch 仍只做一家具時效新聞的補強，不主導整批。
+- **漸進分類**：來源一次取得最多 40 家，Gemma 分類呼叫依序只送 15、10、15 家；每階段有可見進度。Gemma 可恢復錯誤仍沿用既有 GoogleTaskRouter，自動改用 Gemini 3.5 Flash-Lite。
+- **資格補位**：先從已分類池選五家，再沿用現有 YC 官方快速判定與資格快取；不合格／unknown 公司會被排除並從同一池補位。分類本身不新增 Tavily 搜尋。
+- **輸出契約**：模型只能替選定的五家公司寫題。程式核對剛好五則、公司一一對應、題目不重複，以及網址／逐字引文屬於該公司素材；任一不符整批拒絕。
+- **原子寫入**：新增 `db.add_ideas_atomic`，以 SQLite savepoint 保證五筆全成或全退。用第三筆觸發器故障的測試證明前兩筆也會回復。
+- **預設與搬遷**：新資料庫的 AI 新創系列為 5 則；既有 `company_profile` 系列只搬遷一次到 5，一般系列原數量不變。沒有新增 schema。
+- **API 卡住修正**：副本真實流程第一次發現一般文字／分類請求沒有把既有 45 秒 timeout 傳入 Google SDK，畫面會無限卡住。依紅→綠補測試後，`generate_text` 現在和輪播一樣有 timeout；Gemma 超時後仍可走 Gemini 備援。
+- **TDD 證據**：逐一看見分類解析、配額、15／25／40、資格補位、零寫入、原子 rollback、數量搬遷、錯誤文案與文字 timeout 的紅燈，再做最小實作轉綠。相關聚焦測試為 `238 passed`；`tests/test_llm.py` 為 `57 passed`。
+- **真實 Gemma 契約**：六家公司描述回傳六個允許類別且各一類，`1 passed in 20.99s`。
+- **全套測試**：timeout 修正後功能分支為 `592 passed, 15 deselected, 1 warning in 57.53s`；15 個略過項需外部服務，唯一 warning 是既有 Starlette/httpx 提醒。
+- **副本校準**：SQLite `.backup` 建立 `/private/tmp/daibu-diversity-qa.ElOtSy/daibu.db`。正式與副本起始皆為 18 ideas、16 筆資格、`integrity_check=ok`；ideas 全欄位 JSON SHA-256 都是 `b427d57b51bd51c85b387ff2aeaff18915a65e90dd7061ae3746a1af0bc86563`。
+- **副本真實產生**：8502 只點擊一次完成後，副本 ideas 由 18 增至 23、資格由 16 增至 22；新增 Hammock、August、Shiraz AI、Click、Pennant，恰好五家且公司不重複。正式庫仍為 18、`integrity_check=ok`、指紋仍為 `b427…6563`。
+- **使用者結果**：真實新增批次涵蓋消費／金融、機器人、企業研究與公司治理等方向，沒有 AI 基礎建設集中問題；畫面顯示「再產生 5 則」與候選（15）。
+- **視覺 QA 第一輪**：淺色 1280×800、375×812；層次、留白、字體、配色、對齊、響應式、狀態與動效均合格，手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings。不合格項目：無。
+- **視覺 QA 第二輪**：深色 1280×800、375×812；同八項維持合格，手機無水平溢出，console 0 errors／0 warnings。最終截圖：`.screenshots/startup-diversity-round2-desktop.png`、`.screenshots/startup-diversity-round2-mobile.png`。
+- **安全與成本**：無新依賴、付費服務、API key 或資料表。最壞三次分類＋一次寫題；資格查核成本沿用既有規則。分類與題目錯誤不顯示原始 provider detail。
+- **剩餘限制**：分類依目錄短描述，跨領域公司仍可能與人的判斷不同；分類目前不持久化，也沒有人工覆寫。Gemma 與 Gemini 同屬 Google，無法處理 Google 整體故障。
+- **狀態**：功能、真實模型、資料副本、真實五則流程、兩輪明暗與桌機／手機 QA 均已驗收；待合併 main、main 全測、推送與正式 localhost 驗證。
+
+---
+
+# 前一輪 — Gemma 選題與 Gemini 備援
 
 > 2026-08-13 14:00 更新。正式系統原本使用 `gemini-3.1-flash-lite`；12:45 的失敗是 Gemini 503 暫時繁忙，不是 429 額度耗盡。本輪依使用者核可，拆分高頻選題與格式敏感任務。
 
