@@ -1,0 +1,28 @@
+{
+  "hits": [
+    {
+      "tagline": "The agent with a company brain",
+      "created_at": "2026-08-13T15:37:10.813Z",
+      "search_path": "https://www.ycombinator.com/launches/Rdq-almanac-the-agent-with-a-company-brain",
+      "company": {
+        "name": "Almanac",
+        "url": "https://usealmanac.com",
+        "slug": "almanac",
+        "tags": ["Generative AI", "AI", "AI Assistant"],
+        "batch": "Summer 2026"
+      }
+    },
+    {
+      "tagline": "Fresh produce delivered weekly",
+      "created_at": "2026-08-13T14:00:00.000Z",
+      "search_path": "https://www.ycombinator.com/launches/fresh-farm",
+      "company": {
+        "name": "Fresh Farm",
+        "url": "https://fresh.example",
+        "slug": "fresh-farm",
+        "tags": ["Food", "Marketplace"],
+        "batch": "Summer 2026"
+      }
+    }
+  ]
+}

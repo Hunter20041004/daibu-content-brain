@@ -28,6 +28,37 @@ class Material:
 
 
 @dataclass(frozen=True)
+class CompanyLead:
+    company: str
+    description: str
+    discovery_url: str
+    profile_url: str = ""
+    official_url: str = ""
+    founded_year: int | None = None
+    ownership_status: str = "unknown"
+    batch_or_cohort: str = ""
+    tags: tuple[str, ...] = ()
+    published_at: str = ""
+    source_name: str = ""
+
+
+@dataclass(frozen=True)
+class DiscoveryStats:
+    fetched_by_source: tuple[tuple[str, int], ...] = ()
+    filtered_non_ai: int = 0
+    filtered_duplicate: int = 0
+    filtered_status: int = 0
+    matched_news: int = 0
+
+
+@dataclass(frozen=True)
+class DiscoveryResult:
+    leads: tuple[CompanyLead, ...]
+    warnings: tuple[str, ...] = ()
+    stats: DiscoveryStats = DiscoveryStats()
+
+
+@dataclass(frozen=True)
 class SourceSuggestion:
     publisher: str
     published_at: str
