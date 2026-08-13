@@ -1,4 +1,37 @@
-# HANDOFF — AI 新創來源重整
+# HANDOFF — 候選產生錯誤診斷
+
+> 2026-08-13 11:34 更新。正式畫面再次出現泛用失敗訊息；根因不是資料遺失，而是多種已知外部錯誤沒有完整接到前台，且未知錯誤沒有留下安全診斷紀錄。
+
+## 本輪目標與驗收
+
+- Gemini 免費額度、超時、503 繁忙與回覆格式錯誤必須顯示不同的白話原因。
+- 公司資格查核裡的 Gemini 錯誤不得被包成模糊的資格失敗；非 Gemini 的資格查核失敗仍需指出正確階段。
+- 未知錯誤維持安全泛用文案，但 log 至少留下外層與根因的「類型」，不可記錄錯誤原文、API key、完整 prompt 或下載內容。
+- 每種失敗都不得新增 idea 或不完整的資格快取；不得用重複點擊正式 API 來製造錯誤。
+
+## 本輪狀態
+
+- **QA 漏洞**：上一輪只驗證來源失敗、公司重複、資格不符與 Gemini 503；`LLMQuotaError`、`LLMTimeoutError`、`LLMResponseError` 與 `CompanyEligibilityVerificationError` 都會落入同一個泛用訊息。
+- **11:34 證據邊界**：失敗後正式庫仍為 12 筆 ideas、10 筆資格紀錄，最新寫入仍是 11:29 的成功批次，證明 11:34 沒有半成品。但舊版 catch 沒寫 log，因此不能誠實斷言唯一根因是額度、超時、格式或 Tavily／資格服務。
+- **錯誤保真**：資格查核現在會讓 Gemini 額度、超時與 503 原樣往前傳；其他資格查核錯誤才包成 `CompanyEligibilityVerificationError`。
+- **前台文案**：已補 Gemini 額度、超時、模型格式與資格查核四個分支；原始錯誤文字不會顯示。
+- **安全診斷**：所有候選產生錯誤會記錄 `error_type` 與 `cause_type`，不記 `str(error)` 或 traceback，避免第三方訊息意外含秘密或完整內容。
+- **TDD**：八個回歸切片都逐一看見紅燈再做最小修正轉綠；模型、資格管線與選題頁整合為 `174 passed in 30.47s`。
+- **功能分支全套**：`540 passed, 13 deselected, 1 warning in 59.38s`；13 個略過項目需真實外部服務，唯一 warning 是既有 Starlette／httpx 相依提醒。
+- **資料安全**：資格查核的三個 Gemini 錯誤測試都斷言 ideas 與資格快取為空；本輪沒有再次點擊正式產生按鈕。
+- **真實邊界（零 API 呼叫）**：在正式資料的暫存副本把 provider 設成受控無效值，從 8502 真實點擊「再產生 3 則」。前台顯示安全泛用訊息，server 只記錄 `generation_failed error_type=ValueError cause_type=none`，沒有記錄錯誤原文或無效設定值；副本仍為 12 筆 ideas、10 筆資格紀錄，證明錯誤跨過 Streamlit 邊界後也不會半套寫入。
+- **視覺驗收**：正式資料的 SQLite 副本在 8502 完成兩輪桌機／手機檢查。第一輪桌機抓到骨架載入未結束，判定狀態不合格；第二輪改以候選內容出現為條件，1280×800 與 375×812 都顯示 4 筆候選，手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings。最終證據：`.screenshots/generation-errors-round2-desktop.png`、`.screenshots/generation-errors-round2-mobile.png`。
+- **UI 檢視**：
+
+  | Before | After | Why |
+  |---|---|---|
+  | 額度、超時、格式與資格錯誤都顯示泛用訊息 | 每類有自己的白話訊息 | 使用者不用猜來源或資格規則 |
+  | 資格查核把 Gemini 錯誤包掉 | 額度／超時／繁忙保留到前台 | 不丟失真正失敗原因 |
+  | 未知錯誤沒有 log | 只記錄外層與根因型別 | 可診斷，同時避免秘密外洩 |
+
+- **待完成**：main 合併後複驗與正式服務重啟。
+
+## 前一輪：AI 新創來源重整
 
 > 2026-08-13 更新。「AI 新創介紹」已改用公司目錄找新公司、用新聞補時效性，最後才用公開證據查資格。
 

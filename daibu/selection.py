@@ -4,7 +4,13 @@ from typing import Callable
 
 from daibu import company_eligibility, db, startup_discovery
 from daibu.fetch import collector, search
-from daibu.llm.base import Idea, LLMProvider
+from daibu.llm.base import (
+    Idea,
+    LLMProvider,
+    LLMQuotaError,
+    LLMTimeoutError,
+    LLMUnavailableError,
+)
 from daibu.models import CompanyLead, Material, Source, StoredIdea, Theme
 
 
@@ -156,6 +162,8 @@ def generate_for_theme(
                     getattr(provider, "generate_text", lambda _prompt: ""),
                     current_year=datetime.now().year,
                 )
+            except (LLMQuotaError, LLMTimeoutError, LLMUnavailableError):
+                raise
             except Exception as error:
                 raise CompanyEligibilityVerificationError(
                     "公司新創資格查核失敗，這次沒有新增候選，請稍後再試。"
