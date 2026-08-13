@@ -22,8 +22,12 @@
 - **一次真實產生**：8502 只點擊一次。資格已通過，但題目 Gemini 回 `LLMUnavailableError/ServerError`；畫面精確顯示「Gemini 暫時繁忙」，ideas 仍為 12，未重試。
 - **視覺 QA**：兩輪各一張 1280×800 與 375×812。第一輪錯誤狀態層次、留白、字體、配色、對齊、響應式、狀態與動效合格，但直接開中文子路徑留下兩個既有 Streamlit 初始化 404；第二輪從首頁正常導覽後，兩尺寸 `scrollWidth=clientWidth`、候選（4）存在、console 0 errors／0 warnings。最終：`.screenshots/company-identity-round2-desktop.png`、`.screenshots/company-identity-round2-mobile.png`。
 - **功能分支全套**：`551 passed, 13 deselected, 1 warning in 70.64s`；13 個略過項目需要真實外部服務，唯一 warning 是既有 Starlette／httpx 提醒。
+- **合併 main 後全套**：`551 passed, 13 deselected, 1 warning in 64.84s`，exit code 0；唯一 warning 仍是既有 Starlette／httpx 提醒。
 - **安全與自審**：compileall、`git diff --check` 通過；秘密掃描先用合成 AIza 字串校準，再掃 production diff，無 Gemini／Groq／Tavily key。依無子代理規則完成逐段自審，未發現 Critical／Important 問題。
-- **待完成**：合併 main 後全測、正式 DB 備份與三筆 metadata 修正、推送、服務重啟與正式使用者畫面驗收。
+- **正式備份**：`backups/daibu-before-company-identity-20260813-123742.db` 為 `integrity_check=ok`、12 ideas、13 筆資格，ideas JSON SHA-256=`f75cfde255d25b6917fb6020d39fff2792ddfa8cb40baa41c0184d113a1bbf33`。
+- **正式 metadata 修正**：只覆寫 Almanac、Feldy、Marengo 三筆；現在三家都是 `eligible/private_independent`，Feldy=2024、Marengo=2026，Almanac 的成立年維持 null 並保存 Summer 2026 batch。修正過程 Tavily 0 次、Gemini 0 次。
+- **正式資料複驗**：仍為 12 ideas、13 筆資格、`integrity_check=ok`；ideas 指紋仍為 `f75c…f33`，其餘十筆資格指紋仍為 `2144bc6ccd918ea930cb170731c089b1a727b2f8c920a899fc2599b465a824d6`。
+- **待完成**：推送、服務重啟與正式使用者畫面驗收。
 
 ## 前一輪：候選產生錯誤診斷
 
