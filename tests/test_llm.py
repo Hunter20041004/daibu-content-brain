@@ -329,6 +329,29 @@ def test_gemini_deadline_exceeded_has_a_product_error(monkeypatch):
         provider.generate_carousel_text("輪播 prompt")
 
 
+def test_gemini_text_503_has_a_product_error(monkeypatch):
+    class FakeModels:
+        def generate_content(self, **_kwargs):
+            raise errors.ServerError(
+                503,
+                {
+                    "error": {
+                        "status": "UNAVAILABLE",
+                        "message": "high demand",
+                    }
+                },
+            )
+
+    class FakeClient:
+        def __init__(self, **_kwargs):
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    with pytest.raises(base.LLMUnavailableError, match="Gemini 暫時繁忙"):
+        GeminiProvider(api_key="fake").generate_text("prompt")
+
+
 def test_gemini_free_quota_exhaustion_has_a_product_error(monkeypatch):
     class FakeModels:
         def generate_content(self, **kwargs):

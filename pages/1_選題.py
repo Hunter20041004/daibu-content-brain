@@ -7,7 +7,15 @@ from urllib.parse import urlparse
 
 import streamlit as st
 
-from daibu import clock, copywriting, db, pipeline, selection, workspace
+from daibu import (
+    clock,
+    copywriting,
+    db,
+    pipeline,
+    selection,
+    startup_discovery,
+    workspace,
+)
 from daibu.cards import assets as carousel_assets
 from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
@@ -34,6 +42,44 @@ from daibu.ui import (
 WEEKDAYS = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
 THREADS_CHARACTER_LIMIT = 500
 INSTAGRAM_CHARACTER_LIMIT = 2200
+SOURCE_TYPE_OPTIONS = ("rss", "search", "directory")
+SOURCE_TYPE_LABELS = {
+    "rss": "RSS",
+    "search": "網域搜尋",
+    "directory": "公司目錄",
+}
+APPROVED_DIRECTORY_URLS = {
+    "https://www.ycombinator.com/launches",
+    "https://www.ycombinator.com/companies",
+    "https://speedrun.a16z.com/companies",
+}
+
+
+def generation_error_message(error: Exception) -> str:
+    if isinstance(
+        error,
+        startup_discovery.NoAvailableStartupSourcesError,
+    ):
+        return "目前沒有可用的公司來源，請稍後再試。"
+    if isinstance(
+        error,
+        startup_discovery.AllStartupCompaniesRepeatedError,
+    ):
+        return "這批來源裡的公司都介紹過了。"
+    if isinstance(error, selection.NoVerifiedCompanyCandidatesError):
+        return "找到公司，但沒有符合本系列資格的公司。"
+    if isinstance(error, base.LLMUnavailableError):
+        return "Gemini 暫時繁忙，請稍後再試。"
+    return "這次沒有完成，原本內容都還在；請稍後再試。"
+
+
+def directory_source_error(fetch_type: str, url: str) -> str:
+    if (
+        fetch_type == "directory"
+        and url.strip().rstrip("/") not in APPROVED_DIRECTORY_URLS
+    ):
+        return "公司目錄只支援已核可的三個網址。"
+    return ""
 
 st.set_page_config(page_title="內容製作｜呆一布", page_icon="◉", layout="wide")
 apply_styles()
@@ -45,6 +91,8 @@ page_header(
 )
 
 conn = connect_app_db()
+for source_warning in st.session_state.pop("generation_warnings", []):
+    st.warning(source_warning)
 
 
 def render_logo_upload_form(idea_id: int, company: str, suffix: str) -> None:
@@ -555,11 +603,17 @@ with context_panel:
             new_source_url = st.text_input("新來源網址")
             new_source_type = st.selectbox(
                 "新來源抓取方式",
-                ("rss", "search"),
+                SOURCE_TYPE_OPTIONS,
+                format_func=SOURCE_TYPE_LABELS.get,
             )
             if st.form_submit_button("新增來源"):
                 if not new_source_name.strip() or not new_source_url.strip():
                     st.error("來源名稱與網址都要填寫。")
+                elif error := directory_source_error(
+                    new_source_type,
+                    new_source_url,
+                ):
+                    st.error(error)
                 else:
                     db.add_source(
                         conn,
@@ -596,7 +650,7 @@ with context_panel:
                     f"{html.escape(source.name)}"
                     "</span>"
                     '<span class="source-row__badge">'
-                    f"{html.escape(source.fetch_type.upper())}"
+                    f"{html.escape(SOURCE_TYPE_LABELS[source.fetch_type])}"
                     "</span>"
                     '<span class="source-row__usage">'
                     f"{usage_count} 個內容系列在用"
@@ -621,25 +675,33 @@ with context_panel:
                     )
                     edited_source_type = st.selectbox(
                         "抓取方式",
-                        ("rss", "search"),
-                        index=("rss", "search").index(source.fetch_type),
+                        SOURCE_TYPE_OPTIONS,
+                        index=SOURCE_TYPE_OPTIONS.index(source.fetch_type),
+                        format_func=SOURCE_TYPE_LABELS.get,
                     )
                     edited_source_enabled = st.checkbox(
                         "啟用",
                         value=source.enabled,
                     )
                     if st.form_submit_button("儲存來源"):
-                        db.update_source(
-                            conn,
-                            Source(
-                                source.id,
-                                edited_source_name.strip(),
-                                edited_source_url.strip(),
-                                edited_source_type,
-                                edited_source_enabled,
-                            ),
+                        error = directory_source_error(
+                            edited_source_type,
+                            edited_source_url,
                         )
-                        st.rerun()
+                        if error:
+                            st.error(error)
+                        else:
+                            db.update_source(
+                                conn,
+                                Source(
+                                    source.id,
+                                    edited_source_name.strip(),
+                                    edited_source_url.strip(),
+                                    edited_source_type,
+                                    edited_source_enabled,
+                                ),
+                            )
+                            st.rerun()
                 st.warning(
                     f"這個來源正被 {usage_count} 個內容系列使用；"
                     "刪除後會解除這些內容系列的來源綁定。"
@@ -895,6 +957,7 @@ with candidate_column:
                 width="stretch",
             )
         if find_topics_clicked:
+            generation_warnings: list[str] = []
             try:
                 provider = base.get_provider(provider_config)
                 with st.spinner("正在閱讀來源並整理候選…"):
@@ -911,11 +974,15 @@ with candidate_column:
                         selected_theme,
                         provider,
                         sources,
+                        warning_sink=generation_warnings.append,
                     )
                 st.session_state.new_candidate_ids = generated_idea_ids
+                st.session_state.generation_warnings = generation_warnings
                 queue_toast(st.session_state, "候選已產生。")
                 st.rerun()
             except Exception as error:
+                for warning in generation_warnings:
+                    st.warning(warning)
                 st.markdown(
                     mascot_coach(
                         "confused",
@@ -925,7 +992,7 @@ with candidate_column:
                     ),
                     unsafe_allow_html=True,
                 )
-                st.error(f"產生失敗：{error}")
+                st.error(generation_error_message(error))
     else:
         st.markdown(
             '<div class="empty-state">'
