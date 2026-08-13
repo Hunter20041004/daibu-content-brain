@@ -641,6 +641,95 @@ def test_public_evidence_on_official_domain_still_disqualifies_known_identity():
     assert record.ownership_status == "public"
 
 
+def test_directory_year_does_not_require_the_model_to_repeat_it():
+    lead = CompanyLead(
+        company="Marengo",
+        description="AI data center design.",
+        discovery_url="https://www.ycombinator.com/launches/SiK-marengo",
+        profile_url="https://www.ycombinator.com/companies/marengo",
+        official_url="https://marengox.com",
+        founded_year=2026,
+        ownership_status="active",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    funding_url = "https://funding.example/marengo"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Marengo funding",
+                funding_url,
+                "Marengo raised a seed round and remains privately held.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Marengo",
+                    "founded_year": None,
+                    "ownership_status": "private_independent",
+                    "evidence": [
+                        {
+                            "claim": "private_independent",
+                            "source_url": funding_url,
+                            "quote": "raised a seed round",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["marengo"]
+
+    assert record.verdict == "eligible"
+    assert record.founded_year == 2026
+    assert {proof.claim for proof in record.evidence} == {
+        "founded",
+        "private_independent",
+    }
+
+
+def test_unknown_private_status_preserves_known_directory_year():
+    lead = CompanyLead(
+        company="Feldy",
+        description="Field-first AI for home services.",
+        discovery_url="https://www.ycombinator.com/launches/SiZ-feldy",
+        profile_url="https://www.ycombinator.com/companies/feldy",
+        official_url="https://feldy.ai",
+        founded_year=2024,
+        ownership_status="active",
+        batch_or_cohort="Winter 2024",
+        source_name="YC Launches",
+    )
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Feldy",
+                    "founded_year": None,
+                    "ownership_status": "unknown",
+                    "evidence": [],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["feldy"]
+
+    assert record.verdict == "unknown"
+    assert record.founded_year == 2024
+    assert record.ownership_status == "unknown"
+    assert [(proof.claim, proof.source_url) for proof in record.evidence] == [
+        ("founded", lead.profile_url)
+    ]
+
+
 def test_one_search_failure_becomes_unknown_without_losing_other_company():
     def fake_search(query: str, limit: int) -> list[Material]:
         assert limit == 5

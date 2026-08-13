@@ -311,19 +311,38 @@ def _material_matches_identity(
     return _host(material.url) == official_host or official_host in material_text
 
 
+def _directory_founded_evidence(
+    identity: CompanyLead | None,
+    materials: list[Material],
+) -> EligibilityEvidence | None:
+    if identity is None or identity.founded_year is None:
+        return None
+    source_url = identity.profile_url or identity.discovery_url
+    quote = f"{identity.company.strip()} was founded in {identity.founded_year}"
+    if not any(
+        material.url == source_url and quote in material.snippet
+        for material in materials
+    ):
+        return None
+    return EligibilityEvidence("founded", source_url, quote)
+
+
 def _unknown(
     company: str,
     checked_at: str,
     reason: str = "公開資料不足，無法確認新創資格",
+    *,
+    founded_year: int | None = None,
+    evidence: tuple[EligibilityEvidence, ...] = (),
 ) -> CompanyEligibility:
     return CompanyEligibility(
         company_key=normalize_company(company),
         company=company.strip(),
         verdict="unknown",
-        founded_year=None,
+        founded_year=founded_year,
         ownership_status="unknown",
         reason=reason,
-        evidence=(),
+        evidence=evidence,
         checked_at=checked_at,
     )
 
@@ -346,18 +365,33 @@ def verify_response(
         company_key = normalize_company(company)
         if company_key not in requested or company_key in records:
             continue
+        identity = (identities or {}).get(company_key)
         raw_year = item.get("founded_year")
-        founded_year = (
+        model_year = (
             raw_year
             if isinstance(raw_year, int) and not isinstance(raw_year, bool)
             else None
         )
-        ownership_status = str(item.get("ownership_status", "unknown"))
-        evidence = _matching_evidence(
-            item.get("evidence"),
-            materials_by_company.get(company_key, []),
-            (identities or {}).get(company_key),
+        founded_year = (
+            identity.founded_year
+            if identity is not None and identity.founded_year is not None
+            else model_year
         )
+        ownership_status = str(item.get("ownership_status", "unknown"))
+        materials = materials_by_company.get(company_key, [])
+        evidence = list(
+            _matching_evidence(
+                item.get("evidence"),
+                materials,
+                identity,
+            )
+        )
+        directory_founded = _directory_founded_evidence(identity, materials)
+        if directory_founded is not None and not any(
+            proof.claim == "founded" for proof in evidence
+        ):
+            evidence.append(directory_founded)
+        evidence_tuple = tuple(evidence)
         claims = {proof.claim for proof in evidence}
         ownership_claims = claims & {
             "private_independent",
@@ -391,6 +425,8 @@ def verify_response(
                 requested[company_key],
                 checked_at,
                 "公開資料對公司所有權的描述互相矛盾",
+                founded_year=founded_year if has_founded_proof else None,
+                evidence=evidence_tuple if has_founded_proof else (),
             )
         elif is_public or is_acquired:
             records[company_key] = CompanyEligibility(
@@ -401,7 +437,7 @@ def verify_response(
                 ownership_status=ownership_status,
                 reason=str(item.get("reason", "")).strip()
                 or ("已公開上市" if is_public else "已被收購"),
-                evidence=evidence,
+                evidence=evidence_tuple,
                 checked_at=checked_at,
             )
         elif is_too_old:
@@ -413,7 +449,7 @@ def verify_response(
                 ownership_status=ownership_status,
                 reason=str(item.get("reason", "")).strip()
                 or "成立已超過十年",
-                evidence=evidence,
+                evidence=evidence_tuple,
                 checked_at=checked_at,
             )
         elif is_eligible:
@@ -425,13 +461,15 @@ def verify_response(
                 ownership_status=ownership_status,
                 reason=str(item.get("reason", "")).strip()
                 or "成立不超過十年，且仍為私人獨立公司",
-                evidence=evidence,
+                evidence=evidence_tuple,
                 checked_at=checked_at,
             )
         else:
             records[company_key] = _unknown(
                 requested[company_key],
                 checked_at,
+                founded_year=founded_year if has_founded_proof else None,
+                evidence=evidence_tuple if has_founded_proof else (),
             )
     for company_key, company in requested.items():
         records.setdefault(company_key, _unknown(company, checked_at))
