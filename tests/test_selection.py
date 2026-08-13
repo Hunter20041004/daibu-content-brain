@@ -1,3 +1,6 @@
+import json
+import re
+
 import pytest
 
 from daibu import company_eligibility, db, selection, startup_discovery
@@ -603,7 +606,7 @@ def test_company_profile_evidence_must_match_collected_material(
         "AI 新創介紹",
         4,
         [],
-        5,
+        1,
         content_kind="company_profile",
     )
     monkeypatch.setattr(
@@ -1303,3 +1306,482 @@ def test_eligibility_batch_preserves_gemini_unavailable_error(
         monkeypatch,
         base.LLMUnavailableError("raw unavailable detail"),
     )
+
+
+def test_company_diversity_stops_after_first_fifteen(tmp_path, monkeypatch):
+    conn = db.connect(str(tmp_path / "diverse.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Company{index}",
+            f"Description {index}",
+            f"https://example.com/company-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(40)
+    )
+    discovery_limits = []
+
+    def fake_discover(*_args, limit, **_kwargs):
+        discovery_limits.append(limit)
+        return DiscoveryResult(leads[:limit])
+
+    monkeypatch.setattr(startup_discovery, "discover", fake_discover)
+
+    categories = (
+        "ai_infrastructure",
+        "enterprise_industry",
+        "consumer_creator",
+        "robotics_physical",
+        "science_health_biotech",
+        "governance_social_business",
+    )
+
+    class Provider:
+        def __init__(self):
+            self.classification_batches = []
+
+        def generate_research_text(self, prompt):
+            names = re.findall(r'"company": "([^"]+)"', prompt)
+            self.classification_batches.append(names)
+            return json.dumps(
+                [
+                    {
+                        "company": name,
+                        "category": categories[int(name.removeprefix("Company")) % 6],
+                    }
+                    for name in names
+                ]
+            )
+
+        def generate_ideas(self, _theme, materials, n, **_kwargs):
+            assert n == 5
+            return [
+                Idea(
+                    f"{material.title} 在做什麼",
+                    "值得看",
+                    material.url,
+                    company=material.title,
+                    source_excerpt=material.snippet,
+                )
+                for material in materials
+            ]
+
+    provider = Provider()
+    ids = selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+        provider,
+        [],
+    )
+
+    assert len(ids) == 5
+    assert discovery_limits == [40]
+    assert [len(batch) for batch in provider.classification_batches] == [15]
+
+
+def test_company_diversity_expands_to_twenty_five(tmp_path, monkeypatch):
+    conn = db.connect(str(tmp_path / "expand-25.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Company{index}",
+            f"Description {index}",
+            f"https://example.com/company-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(40)
+    )
+    monkeypatch.setattr(
+        startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult(leads),
+    )
+
+    class Provider:
+        def __init__(self):
+            self.batch_sizes = []
+
+        def generate_research_text(self, prompt):
+            names = re.findall(r'"company": "([^"]+)"', prompt)
+            self.batch_sizes.append(len(names))
+            rows = []
+            later_categories = (
+                "enterprise_industry",
+                "consumer_creator",
+                "robotics_physical",
+                "science_health_biotech",
+            )
+            for name in names:
+                index = int(name.removeprefix("Company"))
+                category = (
+                    "ai_infrastructure"
+                    if index < 15
+                    else later_categories[(index - 15) % 4]
+                )
+                rows.append({"company": name, "category": category})
+            return json.dumps(rows)
+
+        def generate_ideas(self, _theme, materials, _n, **_kwargs):
+            return [
+                Idea(
+                    f"{item.title} 在做什麼",
+                    "值得看",
+                    item.url,
+                    company=item.title,
+                    source_excerpt=item.snippet,
+                )
+                for item in materials
+            ]
+
+    provider = Provider()
+    statuses = []
+    ids = selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+        provider,
+        [],
+        status_sink=statuses.append,
+    )
+
+    assert len(ids) == 5
+    assert provider.batch_sizes == [15, 10]
+    assert statuses == [
+        "正在替前 15 家公司分主類別…",
+        "目前組合太集中，正在查看更多公司（最多 25 家）…",
+    ]
+
+
+def test_company_diversity_expands_to_forty_without_reclassifying(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "expand-40.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Company{index}",
+            "AI company",
+            f"https://example.com/company-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(40)
+    )
+    monkeypatch.setattr(
+        startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult(leads),
+    )
+
+    class Provider:
+        def __init__(self):
+            self.batches = []
+
+        def generate_research_text(self, prompt):
+            names = re.findall(r'"company": "([^"]+)"', prompt)
+            self.batches.append(names)
+            diverse = (
+                "enterprise_industry",
+                "consumer_creator",
+                "robotics_physical",
+                "science_health_biotech",
+                "governance_social_business",
+            )
+            return json.dumps(
+                [
+                    {
+                        "company": name,
+                        "category": (
+                            "ai_infrastructure"
+                            if int(name.removeprefix("Company")) < 25
+                            else diverse[
+                                (int(name.removeprefix("Company")) - 25) % 5
+                            ]
+                        ),
+                    }
+                    for name in names
+                ]
+            )
+
+        def generate_ideas(self, _theme, materials, _n, **_kwargs):
+            return [
+                Idea(
+                    f"{item.title} 在做什麼",
+                    "值得看",
+                    item.url,
+                    company=item.title,
+                    source_excerpt=item.snippet,
+                )
+                for item in materials
+            ]
+
+    provider = Provider()
+    ids = selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+        provider,
+        [],
+    )
+
+    assert len(ids) == 5
+    assert [len(batch) for batch in provider.batches] == [15, 10, 15]
+    classified_names = [name for batch in provider.batches for name in batch]
+    assert len(classified_names) == len(set(classified_names)) == 40
+
+
+def test_company_diversity_shortage_after_forty_writes_nothing(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "shortage.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Infra{index}",
+            "AI infrastructure",
+            f"https://example.com/infra-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(40)
+    )
+    monkeypatch.setattr(
+        startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult(leads),
+    )
+
+    class Provider:
+        def generate_research_text(self, prompt):
+            names = re.findall(r'"company": "([^"]+)"', prompt)
+            return json.dumps(
+                [
+                    {"company": name, "category": "ai_infrastructure"}
+                    for name in names
+                ]
+            )
+
+        def generate_ideas(self, *_args, **_kwargs):
+            raise AssertionError("配額不足時不應寫題")
+
+    with pytest.raises(
+        selection.InsufficientCompanyDiversityError,
+        match="已檢查 40 家.*無法湊出 5 家且至少 3 類",
+    ):
+        selection.generate_for_theme(
+            conn,
+            Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+            Provider(),
+            [],
+        )
+
+    assert db.get_ideas(conn) == []
+
+
+def test_company_diversity_replaces_ineligible_selected_company(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "replacement.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Company{index}",
+            "AI company",
+            f"https://example.com/company-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(15)
+    )
+    monkeypatch.setattr(
+        startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult(leads),
+    )
+
+    def evaluate(companies, *_args, **_kwargs):
+        return {
+            lead.company.casefold(): CompanyEligibility(
+                lead.company.casefold(),
+                lead.company,
+                "ineligible" if lead.company == "Company0" else "eligible",
+                2024,
+                "public" if lead.company == "Company0" else "private_independent",
+                "測試判定",
+                (),
+                "2026-08-13 16:00:00",
+            )
+            for lead in companies
+        }
+
+    monkeypatch.setattr(company_eligibility, "evaluate_companies", evaluate)
+
+    class Provider:
+        def generate_research_text(self, prompt):
+            names = re.findall(r'"company": "([^"]+)"', prompt)
+            categories = (
+                "ai_infrastructure",
+                "enterprise_industry",
+                "consumer_creator",
+                "robotics_physical",
+                "science_health_biotech",
+                "governance_social_business",
+            )
+            return json.dumps(
+                [
+                    {
+                        "company": name,
+                        "category": categories[
+                            int(name.removeprefix("Company")) % 6
+                        ],
+                    }
+                    for name in names
+                ]
+            )
+
+        def generate_ideas(self, _theme, materials, _n, **_kwargs):
+            return [
+                Idea(
+                    f"{item.title} 在做什麼",
+                    "值得看",
+                    item.url,
+                    company=item.title,
+                    source_excerpt=item.snippet,
+                )
+                for item in materials
+            ]
+
+    selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+        Provider(),
+        [],
+    )
+
+    stored_companies = {idea.company for idea in db.get_ideas(conn)}
+    assert len(stored_companies) == 5
+    assert "Company0" not in stored_companies
+
+
+def test_company_classification_failure_writes_nothing(tmp_path, monkeypatch):
+    conn = db.connect(str(tmp_path / "classification-failure.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Company{index}",
+            "AI company",
+            f"https://example.com/company-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(15)
+    )
+    monkeypatch.setattr(
+        startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult(leads),
+    )
+
+    class Provider:
+        def generate_research_text(self, _prompt):
+            raise base.LLMUnavailableError("raw provider detail")
+
+    with pytest.raises(
+        selection.CompanyClassificationError,
+        match="分類暫時失敗",
+    ) as error:
+        selection.generate_for_theme(
+            conn,
+            Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+            Provider(),
+            [],
+        )
+
+    assert "raw provider detail" not in str(error.value)
+    assert db.get_ideas(conn) == []
+
+
+@pytest.mark.parametrize("mode", ["short", "replaced", "cross_evidence"])
+def test_company_diversity_rejects_incomplete_company_output(
+    tmp_path,
+    monkeypatch,
+    mode,
+):
+    conn = db.connect(str(tmp_path / f"output-{mode}.db"))
+    db.init_schema(conn)
+    leads = tuple(
+        CompanyLead(
+            f"Company{index}",
+            "AI company",
+            f"https://example.com/company-{index}",
+            source_name="Test Directory",
+        )
+        for index in range(15)
+    )
+    monkeypatch.setattr(
+        startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult(leads),
+    )
+
+    class Provider:
+        def generate_research_text(self, prompt):
+            names = re.findall(r'"company": "([^"]+)"', prompt)
+            categories = (
+                "ai_infrastructure",
+                "enterprise_industry",
+                "consumer_creator",
+                "robotics_physical",
+                "science_health_biotech",
+                "governance_social_business",
+            )
+            return json.dumps(
+                [
+                    {
+                        "company": name,
+                        "category": categories[
+                            int(name.removeprefix("Company")) % 6
+                        ],
+                    }
+                    for name in names
+                ]
+            )
+
+        def generate_ideas(self, _theme, materials, _n, **_kwargs):
+            ideas = [
+                Idea(
+                    f"{item.title} 在做什麼",
+                    "值得看",
+                    item.url,
+                    company=item.title,
+                    source_excerpt=item.snippet,
+                )
+                for item in materials
+            ]
+            if mode == "short":
+                return ideas[:-1]
+            if mode == "replaced":
+                ideas[-1] = Idea(
+                    "Impostor 在做什麼",
+                    "值得看",
+                    materials[-1].url,
+                    company="Impostor",
+                    source_excerpt=materials[-1].snippet,
+                )
+            else:
+                ideas[-1] = Idea(
+                    ideas[-1].title,
+                    ideas[-1].angle,
+                    materials[0].url,
+                    company=ideas[-1].company,
+                    source_excerpt=materials[0].snippet,
+                )
+            return ideas
+
+    with pytest.raises(base.LLMResponseError):
+        selection.generate_for_theme(
+            conn,
+            Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+            Provider(),
+            [],
+        )
+
+    assert db.get_ideas(conn) == []

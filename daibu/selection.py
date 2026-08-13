@@ -2,12 +2,13 @@ import sqlite3
 from datetime import datetime
 from typing import Callable
 
-from daibu import company_eligibility, db, startup_discovery
+from daibu import company_diversity, company_eligibility, db, startup_discovery
 from daibu.fetch import collector, search
 from daibu.llm.base import (
     Idea,
     LLMProvider,
     LLMQuotaError,
+    LLMResponseError,
     LLMTimeoutError,
     LLMUnavailableError,
 )
@@ -19,6 +20,14 @@ class NoVerifiedCompanyCandidatesError(RuntimeError):
 
 
 class CompanyEligibilityVerificationError(RuntimeError):
+    pass
+
+
+class CompanyClassificationError(RuntimeError):
+    pass
+
+
+class InsufficientCompanyDiversityError(RuntimeError):
     pass
 
 
@@ -77,13 +86,196 @@ def _lead_material(lead: CompanyLead) -> Material:
     )
 
 
+def _evaluate_selected_leads(
+    conn: sqlite3.Connection,
+    provider: LLMProvider,
+    leads: list[CompanyLead],
+) -> set[str]:
+    cache = db.get_company_eligibilities(conn)
+    unseen = [
+        lead
+        for lead in leads
+        if _normalize_identity(lead.company) not in cache
+    ]
+    if unseen:
+        try:
+            research_text = getattr(
+                provider,
+                "generate_research_text",
+                None,
+            ) or getattr(provider, "generate_text", lambda _prompt: "")
+            fresh = company_eligibility.evaluate_companies(
+                unseen,
+                search.search_web,
+                research_text,
+                current_year=datetime.now().year,
+            )
+        except (LLMQuotaError, LLMTimeoutError, LLMUnavailableError):
+            raise
+        except Exception as error:
+            raise CompanyEligibilityVerificationError(
+                "公司新創資格查核失敗，這次沒有新增候選，請稍後再試。"
+            ) from error
+        for record in fresh.values():
+            db.save_company_eligibility(conn, record)
+        cache.update(fresh)
+    return {
+        key
+        for key, record in cache.items()
+        if record.verdict == "eligible"
+    }
+
+
+def _select_diverse_verified_companies(
+    conn: sqlite3.Connection,
+    provider: LLMProvider,
+    leads: list[CompanyLead],
+    status_sink: Callable[[str], None] | None,
+) -> tuple[company_diversity.ClassifiedCompany, ...]:
+    classified: list[company_diversity.ClassifiedCompany] = []
+    disallowed: set[str] = set()
+    previous_end = 0
+    for end in (15, 25, 40):
+        batch = leads[previous_end:min(end, len(leads))]
+        if not batch:
+            break
+        if status_sink:
+            if end == 15:
+                status_sink("正在替前 15 家公司分主類別…")
+            else:
+                status_sink(
+                    f"目前組合太集中，正在查看更多公司（最多 {end} 家）…"
+                )
+        try:
+            raw = provider.generate_research_text(
+                company_diversity.build_classification_prompt(batch)
+            )
+            classified.extend(
+                company_diversity.parse_classifications(raw, batch)
+            )
+        except Exception as error:
+            raise CompanyClassificationError(
+                "公司主類別分類暫時失敗，這次沒有新增候選。"
+            ) from error
+        previous_end = end
+        while True:
+            pool = [
+                item
+                for item in classified
+                if _normalize_identity(item.lead.company) not in disallowed
+            ]
+            selected = company_diversity.select_diverse_companies(pool)
+            if selected is None:
+                break
+            eligible = _evaluate_selected_leads(
+                conn,
+                provider,
+                [item.lead for item in selected],
+            )
+            rejected = {
+                _normalize_identity(item.lead.company)
+                for item in selected
+                if _normalize_identity(item.lead.company) not in eligible
+            }
+            if not rejected:
+                return selected
+            disallowed.update(rejected)
+    inspected = min(len(leads), 40)
+    usable = [
+        item
+        for item in classified
+        if _normalize_identity(item.lead.company) not in disallowed
+    ]
+    raise InsufficientCompanyDiversityError(
+        company_diversity.describe_shortage(usable, inspected)
+    )
+
+
+def _generate_diverse_company_ideas(
+    conn: sqlite3.Connection,
+    theme: Theme,
+    provider: LLMProvider,
+    sources: list[Source],
+    warning_sink: Callable[[str], None] | None,
+    status_sink: Callable[[str], None] | None,
+) -> list[int]:
+    avoid_titles, avoid_companies = db.get_idea_exclusions(conn, theme.id)
+    eligibility_cache = db.get_company_eligibilities(conn)
+    avoided_keys = {
+        _normalize_identity(company) for company in avoid_companies
+    }
+    for record in eligibility_cache.values():
+        if record.verdict not in {"ineligible", "unknown"}:
+            continue
+        if record.company_key not in avoided_keys:
+            avoid_companies.append(record.company)
+            avoided_keys.add(record.company_key)
+    result = startup_discovery.discover(
+        [source for source in sources if source.id in theme.source_ids],
+        excluded_company_keys=set(avoided_keys),
+        limit=40,
+        warning_sink=warning_sink,
+    )
+    selected = _select_diverse_verified_companies(
+        conn,
+        provider,
+        list(result.leads),
+        status_sink,
+    )
+    materials = [_lead_material(item.lead) for item in selected]
+    generated = provider.generate_ideas(
+        theme.name,
+        materials,
+        5,
+        avoid_titles=avoid_titles,
+        content_kind=theme.content_kind,
+        avoid_companies=avoid_companies,
+    )
+    expected = {
+        _normalize_identity(item.lead.company) for item in selected
+    }
+    material_by_company = {
+        _normalize_identity(material.title): material for material in materials
+    }
+    seen_titles = {_normalize_identity(title) for title in avoid_titles}
+    accepted: list[Idea] = []
+    for idea in generated:
+        company_key = _normalize_identity(idea.company)
+        title_key = _normalize_identity(idea.title)
+        material = material_by_company.get(company_key)
+        if material is None or not title_key or title_key in seen_titles:
+            continue
+        if (
+            idea.source_url != material.url
+            or not idea.source_excerpt.strip()
+            or idea.source_excerpt not in material.snippet
+        ):
+            continue
+        accepted.append(idea)
+        seen_titles.add(title_key)
+    actual = [_normalize_identity(idea.company) for idea in accepted]
+    if len(accepted) != 5 or len(set(actual)) != 5 or set(actual) != expected:
+        raise LLMResponseError("公司候選數量或公司對應不完整")
+    return db.add_ideas_atomic(conn, theme.id, accepted, status="候選")
+
+
 def generate_for_theme(
     conn: sqlite3.Connection,
     theme: Theme,
     provider: LLMProvider,
     sources: list[Source],
     warning_sink: Callable[[str], None] | None = None,
+    status_sink: Callable[[str], None] | None = None,
 ) -> list[int]:
+    if theme.content_kind == "company_profile" and theme.n_ideas == 5:
+        return _generate_diverse_company_ideas(
+            conn,
+            theme,
+            provider,
+            sources,
+            warning_sink,
+            status_sink,
+        )
     if theme.content_kind == "company_profile":
         avoid_titles, avoid_companies = db.get_idea_exclusions(
             conn,

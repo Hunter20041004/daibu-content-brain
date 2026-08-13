@@ -874,3 +874,35 @@ def test_single_series_cleanup_preserves_data_when_target_is_ambiguous(
     assert conn.execute(
         "SELECT 1 FROM config WHERE key = 'single_series_cleanup_v1'"
     ).fetchone() is None
+
+
+def test_company_profile_count_migrates_to_five_without_changing_general(
+    tmp_path,
+):
+    conn = db.connect(str(tmp_path / "diversity-count.db"))
+    conn.executescript(
+        """
+        CREATE TABLE themes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            weekday INTEGER NOT NULL,
+            n_ideas INTEGER NOT NULL,
+            content_kind TEXT NOT NULL DEFAULT 'general'
+        );
+        CREATE TABLE config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        INSERT INTO config (key, value)
+        VALUES ('single_series_cleanup_v1', '1');
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES ('AI 新創介紹', 4, 3, 'company_profile');
+        INSERT INTO themes (name, weekday, n_ideas, content_kind)
+        VALUES ('一般系列', 2, 3, 'general');
+        """
+    )
+
+    db.init_schema(conn)
+
+    counts = {
+        row["name"]: row["n_ideas"]
+        for row in conn.execute("SELECT name, n_ideas FROM themes")
+    }
+    assert counts == {"AI 新創介紹": 5, "一般系列": 3}

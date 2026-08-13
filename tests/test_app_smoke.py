@@ -674,6 +674,30 @@ def test_generation_shows_precise_no_source_error(monkeypatch, tmp_path):
     assert "raw detail" not in rendered
 
 
+def test_ai_startup_rerun_button_says_five(monkeypatch, tmp_path):
+    database_path = tmp_path / "five-button.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    seeds.load(conn)
+    theme = db.get_themes(conn)[0]
+    db.add_idea(
+        conn,
+        theme.id,
+        Idea(
+            "Existing company",
+            "Existing angle",
+            "https://example.com/existing",
+            company="ExistingCo",
+            source_excerpt="Existing company evidence",
+        ),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    assert any(button.label == "再產生 5 則" for button in app.button)
+
+
 def test_generation_shows_precise_repeated_company_error(
     monkeypatch,
     tmp_path,
@@ -700,6 +724,41 @@ def test_generation_shows_precise_ineligible_company_error(
 
     assert "找到公司，但沒有符合本系列資格的公司" in rendered
     assert "raw detail" not in rendered
+
+
+def test_generation_shows_precise_company_classification_error(
+    monkeypatch,
+    tmp_path,
+):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        selection.CompanyClassificationError("raw detail"),
+    )
+
+    assert "公司主類別分類暫時失敗" in rendered
+    assert "原本內容都還在" in rendered
+    assert "raw detail" not in rendered
+
+
+def test_generation_shows_company_diversity_shortage_details(
+    monkeypatch,
+    tmp_path,
+):
+    message = (
+        "已檢查 40 家；目前可用分類：AI 基礎建設 9 家、"
+        "企業／產業應用 2 家。無法湊出 5 家且至少 3 類，"
+        "這次沒有新增候選。"
+    )
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        selection.InsufficientCompanyDiversityError(message),
+    )
+
+    assert "已檢查 40 家" in rendered
+    assert "AI 基礎建設 9 家" in rendered
+    assert "無法湊出 5 家且至少 3 類" in rendered
 
 
 def test_generation_shows_precise_gemini_unavailable_error(
