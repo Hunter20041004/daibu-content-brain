@@ -1,10 +1,11 @@
 import sqlite3
 from datetime import datetime
+from typing import Callable
 
-from daibu import company_eligibility, db
+from daibu import company_eligibility, db, startup_discovery
 from daibu.fetch import collector, search
 from daibu.llm.base import Idea, LLMProvider
-from daibu.models import Material, Source, StoredIdea, Theme
+from daibu.models import CompanyLead, Material, Source, StoredIdea, Theme
 
 
 class NoVerifiedCompanyCandidatesError(RuntimeError):
@@ -57,13 +58,26 @@ def _is_verified_company_candidate(
     )
 
 
+def _lead_material(lead: CompanyLead) -> Material:
+    facts = [lead.description]
+    if lead.founded_year is not None:
+        facts.append(f"Founded {lead.founded_year}")
+    if lead.batch_or_cohort:
+        facts.append(lead.batch_or_cohort)
+    return Material(
+        title=lead.company,
+        url=lead.discovery_url,
+        snippet=" | ".join(part for part in facts if part),
+    )
+
+
 def generate_for_theme(
     conn: sqlite3.Connection,
     theme: Theme,
     provider: LLMProvider,
     sources: list[Source],
+    warning_sink: Callable[[str], None] | None = None,
 ) -> list[int]:
-    materials = collector.collect(theme, sources)
     if theme.content_kind == "company_profile":
         avoid_titles, avoid_companies = db.get_idea_exclusions(
             conn,
@@ -80,6 +94,13 @@ def generate_for_theme(
                 continue
             avoid_companies.append(record.company)
             avoided_keys.add(record.company_key)
+        result = startup_discovery.discover(
+            [source for source in sources if source.id in theme.source_ids],
+            excluded_company_keys=set(avoided_keys),
+            limit=theme.n_ideas,
+            warning_sink=warning_sink,
+        )
+        materials = [_lead_material(lead) for lead in result.leads]
         generated = provider.generate_ideas(
             theme.name,
             materials,
@@ -89,6 +110,7 @@ def generate_for_theme(
             avoid_companies=avoid_companies,
         )
     else:
+        materials = collector.collect(theme, sources)
         avoid_titles = db.get_rejected_titles(conn, theme.id)
         avoid_companies = []
         generated = provider.generate_ideas(
@@ -153,7 +175,7 @@ def generate_for_theme(
         ]
         if not generated:
             raise NoVerifiedCompanyCandidatesError(
-                "這次沒有找到可核對的公司；只有新的公司才會建立候選。"
+                "找到公司，但沒有符合本系列資格的公司。"
             )
     return [
         db.add_idea(conn, theme.id, idea, status="候選")

@@ -5,7 +5,7 @@ from urllib.request import Request, urlopen
 import certifi
 import feedparser
 
-from daibu.models import Material
+from daibu.models import Material, TaggedFeedEntry
 
 
 class _TextExtractor(HTMLParser):
@@ -37,6 +37,24 @@ def fetch(url: str, limit: int = 10) -> list[Material]:
             title=str(entry.get("title", "")),
             url=str(entry.get("link", "")),
             snippet=_plain_text(str(entry.get("summary", ""))),
+        )
+        for entry in parsed.entries[:limit]
+    ]
+
+
+def fetch_tagged(url: str, limit: int = 20) -> list[TaggedFeedEntry]:
+    parsed = feedparser.parse(_download(url))
+    return [
+        TaggedFeedEntry(
+            title=str(entry.get("title", "")),
+            url=str(entry.get("link", "")),
+            snippet=_plain_text(str(entry.get("summary", ""))),
+            published_at=str(entry.get("published", "")),
+            tags=tuple(
+                str(tag.get("term", ""))
+                for tag in entry.get("tags", [])
+                if tag.get("term")
+            ),
         )
         for entry in parsed.entries[:limit]
     ]

@@ -1,8 +1,15 @@
 import pytest
 
-from daibu import company_eligibility, db, selection
+from daibu import company_eligibility, db, selection, startup_discovery
 from daibu.llm.base import Idea
-from daibu.models import CompanyEligibility, Material, StoredIdea, Theme
+from daibu.models import (
+    CompanyEligibility,
+    CompanyLead,
+    DiscoveryResult,
+    Material,
+    StoredIdea,
+    Theme,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +38,40 @@ def qualify_unseen_test_companies(monkeypatch):
         }
 
     monkeypatch.setattr(company_eligibility, "evaluate_companies", fake_evaluate)
+
+    def collect_as_discovery(
+        sources,
+        excluded_company_keys,
+        limit,
+        warning_sink=None,
+    ):
+        del excluded_company_keys, warning_sink
+        fixture_theme = Theme(
+            None,
+            "fixture",
+            0,
+            [source.id for source in sources if source.id is not None],
+            limit,
+            content_kind="company_profile",
+        )
+        materials = selection.collector.collect(fixture_theme, sources)
+        return DiscoveryResult(
+            tuple(
+                CompanyLead(
+                    material.title,
+                    material.snippet,
+                    material.url,
+                    source_name="test fixture",
+                )
+                for material in materials
+            )
+        )
+
+    monkeypatch.setattr(
+        selection.startup_discovery,
+        "discover",
+        collect_as_discovery,
+    )
 
 
 def _stored_idea(
@@ -258,6 +299,217 @@ def test_company_profiles_require_company_and_plain_description(
     ]
 
 
+def test_company_profile_uses_discovery_but_general_theme_keeps_collector(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "routing.db"))
+    db.init_schema(conn)
+    company_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+    )
+    general_id = db.add_theme(conn, Theme(None, "AI 工具", 1, [], 1))
+    calls = []
+
+    def fake_discover(
+        _sources,
+        excluded_company_keys,
+        limit,
+        warning_sink=None,
+    ):
+        del excluded_company_keys, limit, warning_sink
+        calls.append("discovery")
+        return DiscoveryResult(
+            (
+                CompanyLead(
+                    "NewCo",
+                    "AI workflow",
+                    "https://www.ycombinator.com/launches/newco",
+                    source_name="YC Launches",
+                ),
+            )
+        )
+
+    monkeypatch.setattr(
+        selection.startup_discovery,
+        "discover",
+        fake_discover,
+    )
+    monkeypatch.setattr(
+        selection.collector,
+        "collect",
+        lambda _theme, _sources: calls.append("collector")
+        or [Material("General", "https://example.com/general", "General source")],
+    )
+
+    class FakeProvider:
+        def generate_ideas(self, _theme, materials, _n, **kwargs):
+            if kwargs["content_kind"] == "company_profile":
+                return [
+                    Idea(
+                        "NewCo workflow",
+                        "new angle",
+                        materials[0].url,
+                        company="NewCo",
+                        source_excerpt=materials[0].snippet,
+                    )
+                ]
+            return [Idea("General title", "general angle", materials[0].url)]
+
+    selection.generate_for_theme(
+        conn,
+        Theme(company_id, "AI 新創介紹", 4, [], 1, "company_profile"),
+        FakeProvider(),
+        [],
+    )
+    selection.generate_for_theme(
+        conn,
+        Theme(general_id, "AI 工具", 1, [], 1),
+        FakeProvider(),
+        [],
+    )
+
+    assert calls == ["discovery", "collector"]
+
+
+def test_cached_disallowed_company_is_excluded_before_discovery(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "cached.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+    )
+    db.save_company_eligibility(
+        conn,
+        CompanyEligibility(
+            "seenco",
+            "SeenCo",
+            "ineligible",
+            2012,
+            "public",
+            "already public",
+            (),
+            "2026-08-13 09:00:00",
+        ),
+    )
+    captured = {}
+
+    def fake_discover(
+        _sources,
+        excluded_company_keys,
+        **_kwargs,
+    ):
+        captured["excluded"] = excluded_company_keys
+        raise startup_discovery.AllStartupCompaniesRepeatedError("all seen")
+
+    monkeypatch.setattr(
+        selection.startup_discovery,
+        "discover",
+        fake_discover,
+    )
+
+    class NeverCalledProvider:
+        def generate_ideas(self, *_args, **_kwargs):
+            raise AssertionError("LLM should not run")
+
+    with pytest.raises(startup_discovery.AllStartupCompaniesRepeatedError):
+        selection.generate_for_theme(
+            conn,
+            Theme(
+                theme_id,
+                "AI 新創介紹",
+                4,
+                [],
+                1,
+                "company_profile",
+            ),
+            NeverCalledProvider(),
+            [],
+        )
+
+    assert captured["excluded"] == {"seenco"}
+
+
+def test_company_leads_all_filtered_has_a_precise_error(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "all-filtered.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+    )
+    lead = CompanyLead(
+        "NewCo",
+        "AI workflow",
+        "https://www.ycombinator.com/launches/newco",
+        source_name="YC Launches",
+    )
+    monkeypatch.setattr(
+        selection.startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult((lead,)),
+    )
+
+    class FakeProvider:
+        def generate_ideas(self, _theme, materials, _n, **_kwargs):
+            return [
+                Idea(
+                    "NewCo workflow",
+                    "new angle",
+                    materials[0].url,
+                    company="NewCo",
+                    source_excerpt=materials[0].snippet,
+                )
+            ]
+
+    def unknown_result(companies, *_args, **_kwargs):
+        return {
+            "newco": CompanyEligibility(
+                "newco",
+                companies[0],
+                "unknown",
+                None,
+                "unknown",
+                "證據不足",
+                (),
+                "2026-08-13 09:00:00",
+            )
+        }
+
+    monkeypatch.setattr(
+        selection.company_eligibility,
+        "evaluate_companies",
+        unknown_result,
+    )
+
+    with pytest.raises(
+        selection.NoVerifiedCompanyCandidatesError,
+        match="找到公司，但沒有符合本系列資格的公司",
+    ):
+        selection.generate_for_theme(
+            conn,
+            Theme(
+                theme_id,
+                "AI 新創介紹",
+                4,
+                [],
+                1,
+                "company_profile",
+            ),
+            FakeProvider(),
+            [],
+        )
+
+    assert db.get_company_eligibilities(conn)["newco"].verdict == "unknown"
+    assert db.get_ideas(conn) == []
+
+
 def test_company_profile_evidence_must_match_collected_material(
     tmp_path,
     monkeypatch,
@@ -364,7 +616,7 @@ def test_no_verified_company_candidates_preserves_existing_rows(
 
     with pytest.raises(
         selection.NoVerifiedCompanyCandidatesError,
-        match="沒有找到可核對的公司",
+        match="沒有符合本系列資格的公司",
     ):
         selection.generate_for_theme(
             conn,
@@ -612,7 +864,7 @@ def test_fully_duplicated_company_response_preserves_existing_rows(
 
     with pytest.raises(
         selection.NoVerifiedCompanyCandidatesError,
-        match="新的公司",
+        match="沒有符合本系列資格的公司",
     ):
         selection.generate_for_theme(
             conn,

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>TechCrunch Startups</title>
+    <item>
+      <title>Cognition raises a new round for AI coding</title>
+      <link>https://techcrunch.com/2026/08/12/cognition-round/</link>
+      <pubDate>Wed, 12 Aug 2026 18:19:12 +0000</pubDate>
+      <category>AI</category>
+      <category>Startups</category>
+      <category>Cognition</category>
+      <description><![CDATA[Cognition is expanding its AI coding platform.]]></description>
+    </item>
+    <item>
+      <title>PublicCo files for IPO</title>
+      <link>https://techcrunch.com/2026/08/11/publicco-ipo/</link>
+      <pubDate>Tue, 11 Aug 2026 12:00:00 +0000</pubDate>
+      <category>AI</category>
+      <category>Startups</category>
+      <description><![CDATA[PublicCo prepares to go public.]]></description>
+    </item>
+    <item>
+      <title>A new gaming studio launches</title>
+      <link>https://techcrunch.com/2026/08/10/gaming/</link>
+      <pubDate>Mon, 10 Aug 2026 12:00:00 +0000</pubDate>
+      <category>Gaming</category>
+      <category>Startups</category>
+      <description><![CDATA[A studio makes multiplayer games.]]></description>
+    </item>
+  </channel>
+</rss>

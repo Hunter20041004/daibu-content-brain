@@ -7,6 +7,7 @@ from daibu.llm.base import (
     Idea,
     LLMQuotaError,
     LLMTimeoutError,
+    LLMUnavailableError,
     generate_and_parse,
 )
 from daibu.cards import pages as carousel_pages
@@ -141,18 +142,9 @@ class GeminiProvider:
         self.timeout_ms = timeout_ms
 
     def generate_text(self, text: str) -> str:
-        client = genai.Client(api_key=self.api_key)
-        response = client.models.generate_content(
-            model=self.model,
-            contents=text,
-        )
-        return response.text or ""
+        return self._generate_content(text)
 
     def generate_carousel_text(self, text: str) -> str:
-        client = genai.Client(
-            api_key=self.api_key,
-            http_options={"timeout": self.timeout_ms},
-        )
         config = {
             "response_mime_type": "application/json",
             "response_json_schema": CAROUSEL_RESPONSE_SCHEMA,
@@ -161,22 +153,44 @@ class GeminiProvider:
             config["thinking_config"] = {"thinking_budget": 0}
         elif self.model.startswith("gemini-3"):
             config["thinking_config"] = {"thinking_level": "medium"}
+        return self._generate_content(
+            text,
+            config=config,
+            use_timeout=True,
+        )
+
+    def _generate_content(
+        self,
+        text: str,
+        config: dict[str, object] | None = None,
+        use_timeout: bool = False,
+    ) -> str:
+        client_kwargs: dict[str, object] = {"api_key": self.api_key}
+        if use_timeout:
+            client_kwargs["http_options"] = {"timeout": self.timeout_ms}
+        client = genai.Client(**client_kwargs)
+        request: dict[str, object] = {
+            "model": self.model,
+            "contents": text,
+        }
+        if config is not None:
+            request["config"] = config
         try:
-            response = client.models.generate_content(
-                model=self.model,
-                contents=text,
-                config=config,
-            )
+            response = client.models.generate_content(**request)
         except httpx.TimeoutException as error:
             raise LLMTimeoutError(
                 "免費 Gemini 回應超時，請稍後重試。"
             ) from error
         except errors.ServerError as error:
-            if error.code != 504:
-                raise
-            raise LLMTimeoutError(
-                "免費 Gemini 回應超時，請稍後重試。"
-            ) from error
+            if error.code == 504:
+                raise LLMTimeoutError(
+                    "免費 Gemini 回應超時，請稍後重試。"
+                ) from error
+            if error.code == 503:
+                raise LLMUnavailableError(
+                    "Gemini 暫時繁忙，請稍後再試。"
+                ) from error
+            raise
         except errors.ClientError as error:
             if error.code != 429:
                 raise

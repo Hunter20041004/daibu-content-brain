@@ -2,20 +2,18 @@ from daibu import db, seeds
 from daibu.models import Source
 
 
-KEEP = {"Product Hunt AI", "Y Combinator Blog", "a16z", "TechCrunch", "INSIDE"}
-FIXED_KEEP = {
-    "Product Hunt AI",
-    "Y Combinator Blog",
-    "VentureBeat AI",
-    "TechCrunch",
-    "INSIDE",
+APPROVED_STARTUP_SOURCES = {
+    "YC Launches",
+    "YC Companies",
+    "a16z Speedrun Companies",
+    "TechCrunch Startups",
 }
 
 
 def test_seed_sources_have_no_manual_fetch_type():
     assert {
         source.fetch_type for source in seeds.DEFAULT_SOURCES
-    } <= {"rss", "search"}
+    } <= {"rss", "search", "directory"}
 
 
 def test_seed_themes_are_bound_to_named_sources(tmp_path):
@@ -64,6 +62,26 @@ def test_ai_startup_seed_is_a_company_profile_series(tmp_path):
 
     themes = {theme.name: theme for theme in db.get_themes(conn)}
     assert themes["AI 新創介紹"].content_kind == "company_profile"
+
+
+def test_fresh_startup_theme_uses_only_approved_discovery_sources(tmp_path):
+    conn = db.connect(str(tmp_path / "fresh.db"))
+    db.init_schema(conn)
+    seeds.load(conn)
+
+    theme = db.get_themes(conn)[0]
+    names = {
+        source.name
+        for source in db.get_sources(conn)
+        if source.id in theme.source_ids
+    }
+
+    assert names == {
+        "YC Launches",
+        "YC Companies",
+        "a16z Speedrun Companies",
+        "TechCrunch Startups",
+    }
 
 
 def test_load_seeds_only_when_database_is_brand_new(tmp_path):
@@ -121,7 +139,7 @@ def test_startup_theme_sources_are_pruned_once(tmp_path):
         for source in db.get_sources(conn)
         if source.id in set(theme.source_ids)
     }
-    assert names == KEEP
+    assert names == APPROVED_STARTUP_SOURCES
     assert len(db.get_sources(conn)) == len(seeds.DEFAULT_SOURCES)
 
     # 使用者自己加回一個之後，再跑一次 init_schema 不可以又被刪掉
@@ -173,9 +191,10 @@ def test_broken_sources_are_fixed_once(tmp_path):
         for source in db.get_sources(conn)
         if source.id in set(theme.source_ids)
     }
-    assert names == FIXED_KEEP
-    # a16z 只是解除綁定，不可從來源庫消失
+    assert names == APPROVED_STARTUP_SOURCES
+    # a16z 保留在來源庫並停用，不可消失
     assert "a16z" in by_name
+    assert by_name["a16z"].enabled is False
 
     # 使用者自己把 YC 改回 search 之後，再跑一次不可以又被改掉
     yc = by_name["Y Combinator Blog"]

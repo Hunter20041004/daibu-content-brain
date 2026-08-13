@@ -5,7 +5,15 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from daibu import copywriting, db, performance, pipeline, seeds, selection
+from daibu import (
+    copywriting,
+    db,
+    performance,
+    pipeline,
+    seeds,
+    selection,
+    startup_discovery,
+)
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.llm.base import Idea
@@ -554,7 +562,7 @@ def test_selection_generates_for_the_selected_theme_only(monkeypatch, tmp_path):
     monkeypatch.setattr(
         selection,
         "generate_for_theme",
-        lambda conn, theme, provider, sources: generated_theme_ids.append(
+        lambda conn, theme, provider, sources, **_kwargs: generated_theme_ids.append(
             theme.id
         ) or [],
     )
@@ -580,7 +588,7 @@ def test_generated_candidates_get_a_mascot_completion_state(
     theme_id = db.add_theme(conn, Theme(None, "完成提示", 0, [], 1))
     monkeypatch.setattr(base, "get_provider", lambda config: object())
 
-    def generate(conn, theme, provider, sources):
+    def generate(conn, theme, provider, sources, **_kwargs):
         return [db.add_idea(conn, theme.id, Idea("整理完成", "角度", ""))]
 
     monkeypatch.setattr(selection, "generate_for_theme", generate)
@@ -621,7 +629,148 @@ def test_generation_error_uses_mascot_recovery_state(monkeypatch, tmp_path):
         for markdown in app.markdown
         if "mascot-coach--warning" in markdown.value
     )
+    rendered = " ".join(markdown.value for markdown in app.markdown)
     assert "這次沒有成功，但原本內容都還在" in recovery
+    assert "呆一布正在讀資料" not in rendered
+
+
+def _render_generation_error(monkeypatch, tmp_path, error):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+    )
+    monkeypatch.setattr(base, "get_provider", lambda _config: object())
+
+    def raise_product_error(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(
+        selection,
+        "generate_for_theme",
+        raise_product_error,
+    )
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button if button.label == "開始找題材"
+    ).click().run()
+
+    return " ".join(item.value for item in app.error)
+
+
+def test_generation_shows_precise_no_source_error(monkeypatch, tmp_path):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        startup_discovery.NoAvailableStartupSourcesError("raw detail"),
+    )
+
+    assert "目前沒有可用的公司來源" in rendered
+    assert "產生失敗：" not in rendered
+    assert "raw detail" not in rendered
+
+
+def test_generation_shows_precise_repeated_company_error(
+    monkeypatch,
+    tmp_path,
+):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        startup_discovery.AllStartupCompaniesRepeatedError("raw detail"),
+    )
+
+    assert "這批來源裡的公司都介紹過了" in rendered
+    assert "raw detail" not in rendered
+
+
+def test_generation_shows_precise_ineligible_company_error(
+    monkeypatch,
+    tmp_path,
+):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        selection.NoVerifiedCompanyCandidatesError("raw detail"),
+    )
+
+    assert "找到公司，但沒有符合本系列資格的公司" in rendered
+    assert "raw detail" not in rendered
+
+
+def test_generation_shows_precise_gemini_unavailable_error(
+    monkeypatch,
+    tmp_path,
+):
+    rendered = _render_generation_error(
+        monkeypatch,
+        tmp_path,
+        base.LLMUnavailableError("raw detail"),
+    )
+
+    assert "Gemini 暫時繁忙" in rendered
+    assert "raw detail" not in rendered
+
+
+def test_directory_source_rejects_an_unapproved_url(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        field for field in app.text_input if field.label == "新來源名稱"
+    ).set_value("Unknown Directory")
+    next(
+        field for field in app.text_input if field.label == "新來源網址"
+    ).set_value("https://evil.example/companies")
+    next(
+        field
+        for field in app.selectbox
+        if field.label == "新來源抓取方式"
+    ).set_value("directory")
+    next(
+        button for button in app.button if button.label == "新增來源"
+    ).click().run()
+
+    assert any(
+        "公司目錄只支援已核可的三個網址" in item.value
+        for item in app.error
+    )
+    conn = db.connect(str(database_path))
+    assert "Unknown Directory" not in {
+        source.name for source in db.get_sources(conn)
+    }
+
+
+def test_generation_renders_safe_source_warning(monkeypatch, tmp_path):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+    )
+    monkeypatch.setattr(base, "get_provider", lambda _config: object())
+
+    def warn_then_fail(*_args, warning_sink=None, **_kwargs):
+        assert warning_sink is not None
+        warning_sink("YC Launches 暫時讀不到，已改用其他來源。")
+        raise startup_discovery.NoAvailableStartupSourcesError("raw detail")
+
+    monkeypatch.setattr(selection, "generate_for_theme", warn_then_fail)
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    next(
+        button for button in app.button if button.label == "開始找題材"
+    ).click().run()
+
+    assert any(
+        "YC Launches 暫時讀不到" in item.value
+        for item in app.warning
+    )
 
 
 def test_selection_only_shows_candidates_of_the_selected_theme(
@@ -1026,7 +1175,16 @@ def test_ai_copy_generation_loads_and_saves_the_new_draft(
     ).click().run()
 
     stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
-    assert calls == [(('techcrunch.com',), {"official_domains": ()})]
+    assert calls == [
+        (
+            (
+                "www.ycombinator.com",
+                "speedrun.a16z.com",
+                "techcrunch.com",
+            ),
+            {"official_domains": ()},
+        )
+    ]
     assert stored.body == "文" * 350
     assert next(area for area in app.text_area if area.label == "正文").value == (
         "文" * 350
@@ -1584,7 +1742,13 @@ def test_newly_generated_candidates_are_marked(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(base, "get_provider", lambda config: object())
 
-    def generate_candidate(conn, selected_theme, provider, sources):
+    def generate_candidate(
+        conn,
+        selected_theme,
+        provider,
+        sources,
+        **_kwargs,
+    ):
         return [
             db.add_idea(
                 conn,
@@ -2154,7 +2318,7 @@ def test_adopted_idea_carousel_can_add_a_verified_source(
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     next(
         field for field in app.text_input
-        if field.label == "來源網址"
+        if field.key == f"carousel-source-url-{idea_id}"
     ).set_value("https://elevenlabs.io/about")
     next(
         field for field in app.text_input
@@ -2439,7 +2603,13 @@ def test_company_research_can_generate_without_a_manual_source_pack(
     assert generate_button.disabled is False
     generate_button.click().run()
 
-    assert calls == [("techcrunch.com",)]
+    assert calls == [
+        (
+            "www.ycombinator.com",
+            "speedrun.a16z.com",
+            "techcrunch.com",
+        )
+    ]
     assert db.get_carousel_draft(conn, idea_id) is not None
     rendered = " ".join(block.value for block in app.markdown)
     captions = " ".join(caption.value for caption in app.caption)

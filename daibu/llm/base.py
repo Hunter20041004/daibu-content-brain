@@ -30,6 +30,10 @@ class LLMQuotaError(RuntimeError):
     pass
 
 
+class LLMUnavailableError(RuntimeError):
+    pass
+
+
 class LLMProvider(Protocol):
     def generate_text(self, prompt_text: str) -> str: ...
 

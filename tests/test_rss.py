@@ -17,6 +17,18 @@ def test_fetch_parses_items(monkeypatch):
     assert isinstance(items[0].snippet, str)
 
 
+def test_fetch_tagged_preserves_date_and_categories(monkeypatch):
+    raw = Path("tests/fixtures/techcrunch_startups.xml").read_text()
+    monkeypatch.setattr(rss, "_download", lambda _url: raw)
+
+    entries = rss.fetch_tagged(
+        "https://techcrunch.com/category/startups/feed/"
+    )
+
+    assert entries[0].published_at == "Wed, 12 Aug 2026 18:19:12 +0000"
+    assert {"AI", "Startups", "Cognition"} <= set(entries[0].tags)
+
+
 @pytest.mark.contract
 def test_real_rss_smoke():
     items = rss.fetch("https://techcrunch.com/feed/", limit=3)
@@ -26,18 +38,14 @@ def test_real_rss_smoke():
 
 
 @pytest.mark.contract
-@pytest.mark.parametrize(
-    "url",
-    [
-        "https://www.producthunt.com/feed",
-        "https://www.ycombinator.com/blog/rss",
-        "https://venturebeat.com/category/ai/feed/",
-        "https://techcrunch.com/feed/",
-        "https://www.inside.com.tw/feed/rss",
-    ],
-)
-def test_startup_theme_feeds_are_reachable(url):
-    """「AI 新創介紹」綁的 5 個來源必須真的抓得到，且真的是 RSS。"""
-    items = rss.fetch(url)
+def test_real_techcrunch_startups_has_tagged_ai_entries():
+    entries = rss.fetch_tagged(
+        "https://techcrunch.com/category/startups/feed/",
+        limit=20,
+    )
 
-    assert items, f"{url} 抓不到任何項目"
+    assert entries
+    assert any(
+        "AI" in entry.tags and "Startups" in entry.tags
+        for entry in entries
+    )

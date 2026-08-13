@@ -20,11 +20,10 @@ DEFAULT_THEMES = [
         4,
         3,
         [
-            "Product Hunt AI",
-            "Y Combinator Blog",
-            "VentureBeat AI",
-            "TechCrunch",
-            "INSIDE",
+            "YC Launches",
+            "YC Companies",
+            "a16z Speedrun Companies",
+            "TechCrunch Startups",
         ],
         content_kind="company_profile",
     ),
@@ -32,6 +31,13 @@ DEFAULT_THEMES = [
 
 DEFAULT_SOURCES = [
     Source(None, "TechCrunch", "https://techcrunch.com/feed/", "rss", True),
+    Source(
+        None,
+        "TechCrunch Startups",
+        "https://techcrunch.com/category/startups/feed/",
+        "rss",
+        True,
+    ),
     Source(None, "iThome AI", "https://www.ithome.com.tw/tags/ai", "search", True),
     Source(None, "科技新報 TechNews", "https://technews.tw/category/ai/", "search", True),
     Source(None, "OpenAI News", "https://openai.com/news/", "search", True),
@@ -48,6 +54,20 @@ DEFAULT_SOURCES = [
         "Y Combinator Blog",
         "https://www.ycombinator.com/blog/rss",
         "rss",
+        True,
+    ),
+    Source(
+        None,
+        "YC Launches",
+        "https://www.ycombinator.com/launches",
+        "directory",
+        True,
+    ),
+    Source(
+        None,
+        "YC Companies",
+        "https://www.ycombinator.com/companies",
+        "directory",
         True,
     ),
     Source(
@@ -74,7 +94,14 @@ DEFAULT_SOURCES = [
         "rss",
         True,
     ),
-    Source(None, "a16z", "https://a16z.com/feed/", "rss", True),
+    Source(None, "a16z", "https://a16z.com/feed/", "rss", False),
+    Source(
+        None,
+        "a16z Speedrun Companies",
+        "https://speedrun.a16z.com/companies",
+        "directory",
+        True,
+    ),
     Source(
         None,
         "VentureBeat AI",
