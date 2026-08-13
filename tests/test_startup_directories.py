@@ -119,3 +119,57 @@ def test_speedrun_rejects_an_unapproved_api_host(monkeypatch):
         )
 
     assert calls == ["https://speedrun.a16z.com/companies"]
+
+
+@pytest.mark.contract
+def test_real_yc_launches_returns_ai_company_fields():
+    leads = startup_directories.fetch_yc_launches(
+        "https://www.ycombinator.com/launches",
+        pages=1,
+    )
+
+    assert leads
+    assert all(
+        lead.company and lead.discovery_url.startswith("https://")
+        for lead in leads
+    )
+    assert all(lead.profile_url.startswith(
+        "https://www.ycombinator.com/companies/"
+    ) for lead in leads)
+    assert all(lead.tags for lead in leads)
+
+
+@pytest.mark.contract
+def test_real_yc_company_exposes_public_status_and_founding_year():
+    lead = CompanyLead(
+        "Groww",
+        "Investing platform",
+        "https://www.ycombinator.com/launches/groww",
+        profile_url="https://www.ycombinator.com/companies/groww",
+        source_name="YC Launches",
+    )
+
+    enriched = startup_directories.enrich_yc_company(lead)
+
+    assert enriched.founded_year == 2016
+    assert enriched.ownership_status == "public"
+    assert enriched.official_url.startswith("https://")
+
+
+@pytest.mark.contract
+def test_real_speedrun_returns_latest_cohort_ai_company_fields():
+    leads = startup_directories.fetch_speedrun_companies(
+        "https://speedrun.a16z.com/companies"
+    )
+
+    assert leads
+    assert all(lead.company and lead.batch_or_cohort for lead in leads)
+    assert all(lead.discovery_url.startswith(
+        "https://speedrun.a16z.com/companies/"
+    ) for lead in leads)
+    assert all(lead.official_url.startswith("https://") for lead in leads)
+    assert all(lead.founded_year is not None for lead in leads)
+    assert all(
+        startup_directories.SPEEDRUN_AI_TAGS.intersection(lead.tags)
+        for lead in leads
+    )
