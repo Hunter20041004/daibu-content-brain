@@ -24,6 +24,10 @@ def qualify_unseen_test_companies(monkeypatch):
         checked_at=None,
     ):
         del search_fn, generate_text, current_year
+        names = [
+            company.company if isinstance(company, CompanyLead) else company
+            for company in companies
+        ]
         return {
             company.strip().casefold(): CompanyEligibility(
                 company.strip().casefold(),
@@ -35,7 +39,7 @@ def qualify_unseen_test_companies(monkeypatch):
                 (),
                 checked_at or "2026-08-10 13:00:00",
             )
-            for company in companies
+            for company in names
         }
 
     monkeypatch.setattr(company_eligibility, "evaluate_companies", fake_evaluate)
@@ -374,6 +378,73 @@ def test_company_profile_uses_discovery_but_general_theme_keeps_collector(
     assert calls == ["discovery", "collector"]
 
 
+def test_company_selection_passes_discovery_identity_to_eligibility(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "identity.db"))
+    db.init_schema(conn)
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url="https://www.ycombinator.com/launches/Rdq-almanac",
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        founded_year=2026,
+        ownership_status="active",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    monkeypatch.setattr(
+        selection.startup_discovery,
+        "discover",
+        lambda *_args, **_kwargs: DiscoveryResult((lead,)),
+    )
+    evaluated: list[list[CompanyLead]] = []
+
+    def fake_evaluate(companies, *_args, **_kwargs):
+        evaluated.append(companies)
+        return {
+            "almanac": CompanyEligibility(
+                "almanac",
+                "Almanac",
+                "eligible",
+                2026,
+                "private_independent",
+                "符合資格",
+                (),
+                "2026-08-13 12:00:00",
+            )
+        }
+
+    monkeypatch.setattr(
+        selection.company_eligibility,
+        "evaluate_companies",
+        fake_evaluate,
+    )
+
+    class FakeProvider:
+        def generate_ideas(self, _theme, materials, _n, **_kwargs):
+            return [
+                Idea(
+                    "Almanac company brain",
+                    "new angle",
+                    materials[0].url,
+                    company="Almanac",
+                    source_excerpt=materials[0].snippet,
+                )
+            ]
+
+    selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+        FakeProvider(),
+        [],
+    )
+
+    assert evaluated == [[lead]]
+
+
 def test_cached_disallowed_company_is_excluded_before_discovery(
     tmp_path,
     monkeypatch,
@@ -470,10 +541,15 @@ def test_company_leads_all_filtered_has_a_precise_error(
             ]
 
     def unknown_result(companies, *_args, **_kwargs):
+        company = (
+            companies[0].company
+            if isinstance(companies[0], CompanyLead)
+            else companies[0]
+        )
         return {
             "newco": CompanyEligibility(
                 "newco",
-                companies[0],
+                company,
                 "unknown",
                 None,
                 "unknown",
@@ -969,7 +1045,7 @@ def test_company_generation_uses_cache_and_checks_only_unseen(
     ids = selection.generate_for_theme(conn, theme, FakeProvider(), [])
 
     assert set(captured["avoid_companies"]) == {"PublicCo", "MysteryCo"}
-    assert evaluated == [["NewCo"]]
+    assert [item.company for item in evaluated[0]] == ["NewCo"]
     assert len(ids) == 2
     assert {idea.company for idea in db.get_ideas(conn)} == {"GoodCo", "NewCo"}
 
