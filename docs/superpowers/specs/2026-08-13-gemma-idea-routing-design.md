@@ -20,7 +20,8 @@
       v
 GoogleFreeRouter
   |-- generate_ideas ------> Gemma 4 26B --可恢復失敗--> Gemini 3.5 Flash-Lite
-  |-- generate_text -------> Gemma 4 26B --API 失敗----> Gemini 3.5 Flash-Lite
+  |-- research_text -------> Gemma 4 26B --API 失敗----> Gemini 3.5 Flash-Lite
+  |-- generate_text -------> Gemini 3.5 Flash-Lite（正文）
   `-- generate_carousel ---> Gemini 3.5 Flash-Lite
 ```
 

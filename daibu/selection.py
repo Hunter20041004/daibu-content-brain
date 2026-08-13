@@ -162,10 +162,19 @@ def generate_for_theme(
         fresh: dict[str, object] = {}
         if unseen:
             try:
+                research_text = getattr(
+                    provider,
+                    "generate_research_text",
+                    None,
+                ) or getattr(
+                    provider,
+                    "generate_text",
+                    lambda _prompt: "",
+                )
                 fresh = company_eligibility.evaluate_companies(
                     list(unseen.values()),
                     search.search_web,
-                    getattr(provider, "generate_text", lambda _prompt: ""),
+                    research_text,
                     current_year=datetime.now().year,
                 )
             except (LLMQuotaError, LLMTimeoutError, LLMUnavailableError):

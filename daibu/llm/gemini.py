@@ -4,6 +4,7 @@ from google.genai import errors
 
 from daibu.llm import prompt
 from daibu.llm.base import (
+    DEFAULT_GOOGLE_FALLBACK_MODEL,
     Idea,
     LLMQuotaError,
     LLMTimeoutError,
@@ -134,7 +135,7 @@ class GeminiProvider:
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = DEFAULT_GOOGLE_FALLBACK_MODEL,
         timeout_ms: int = 45_000,
     ) -> None:
         self.api_key = api_key

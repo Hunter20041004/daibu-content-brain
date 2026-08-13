@@ -3,6 +3,7 @@ import os
 import streamlit as st
 
 from daibu import db
+from daibu.llm import base
 from daibu.ui import apply_styles, connect_app_db, page_header
 
 st.set_page_config(page_title="設定｜呆一布", page_icon="◉", layout="wide")
@@ -26,16 +27,42 @@ with settings_panel.form("system-config"):
         index=provider_options.index(current_provider)
         if current_provider in provider_options
         else 0,
+        format_func=lambda value: (
+            "Google AI（Gemma＋Gemini）"
+            if value == "gemini"
+            else "Groq"
+        ),
     )
-    default_model = (
-        "gemini-3.1-flash-lite"
-        if provider == "gemini"
-        else "llama-3.3-70b-versatile"
-    )
-    model = st.text_input(
-        "模型",
-        value=db.get_config(conn, "llm_model", default_model),
-    )
+    idea_model = ""
+    if provider == "gemini":
+        idea_model = st.text_input(
+            "選題主要模型",
+            value=db.get_config(
+                conn,
+                "llm_idea_model",
+                base.DEFAULT_GOOGLE_IDEA_MODEL,
+            ),
+        )
+        model = st.text_input(
+            "備援與輪播模型",
+            value=db.get_config(
+                conn,
+                "llm_model",
+                base.DEFAULT_GOOGLE_FALLBACK_MODEL,
+            ),
+        )
+        st.caption(
+            "選題先用 Gemma；遇到暫時錯誤或格式失敗會自動改用 Gemini。"
+        )
+    else:
+        model = st.text_input(
+            "模型",
+            value=db.get_config(
+                conn,
+                "llm_model",
+                "llama-3.3-70b-versatile",
+            ),
+        )
     search_provider = "tavily"
     st.markdown("搜尋服務：Tavily")
     st.caption("API key 只放在本次執行環境，不寫入 SQLite，也不會進 Git。")
@@ -73,6 +100,8 @@ with settings_panel.form("system-config"):
     if st.form_submit_button("儲存系統設定", type="primary"):
         db.set_config(conn, "llm_provider", provider)
         db.set_config(conn, "llm_model", model)
+        if provider == "gemini":
+            db.set_config(conn, "llm_idea_model", idea_model)
         db.set_config(conn, "search_provider", search_provider)
         if gemini_key:
             os.environ["GEMINI_API_KEY"] = gemini_key

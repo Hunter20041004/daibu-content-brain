@@ -28,9 +28,9 @@
 
 ### Task 3：一般文字與輪播分工
 
-1. 紅測試：`generate_text` 的可恢復 API 錯誤切 Gemini。
+1. 紅測試：資格用 `generate_research_text` 的可恢復 API 錯誤切 Gemini。
 2. 最小實作轉綠。
-3. 紅測試：`generate_carousel_text` 永遠只呼叫 Gemini。
+3. 紅測試：正文 `generate_text` 與 `generate_carousel_text` 永遠只呼叫 Gemini。
 4. 最小實作轉綠。
 
 ### Task 4：設定資料流

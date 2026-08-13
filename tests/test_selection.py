@@ -1050,6 +1050,60 @@ def test_company_generation_uses_cache_and_checks_only_unseen(
     assert {idea.company for idea in db.get_ideas(conn)} == {"GoodCo", "NewCo"}
 
 
+def test_company_eligibility_uses_the_research_model_route(
+    tmp_path,
+    monkeypatch,
+):
+    conn = db.connect(str(tmp_path / "research-route.db"))
+    db.init_schema(conn)
+    material = Material(
+        "NewCo",
+        "https://example.com/newco",
+        "NewCo 發表新產品。",
+    )
+    monkeypatch.setattr(selection.collector, "collect", lambda *_: [material])
+    used: dict[str, str] = {}
+
+    def fake_evaluate(companies, _search, generate_text, **_kwargs):
+        used["result"] = generate_text("資格查核")
+        return {
+            "newco": CompanyEligibility(
+                "newco", "NewCo", "eligible", 2025,
+                "private_independent", "合格", (),
+                "2026-08-13 13:00:00",
+            )
+        }
+
+    monkeypatch.setattr(company_eligibility, "evaluate_companies", fake_evaluate)
+
+    class Provider:
+        def generate_ideas(self, *_args, **_kwargs):
+            return [
+                Idea(
+                    "NewCo 在做什麼",
+                    "值得看",
+                    material.url,
+                    company="NewCo",
+                    source_excerpt=material.snippet,
+                )
+            ]
+
+        def generate_text(self, _prompt):
+            return "Gemini"
+
+        def generate_research_text(self, _prompt):
+            return "Gemma"
+
+    selection.generate_for_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1, "company_profile"),
+        Provider(),
+        [],
+    )
+
+    assert used["result"] == "Gemma"
+
+
 def test_company_generation_caches_every_fresh_verdict_and_persists_only_eligible(
     tmp_path,
     monkeypatch,
