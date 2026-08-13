@@ -518,6 +518,11 @@ provider_config["LLM_MODEL"] = db.get_config(
     "llm_model",
     provider_config.get("LLM_MODEL", ""),
 )
+provider_config["LLM_IDEA_MODEL"] = db.get_config(
+    conn,
+    "llm_idea_model",
+    provider_config.get("LLM_IDEA_MODEL", ""),
+)
 
 context_column, candidate_column = st.columns([1, 2], gap="medium")
 context_panel = context_column.container(key="context-column")

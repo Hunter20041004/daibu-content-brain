@@ -4,6 +4,7 @@ import pytest
 from dotenv import load_dotenv
 
 from daibu.llm import base
+from daibu.llm.gemini import GeminiProvider
 from daibu.models import Material
 
 load_dotenv()
@@ -31,6 +32,36 @@ def test_real_llm_returns_parsable_ideas():
 
     assert len(ideas) >= 1
     assert all(idea.title and idea.angle for idea in ideas)
+
+
+@pytest.mark.contract
+@pytest.mark.skipif(
+    not os.getenv("GEMINI_API_KEY"),
+    reason="無 Google AI Studio key",
+)
+def test_real_gemma_returns_parsable_traditional_chinese_idea():
+    provider = GeminiProvider(
+        api_key=os.environ["GEMINI_API_KEY"],
+        model=base.DEFAULT_GOOGLE_IDEA_MODEL,
+    )
+
+    ideas = provider.generate_ideas(
+        "AI 新創介紹",
+        [
+            Material(
+                "Feldy",
+                "https://www.ycombinator.com/companies/feldy",
+                "Feldy | Founded 2024 | Winter 2024 | AI meal planning",
+            )
+        ],
+        n=1,
+        content_kind="company_profile",
+    )
+
+    assert len(ideas) == 1
+    assert ideas[0].company == "Feldy"
+    assert ideas[0].title and ideas[0].angle
+    assert any("\u4e00" <= char <= "\u9fff" for char in ideas[0].title)
 
 
 @pytest.mark.contract

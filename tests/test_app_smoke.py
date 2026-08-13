@@ -1859,7 +1859,7 @@ def test_settings_page_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
-def test_settings_defaults_to_current_gemini_flash_lite(
+def test_settings_separates_gemma_ideas_from_gemini_carousels(
     monkeypatch,
     tmp_path,
 ):
@@ -1868,10 +1868,16 @@ def test_settings_defaults_to_current_gemini_flash_lite(
     app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
     app.run()
 
-    model_field = next(
-        field for field in app.text_input if field.label == "模型"
+    idea_model_field = next(
+        field for field in app.text_input
+        if field.label == "選題主要模型"
     )
-    assert model_field.value == "gemini-3.1-flash-lite"
+    fallback_model_field = next(
+        field for field in app.text_input
+        if field.label == "正文、備援與輪播模型"
+    )
+    assert idea_model_field.value == "gemma-4-26b-a4b-it"
+    assert fallback_model_field.value == "gemini-3.5-flash-lite"
 
 
 def test_settings_page_only_keeps_system_settings(monkeypatch, tmp_path):

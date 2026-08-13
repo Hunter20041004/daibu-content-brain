@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 
 from daibu.models import Material
 
+DEFAULT_GOOGLE_IDEA_MODEL = "gemma-4-26b-a4b-it"
+DEFAULT_GOOGLE_FALLBACK_MODEL = "gemini-3.5-flash-lite"
+
 
 @dataclass(frozen=True)
 class Idea:
@@ -34,6 +37,14 @@ class LLMUnavailableError(RuntimeError):
     pass
 
 
+RECOVERABLE_LLM_ERRORS = (
+    LLMQuotaError,
+    LLMTimeoutError,
+    LLMUnavailableError,
+    LLMResponseError,
+)
+
+
 class LLMProvider(Protocol):
     def generate_text(self, prompt_text: str) -> str: ...
 
@@ -48,6 +59,51 @@ class LLMProvider(Protocol):
         content_kind: str = "general",
         avoid_companies: list[str] | None = None,
     ) -> list[Idea]: ...
+
+
+class GoogleTaskRouter:
+    def __init__(
+        self,
+        idea_provider: LLMProvider,
+        fallback_provider: LLMProvider,
+    ) -> None:
+        self.idea_provider = idea_provider
+        self.fallback_provider = fallback_provider
+        self.carousel_provider = fallback_provider
+
+    def generate_text(self, prompt_text: str) -> str:
+        return self.fallback_provider.generate_text(prompt_text)
+
+    def generate_research_text(self, prompt_text: str) -> str:
+        try:
+            return self.idea_provider.generate_text(prompt_text)
+        except RECOVERABLE_LLM_ERRORS:
+            return self.fallback_provider.generate_text(prompt_text)
+
+    def generate_carousel_text(self, prompt_text: str) -> str:
+        return self.carousel_provider.generate_carousel_text(prompt_text)
+
+    def generate_ideas(
+        self,
+        theme_name: str,
+        materials: list[Material],
+        n: int,
+        avoid_titles: list[str] | None = None,
+        content_kind: str = "general",
+        avoid_companies: list[str] | None = None,
+    ) -> list[Idea]:
+        args = (
+            theme_name,
+            materials,
+            n,
+            avoid_titles,
+            content_kind,
+            avoid_companies,
+        )
+        try:
+            return self.idea_provider.generate_ideas(*args)
+        except RECOVERABLE_LLM_ERRORS:
+            return self.fallback_provider.generate_ideas(*args)
 
 
 def generate_and_parse(
@@ -81,9 +137,17 @@ def get_provider(config: Mapping[str, str]) -> LLMProvider:
             raise RuntimeError(
                 "缺少 GEMINI_API_KEY，請到設定頁填入 LLM API key。"
             )
-        return GeminiProvider(
+        fallback_provider = GeminiProvider(
             api_key=api_key,
-            model=model or "gemini-3.1-flash-lite",
+            model=model or DEFAULT_GOOGLE_FALLBACK_MODEL,
+        )
+        return GoogleTaskRouter(
+            idea_provider=GeminiProvider(
+                api_key=api_key,
+                model=values.get("LLM_IDEA_MODEL")
+                or DEFAULT_GOOGLE_IDEA_MODEL,
+            ),
+            fallback_provider=fallback_provider,
         )
 
     if provider_name == "groq":

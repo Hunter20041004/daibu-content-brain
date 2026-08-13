@@ -198,7 +198,7 @@ def test_get_provider_selects_configured_adapter():
     assert provider.model == "test-model"
 
 
-def test_gemini_provider_defaults_to_current_flash_lite():
+def test_google_provider_routes_ideas_to_gemma_and_carousels_to_gemini():
     provider = base.get_provider(
         {
             "LLM_PROVIDER": "gemini",
@@ -206,7 +206,102 @@ def test_gemini_provider_defaults_to_current_flash_lite():
         }
     )
 
-    assert provider.model == "gemini-3.1-flash-lite"
+    assert isinstance(provider, base.GoogleTaskRouter)
+    assert provider.idea_provider.model == "gemma-4-26b-a4b-it"
+    assert provider.fallback_provider.model == "gemini-3.5-flash-lite"
+    assert provider.carousel_provider is provider.fallback_provider
+
+
+def test_direct_gemini_provider_defaults_to_current_flash_lite():
+    assert (
+        GeminiProvider(api_key="fake").model
+        == base.DEFAULT_GOOGLE_FALLBACK_MODEL
+    )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        base.LLMUnavailableError("Gemma 暫時繁忙"),
+        base.LLMQuotaError("Gemma 額度用完"),
+        base.LLMTimeoutError("Gemma 回應超時"),
+        base.LLMResponseError("不是 JSON"),
+    ],
+)
+def test_google_router_falls_back_when_gemma_cannot_return_ideas(error):
+    fallback_idea = base.Idea(
+        title="備援題目",
+        angle="備援角度",
+        source_url="https://example.com/fallback",
+    )
+
+    class UnavailableProvider:
+        def generate_ideas(self, *_args, **_kwargs):
+            raise error
+
+    class FallbackProvider:
+        def generate_ideas(self, *_args, **_kwargs):
+            return [fallback_idea]
+
+    router = base.GoogleTaskRouter(
+        idea_provider=UnavailableProvider(),
+        fallback_provider=FallbackProvider(),
+    )
+
+    result = router.generate_ideas("系列", [], 1)
+
+    assert result == [fallback_idea]
+
+
+def test_google_router_falls_back_for_recoverable_text_failure():
+    class TimeoutProvider:
+        def generate_text(self, _prompt):
+            raise base.LLMTimeoutError("Gemma 回應超時")
+
+    class FallbackProvider:
+        def generate_text(self, prompt):
+            return f"Gemini:{prompt}"
+
+    router = base.GoogleTaskRouter(
+        idea_provider=TimeoutProvider(),
+        fallback_provider=FallbackProvider(),
+    )
+
+    assert router.generate_research_text("資格查核") == "Gemini:資格查核"
+
+
+def test_google_router_keeps_long_form_copy_on_gemini():
+    class GemmaProvider:
+        def generate_text(self, prompt):
+            return f"Gemma:{prompt}"
+
+    class GeminiProvider:
+        def generate_text(self, prompt):
+            return f"Gemini:{prompt}"
+
+    router = base.GoogleTaskRouter(
+        idea_provider=GemmaProvider(),
+        fallback_provider=GeminiProvider(),
+    )
+
+    assert router.generate_text("正文") == "Gemini:正文"
+
+
+def test_google_router_keeps_carousel_schema_on_gemini():
+    class GemmaProvider:
+        def generate_carousel_text(self, _prompt):
+            raise AssertionError("輪播不可送給 Gemma")
+
+    class GeminiProvider:
+        def generate_carousel_text(self, prompt):
+            return f"Gemini:{prompt}"
+
+    router = base.GoogleTaskRouter(
+        idea_provider=GemmaProvider(),
+        fallback_provider=GeminiProvider(),
+    )
+
+    assert router.generate_carousel_text("七頁") == "Gemini:七頁"
 
 
 def test_provider_exposes_public_text_generation_for_carousel_copy():

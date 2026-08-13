@@ -1,4 +1,33 @@
-# HANDOFF — YC 公司身分資格修正
+# HANDOFF — Gemma 選題與 Gemini 備援
+
+> 2026-08-13 14:00 更新。正式系統原本使用 `gemini-3.1-flash-lite`；12:45 的失敗是 Gemini 503 暫時繁忙，不是 429 額度耗盡。本輪依使用者核可，拆分高頻選題與格式敏感任務。
+
+## 本輪目標與驗收
+
+- 選題與必要公司資格查核優先使用 `gemma-4-26b-a4b-it`。
+- Gemma 遇額度、逾時、503，或選題連續兩次格式失敗時，自動改用 `gemini-3.5-flash-lite`。
+- 350–500 字正文與七頁輪播固定使用 Gemini 3.5 Flash-Lite。
+- 不新增付費服務或 Groq key；不修改正式 ideas 做 QA。
+
+## 本輪狀態
+
+- **模型可用性**：Google Models API 實查目前 key 可呼叫 `gemma-4-26b-a4b-it`、`gemma-4-31b-it`、`gemini-3.1-flash-lite` 與 `gemini-3.5-flash-lite`；採用較適合高頻的 Gemma 4 26B。
+- **任務路由**：新增 `GoogleTaskRouter`。`generate_ideas` 走 Gemma 並在可恢復失敗時切 Gemini；資格查核使用獨立 `generate_research_text`；一般 `generate_text` 與 `generate_carousel_text` 直接走 Gemini，避免正文被意外換模。
+- **設定資料流**：新增 `llm_idea_model`／`LLM_IDEA_MODEL`，既有 `llm_model`／`LLM_MODEL` 改代表正文、備援與輪播模型。Groq 明確選擇仍維持原本行為。
+- **TDD**：逐一看見缺少路由器、503 未切換、資格仍走一般文字、Gemini 預設仍為 3.1、設定頁未拆欄位與標籤不精確的紅燈，再做最小修正轉綠。
+- **真實 Gemma 契約**：直接指定 Gemma、不允許備援，產出一則可解析、公司名為 Feldy 且標題含繁體中文的候選，`1 passed in 20.79s`。
+- **真實雙模型契約**：Gemma 候選與 Gemini 3.5 七頁輪播同跑，`2 passed in 43.36s`；輪播七頁皆有 sections 並成功存回 SQLite 測試庫。
+- **副本資料安全**：以 SQLite `.backup` 從正式絕對路徑建立 `/private/tmp/daibu-gemma-routing-qa.iG2HzU/daibu.db`；來源與副本起始均為 12 ideas、`integrity_check=ok`，ideas JSON SHA-256 均為 `405c705c707590ce3a9802392864ba7f9a87697b0b5a5e9fee5bc55a8595c9da`。
+- **一次完整產生**：8502 僅點擊一次，候選由 4 增為 7，副本 ideas 由 12 增為 15；新增 Parasma、Billow AI Labs、Almanac。正式庫仍為 12，指紋仍為 `405c…9da`；副本 `integrity_check=ok`，browser console 0 errors／0 warnings。
+- **視覺 QA**：設定頁完成多輪 1280×800 與 375×812。第一輪抓到任務說明不完整後補上正文／資格分工；直接重新整理中文子路徑會產生既有 `_stcore` 相對路徑 404，最終改由首頁正常導覽。最終兩尺寸模型值正確、手機 `scrollWidth=clientWidth=375`、console 0 errors／0 warnings。截圖：`.screenshots/gemma-routing-final-desktop.png`、`.screenshots/gemma-routing-final-mobile.png`。
+- **全套測試**：功能分支為 `560 passed, 14 deselected, 1 warning in 66.83s`；14 個略過項目需真實外部服務，唯一 warning 是既有 Starlette/httpx 提醒。
+- **安全與自審**：compileall、`git diff --check` 通過；秘密掃描先以合成 AIza key 校準後掃 production diff，沒有 Google、Groq 或 Tavily key。因本輪禁止子代理，依 review checklist 自審，未發現 Critical／Important 問題。
+- **剩餘限制**：Gemma 與 Gemini 共用 Google API，只能分散模型別配額／容量，不能處理 Google 整體故障；跨平台備援仍需日後設定 Groq key。
+- **狀態**：程式、真實模型契約、資料副本、完整候選流程、全套測試與最終畫面均已驗收；待合併 main 後複驗、更新正式模型設定、推送與重啟正式服務。
+
+---
+
+# 前一輪 — YC 公司身分資格修正
 
 > 2026-08-13 12:50 更新。11:56 的「沒有符合資格」不是來源或 API 失效，而是裸公司名搜尋把 YC Almanac 認成 Almanac Realty Investors，並遺失 YC 已知的官方網域、成立年與 batch。
 
