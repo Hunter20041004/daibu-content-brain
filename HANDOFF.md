@@ -27,7 +27,10 @@
 - **正式備份**：`backups/daibu-before-company-identity-20260813-123742.db` 為 `integrity_check=ok`、12 ideas、13 筆資格，ideas JSON SHA-256=`f75cfde255d25b6917fb6020d39fff2792ddfa8cb40baa41c0184d113a1bbf33`。
 - **正式 metadata 修正**：只覆寫 Almanac、Feldy、Marengo 三筆；現在三家都是 `eligible/private_independent`，Feldy=2024、Marengo=2026，Almanac 的成立年維持 null 並保存 Summer 2026 batch。修正過程 Tavily 0 次、Gemini 0 次。
 - **正式資料複驗**：仍為 12 ideas、13 筆資格、`integrity_check=ok`；ideas 指紋仍為 `f75c…f33`，其餘十筆資格指紋仍為 `2144bc6ccd918ea930cb170731c089b1a727b2f8c920a899fc2599b465a824d6`。
-- **待完成**：推送、服務重啟與正式使用者畫面驗收。
+- **正式服務**：管理命令再次遇到既有 `launchctl` 卸載後立即載入的時序問題；確認 plist `OK`、服務未載入與 8501 無占用後，只對 `io.daibu.content-brain` bootstrap＋kickstart。最終 `state=running`、健康檢查 `ok`，只監聽 `127.0.0.1:8501`。
+- **正式使用者視角**：從首頁正常導覽到 `http://127.0.0.1:8501/選題`，顯示候選（4）與 Risklytics；1280px、375px 都無水平溢出，console 0 errors／0 warnings。正式截圖：`.screenshots/company-identity-production-desktop.png`、`.screenshots/company-identity-production-mobile.png`。
+- **正式 log**：stderr 最後修改時間仍為 11:55:59，本輪重啟與唯讀畫面驗收沒有新增 server error。
+- **狀態**：程式、資料副本、正式 metadata、main 全測、正式服務與正式畫面皆已驗收並推送。
 
 ## 前一輪：候選產生錯誤診斷
 
