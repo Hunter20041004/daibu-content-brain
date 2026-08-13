@@ -629,7 +629,9 @@ def test_generation_error_uses_mascot_recovery_state(monkeypatch, tmp_path):
         for markdown in app.markdown
         if "mascot-coach--warning" in markdown.value
     )
+    rendered = " ".join(markdown.value for markdown in app.markdown)
     assert "這次沒有成功，但原本內容都還在" in recovery
+    assert "呆一布正在讀資料" not in rendered
 
 
 def _render_generation_error(monkeypatch, tmp_path, error):

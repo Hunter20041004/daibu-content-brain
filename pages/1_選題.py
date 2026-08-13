@@ -961,14 +961,6 @@ with candidate_column:
             try:
                 provider = base.get_provider(provider_config)
                 with st.spinner("正在閱讀來源並整理候選…"):
-                    st.markdown(
-                        mascot_coach(
-                            "think",
-                            "呆一布正在讀資料",
-                            "正在比對可信網域與文章內容，完成後會帶你逐則查看。",
-                        ),
-                        unsafe_allow_html=True,
-                    )
                     generated_idea_ids = selection.generate_for_theme(
                         conn,
                         selected_theme,
