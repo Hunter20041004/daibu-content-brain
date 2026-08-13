@@ -1,4 +1,31 @@
-# HANDOFF — 候選產生錯誤診斷
+# HANDOFF — YC 公司身分資格修正
+
+> 2026-08-13 12:50 更新。11:56 的「沒有符合資格」不是來源或 API 失效，而是裸公司名搜尋把 YC Almanac 認成 Almanac Realty Investors，並遺失 YC 已知的官方網域、成立年與 batch。
+
+## 本輪目標與驗收
+
+- 資格查核必須接收完整 `CompanyLead`，不可只傳公司名稱。
+- 成立、上市與收購證據若無法對上官方網域或 YC 公司身分，不得淘汰公司；證據不足仍為 unknown，不自動放行。
+- 依使用者核可，YC 官方頁的 `Active`＋官方網站＋十年內成立年／batch 可直接判定 eligible；`Public`／`Acquired` 直接判定 ineligible。
+- Almanac、Feldy、Marengo 的受污染資格紀錄要在備份後精確修正；不得修改任何既有 idea。
+
+## 本輪狀態
+
+- **根因證據**：11:55:59 新增 Almanac=`ineligible/acquired`、Feldy／Marengo=`unknown`。Almanac 唯一證據是 LinkedIn 的 Almanac Realty Investors 收購紀錄；實際 YC Almanac 為 Summer 2026、Active，官方網站 `usealmanac.com`。
+- **身分資料流**：selection 現在把 discovery 的 YC profile、官方網址、成立年、batch、狀態與來源名稱完整交給資格查核；legacy backfill 仍相容純字串。
+- **同名防護**：有已知官方身分時，外部成立／上市／收購證據必須對上官方網域、YC profile 或 launch 身分；否則捨棄該證據並保持 unknown。官方網域上的真實 public 證據仍會判 ineligible。
+- **YC 專屬規則**：只有 `source_name=YC Launches`、profile 為 `ycombinator.com`、狀態 `active`、有官方網站，而且成立年或 batch 年在十年內才直接 eligible。batch 年只保存成 `recent_batch` 證據，不冒充成立年。YC `public/acquired` 直接保存不合格紀錄。
+- **成本**：符合上述條件的 YC 公司資格查核為 Tavily 0 次、資格 Gemini 0 次；非 YC 或身分不足者仍沿用每家公司一次 Tavily＋整批一次免費 LLM。
+- **TDD**：逐一看見完整身分輸入、YC 年份證據、同名收購、同名年份、selection 身分傳遞、YC Active 直通與 YC public/acquired 直擋的紅燈，再做最小修正。聚焦資格／selection 為 `42 passed`。
+- **副本資料安全**：用 SQLite Backup API 建立 `/private/tmp/daibu-company-identity-qa-019ffbe2-v2.db`。清除副本三筆前後均為 12 ideas，ideas JSON SHA-256 都是 `f75cfde255d25b6917fb6020d39fff2792ddfa8cb40baa41c0184d113a1bbf33`；其餘十筆資格 JSON SHA-256 都是 `2144bc6ccd918ea930cb170731c089b1a727b2f8c920a899fc2599b465a824d6`。
+- **副本真實身分**：直接讀當下 YC Launches＋YC Companies 後，Almanac、Feldy、Marengo 都是 eligible/private_independent；Almanac 用 Summer 2026 batch，Feldy=2024、Marengo=2026，每家兩筆 YC profile 證據，且測試替身保證未呼叫 Tavily／Gemini。
+- **一次真實產生**：8502 只點擊一次。資格已通過，但題目 Gemini 回 `LLMUnavailableError/ServerError`；畫面精確顯示「Gemini 暫時繁忙」，ideas 仍為 12，未重試。
+- **視覺 QA**：兩輪各一張 1280×800 與 375×812。第一輪錯誤狀態層次、留白、字體、配色、對齊、響應式、狀態與動效合格，但直接開中文子路徑留下兩個既有 Streamlit 初始化 404；第二輪從首頁正常導覽後，兩尺寸 `scrollWidth=clientWidth`、候選（4）存在、console 0 errors／0 warnings。最終：`.screenshots/company-identity-round2-desktop.png`、`.screenshots/company-identity-round2-mobile.png`。
+- **功能分支全套**：`551 passed, 13 deselected, 1 warning in 70.64s`；13 個略過項目需要真實外部服務，唯一 warning 是既有 Starlette／httpx 提醒。
+- **安全與自審**：compileall、`git diff --check` 通過；秘密掃描先用合成 AIza 字串校準，再掃 production diff，無 Gemini／Groq／Tavily key。依無子代理規則完成逐段自審，未發現 Critical／Important 問題。
+- **待完成**：合併 main 後全測、正式 DB 備份與三筆 metadata 修正、推送、服務重啟與正式使用者畫面驗收。
+
+## 前一輪：候選產生錯誤診斷
 
 > 2026-08-13 11:34 更新。正式畫面再次出現泛用失敗訊息；根因不是資料遺失，而是多種已知外部錯誤沒有完整接到前台，且未知錯誤沒有留下安全診斷紀錄。
 

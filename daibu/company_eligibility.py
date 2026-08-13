@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import re
 from collections.abc import Callable
 from datetime import datetime
 from urllib.parse import urlparse
@@ -123,6 +124,100 @@ def _identity_material(company: str | CompanyLead) -> Material | None:
     )
 
 
+def _cohort_year(value: str) -> int | None:
+    match = re.search(r"\b(20\d{2})\b", value)
+    return int(match.group(1)) if match else None
+
+
+def _trusted_yc_eligibility(
+    lead: CompanyLead,
+    *,
+    current_year: int,
+    checked_at: str,
+) -> CompanyEligibility | None:
+    profile_host = _host(lead.profile_url)
+    recent_year = lead.founded_year or _cohort_year(lead.batch_or_cohort)
+    if not (
+        lead.source_name == "YC Launches"
+        and profile_host == "ycombinator.com"
+        and lead.ownership_status == "active"
+        and _host(lead.official_url)
+        and recent_year is not None
+        and 0 <= current_year - recent_year <= 10
+    ):
+        return None
+    age_claim = "founded" if lead.founded_year is not None else "recent_batch"
+    age_quote = (
+        f"{lead.company.strip()} was founded in {lead.founded_year}"
+        if lead.founded_year is not None
+        else f"Cohort: {lead.batch_or_cohort}."
+    )
+    evidence = (
+        EligibilityEvidence(age_claim, lead.profile_url, age_quote),
+        EligibilityEvidence(
+            "private_independent",
+            lead.profile_url,
+            "Directory status: active.",
+        ),
+    )
+    return CompanyEligibility(
+        company_key=normalize_company(lead.company),
+        company=lead.company.strip(),
+        verdict="eligible",
+        founded_year=lead.founded_year,
+        ownership_status="private_independent",
+        reason="YC 官方公司頁顯示近期批次、Active 狀態與官方網站",
+        evidence=evidence,
+        checked_at=checked_at,
+    )
+
+
+def _trusted_yc_disqualification(
+    lead: CompanyLead,
+    *,
+    checked_at: str,
+) -> CompanyEligibility | None:
+    if not (
+        lead.source_name == "YC Launches"
+        and _host(lead.profile_url) == "ycombinator.com"
+        and lead.ownership_status in {"public", "acquired"}
+    ):
+        return None
+    status = lead.ownership_status
+    return CompanyEligibility(
+        company_key=normalize_company(lead.company),
+        company=lead.company.strip(),
+        verdict="ineligible",
+        founded_year=lead.founded_year,
+        ownership_status=status,
+        reason="YC 官方公司頁顯示已上市" if status == "public" else "YC 官方公司頁顯示已被收購",
+        evidence=(
+            EligibilityEvidence(
+                status,
+                lead.profile_url,
+                f"Directory status: {status}.",
+            ),
+        ),
+        checked_at=checked_at,
+    )
+
+
+def _trusted_yc_record(
+    lead: CompanyLead,
+    *,
+    current_year: int,
+    checked_at: str,
+) -> CompanyEligibility | None:
+    return _trusted_yc_disqualification(
+        lead,
+        checked_at=checked_at,
+    ) or _trusted_yc_eligibility(
+        lead,
+        current_year=current_year,
+        checked_at=checked_at,
+    )
+
+
 def evaluate_companies(
     companies: list[str | CompanyLead],
     search_fn: Callable[..., list[Material]],
@@ -131,6 +226,7 @@ def evaluate_companies(
     current_year: int,
     checked_at: str | None = None,
 ) -> dict[str, CompanyEligibility]:
+    effective_checked_at = checked_at or clock.now()
     unique = {
         normalize_company(_company_name(company)): company
         for company in companies
@@ -138,8 +234,28 @@ def evaluate_companies(
     }
     if not unique:
         return {}
+    trusted = {
+        company_key: record
+        for company_key, company in unique.items()
+        if isinstance(company, CompanyLead)
+        and (
+            record := _trusted_yc_record(
+                company,
+                current_year=current_year,
+                checked_at=effective_checked_at,
+            )
+        )
+        is not None
+    }
+    pending = {
+        company_key: company
+        for company_key, company in unique.items()
+        if company_key not in trusted
+    }
+    if not pending:
+        return trusted
     materials_by_company: dict[str, list[Material]] = {}
-    for company_key, company in unique.items():
+    for company_key, company in pending.items():
         query = _search_query(company)
         identity_material = _identity_material(company)
         try:
@@ -150,7 +266,9 @@ def evaluate_companies(
             *([identity_material] if identity_material else []),
             *searched,
         ]
-    company_names = [_company_name(company).strip() for company in unique.values()]
+    company_names = [
+        _company_name(company).strip() for company in pending.values()
+    ]
     raw = generate_text(
         build_prompt(
             company_names,
@@ -158,18 +276,19 @@ def evaluate_companies(
             current_year=current_year,
         )
     )
-    return verify_response(
+    researched = verify_response(
         raw,
         company_names,
         materials_by_company,
         current_year=current_year,
-        checked_at=checked_at or clock.now(),
+        checked_at=effective_checked_at,
         identities={
             company_key: company
-            for company_key, company in unique.items()
+            for company_key, company in pending.items()
             if isinstance(company, CompanyLead)
         },
     )
+    return {**trusted, **researched}
 
 
 def backfill_existing(

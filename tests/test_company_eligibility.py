@@ -420,7 +420,7 @@ def test_evaluate_companies_searches_with_official_identity():
         profile_url="https://www.ycombinator.com/companies/almanac",
         official_url="https://usealmanac.com",
         founded_year=2026,
-        ownership_status="active",
+        ownership_status="unknown",
         batch_or_cohort="Summer 2026",
         source_name="YC Launches",
     )
@@ -456,51 +456,25 @@ def test_directory_year_is_traceable_evidence():
         batch_or_cohort="Winter 2024",
         source_name="YC Launches",
     )
-    private_url = "https://funding.example/feldy-seed"
-
-    def fake_generate(_prompt: str) -> str:
-        return json.dumps(
-            [
-                {
-                    "company": "Feldy",
-                    "founded_year": 2024,
-                    "ownership_status": "private_independent",
-                    "evidence": [
-                        {
-                            "claim": "founded",
-                            "source_url": lead.profile_url,
-                            "quote": "Feldy was founded in 2024",
-                        },
-                        {
-                            "claim": "private_independent",
-                            "source_url": private_url,
-                            "quote": "Feldy raised a seed round in 2026",
-                        },
-                    ],
-                }
-            ]
-        )
-
     record = company_eligibility.evaluate_companies(
         [lead],
-        lambda _query, limit: [
-            Material(
-                "Feldy seed round",
-                private_url,
-                "Feldy raised a seed round in 2026.",
-            )
-        ],
-        fake_generate,
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call search")
+        ),
+        lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call LLM")
+        ),
         current_year=2026,
         checked_at="2026-08-13 12:00:00",
     )["feldy"]
 
     assert record.verdict == "eligible"
     assert record.founded_year == 2024
-    assert {proof.source_url for proof in record.evidence} == {
-        lead.profile_url,
-        private_url,
+    assert {proof.claim for proof in record.evidence} == {
+        "founded",
+        "private_independent",
     }
+    assert all(proof.source_url == lead.profile_url for proof in record.evidence)
 
 
 def test_acquired_evidence_for_different_identity_does_not_disqualify_almanac():
@@ -698,7 +672,7 @@ def test_unknown_private_status_preserves_known_directory_year():
         description="Field-first AI for home services.",
         discovery_url="https://www.ycombinator.com/launches/SiZ-feldy",
         profile_url="https://www.ycombinator.com/companies/feldy",
-        official_url="https://feldy.ai",
+        official_url="",
         founded_year=2024,
         ownership_status="active",
         batch_or_cohort="Winter 2024",
@@ -728,6 +702,73 @@ def test_unknown_private_status_preserves_known_directory_year():
     assert [(proof.claim, proof.source_url) for proof in record.evidence] == [
         ("founded", lead.profile_url)
     ]
+
+
+def test_active_recent_yc_lead_is_eligible_without_external_qualification():
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url="https://www.ycombinator.com/launches/Rdq-almanac",
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        founded_year=None,
+        ownership_status="active",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+
+    records = company_eligibility.evaluate_companies(
+        [lead],
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call search")
+        ),
+        lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call LLM")
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:40:00",
+    )
+
+    record = records["almanac"]
+    assert record.verdict == "eligible"
+    assert record.founded_year is None
+    assert record.ownership_status == "private_independent"
+    assert {proof.claim for proof in record.evidence} == {
+        "recent_batch",
+        "private_independent",
+    }
+    assert all(proof.source_url == lead.profile_url for proof in record.evidence)
+
+
+@pytest.mark.parametrize("status", ["public", "acquired"])
+def test_yc_disallowed_status_is_ineligible_without_external_lookup(status):
+    lead = CompanyLead(
+        company="OldCo",
+        description="A former startup.",
+        discovery_url="https://www.ycombinator.com/launches/oldco",
+        profile_url="https://www.ycombinator.com/companies/oldco",
+        official_url="https://oldco.example",
+        founded_year=2020,
+        ownership_status=status,
+        batch_or_cohort="Winter 2020",
+        source_name="YC Launches",
+    )
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("YC status should not call search")
+        ),
+        lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("YC status should not call LLM")
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:40:00",
+    )["oldco"]
+
+    assert record.verdict == "ineligible"
+    assert record.ownership_status == status
+    assert [proof.claim for proof in record.evidence] == [status]
 
 
 def test_one_search_failure_becomes_unknown_without_losing_other_company():
