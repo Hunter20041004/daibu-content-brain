@@ -106,6 +106,9 @@ def generate_for_theme(
             limit=theme.n_ideas,
             warning_sink=warning_sink,
         )
+        lead_by_company = {
+            _normalize_identity(lead.company): lead for lead in result.leads
+        }
         materials = [_lead_material(lead) for lead in result.leads]
         generated = provider.generate_ideas(
             theme.name,
@@ -145,12 +148,15 @@ def generate_for_theme(
             seen_companies.add(company_key)
             seen_titles.add(title_key)
         cached_eligible: set[str] = set()
-        unseen: dict[str, str] = {}
+        unseen: dict[str, str | CompanyLead] = {}
         for idea in accepted:
             company_key = _normalize_identity(idea.company)
             cached = eligibility_cache.get(company_key)
             if cached is None:
-                unseen.setdefault(company_key, idea.company.strip())
+                unseen.setdefault(
+                    company_key,
+                    lead_by_company.get(company_key, idea.company.strip()),
+                )
             elif cached.verdict == "eligible":
                 cached_eligible.add(company_key)
         fresh: dict[str, object] = {}

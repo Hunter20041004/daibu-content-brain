@@ -4,7 +4,7 @@ import pytest
 
 from daibu import company_eligibility, db
 from daibu.llm.base import Idea
-from daibu.models import Material, Theme
+from daibu.models import CompanyLead, Material, Theme
 
 
 def test_matching_founded_and_private_evidence_is_eligible_at_ten_year_boundary():
@@ -406,6 +406,369 @@ def test_evaluate_searches_each_company_once_and_generates_one_batch():
     assert len(generated_prompts) == 1
     assert all(name in generated_prompts[0] for name in ["Acme", "Beta", "Gamma"])
     assert all(records[key].verdict == "eligible" for key in records)
+
+
+def test_evaluate_companies_searches_with_official_identity():
+    queries: list[str] = []
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url=(
+            "https://www.ycombinator.com/launches/"
+            "Rdq-almanac-the-agent-with-a-company-brain"
+        ),
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        founded_year=2026,
+        ownership_status="unknown",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+
+    company_eligibility.evaluate_companies(
+        [lead],
+        lambda query, limit: queries.append(query) or [],
+        lambda _prompt: "[]",
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )
+
+    assert len(queries) == 1
+    assert '"Almanac"' in queries[0]
+    assert "usealmanac.com" in queries[0]
+    assert "ycombinator.com/companies/almanac" in queries[0]
+    assert "Summer 2026" in queries[0]
+    assert "2026" in queries[0]
+
+
+def test_directory_year_is_traceable_evidence():
+    lead = CompanyLead(
+        company="Feldy",
+        description="Field-first AI for home services.",
+        discovery_url=(
+            "https://www.ycombinator.com/launches/"
+            "SiZ-feldy-field-first-ai-for-home-services-and-contractors"
+        ),
+        profile_url="https://www.ycombinator.com/companies/feldy",
+        official_url="https://feldy.ai",
+        founded_year=2024,
+        ownership_status="active",
+        batch_or_cohort="Winter 2024",
+        source_name="YC Launches",
+    )
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call search")
+        ),
+        lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call LLM")
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["feldy"]
+
+    assert record.verdict == "eligible"
+    assert record.founded_year == 2024
+    assert {proof.claim for proof in record.evidence} == {
+        "founded",
+        "private_independent",
+    }
+    assert all(proof.source_url == lead.profile_url for proof in record.evidence)
+
+
+def test_acquired_evidence_for_different_identity_does_not_disqualify_almanac():
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url=(
+            "https://www.ycombinator.com/launches/"
+            "Rdq-almanac-the-agent-with-a-company-brain"
+        ),
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    wrong_url = "https://www.linkedin.com/company/almanac-realty-investors"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Almanac Realty Investors",
+                wrong_url,
+                "On January 31, 2020, Almanac became a part of "
+                "Neuberger Berman after the acquisition.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Almanac",
+                    "founded_year": None,
+                    "ownership_status": "acquired",
+                    "reason": "Almanac was acquired",
+                    "evidence": [
+                        {
+                            "claim": "acquired",
+                            "source_url": wrong_url,
+                            "quote": "Almanac became a part of Neuberger Berman",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["almanac"]
+
+    assert record.verdict == "unknown"
+    assert record.ownership_status == "unknown"
+    assert record.evidence == ()
+
+
+def test_founded_year_for_different_identity_does_not_age_out_almanac():
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url="https://www.ycombinator.com/launches/Rdq-almanac",
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    wrong_url = "https://realty.example/almanac-realty-investors"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Almanac Realty Investors history",
+                wrong_url,
+                "Almanac Realty Investors was founded in 1981.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Almanac",
+                    "founded_year": 1981,
+                    "ownership_status": "unknown",
+                    "evidence": [
+                        {
+                            "claim": "founded",
+                            "source_url": wrong_url,
+                            "quote": "Almanac Realty Investors was founded in 1981",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["almanac"]
+
+    assert record.verdict == "unknown"
+    assert record.founded_year is None
+
+
+def test_public_evidence_on_official_domain_still_disqualifies_known_identity():
+    lead = CompanyLead(
+        company="Cloudflare",
+        description="Connectivity cloud.",
+        discovery_url="https://example.com/cloudflare",
+        official_url="https://cloudflare.com",
+    )
+    source_url = "https://cloudflare.com/press/ipo"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Cloudflare IPO",
+                source_url,
+                "Cloudflare became publicly traded on NYSE in 2019.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Cloudflare",
+                    "founded_year": None,
+                    "ownership_status": "public",
+                    "evidence": [
+                        {
+                            "claim": "public",
+                            "source_url": source_url,
+                            "quote": "publicly traded on NYSE in 2019",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["cloudflare"]
+
+    assert record.verdict == "ineligible"
+    assert record.ownership_status == "public"
+
+
+def test_directory_year_does_not_require_the_model_to_repeat_it():
+    lead = CompanyLead(
+        company="Marengo",
+        description="AI data center design.",
+        discovery_url="https://www.ycombinator.com/launches/SiK-marengo",
+        profile_url="https://www.ycombinator.com/companies/marengo",
+        official_url="https://marengox.com",
+        founded_year=2026,
+        ownership_status="active",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    funding_url = "https://funding.example/marengo"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Marengo funding",
+                funding_url,
+                "Marengo raised a seed round and remains privately held.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Marengo",
+                    "founded_year": None,
+                    "ownership_status": "private_independent",
+                    "evidence": [
+                        {
+                            "claim": "private_independent",
+                            "source_url": funding_url,
+                            "quote": "raised a seed round",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["marengo"]
+
+    assert record.verdict == "eligible"
+    assert record.founded_year == 2026
+    assert {proof.claim for proof in record.evidence} == {
+        "founded",
+        "private_independent",
+    }
+
+
+def test_unknown_private_status_preserves_known_directory_year():
+    lead = CompanyLead(
+        company="Feldy",
+        description="Field-first AI for home services.",
+        discovery_url="https://www.ycombinator.com/launches/SiZ-feldy",
+        profile_url="https://www.ycombinator.com/companies/feldy",
+        official_url="",
+        founded_year=2024,
+        ownership_status="active",
+        batch_or_cohort="Winter 2024",
+        source_name="YC Launches",
+    )
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Feldy",
+                    "founded_year": None,
+                    "ownership_status": "unknown",
+                    "evidence": [],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["feldy"]
+
+    assert record.verdict == "unknown"
+    assert record.founded_year == 2024
+    assert record.ownership_status == "unknown"
+    assert [(proof.claim, proof.source_url) for proof in record.evidence] == [
+        ("founded", lead.profile_url)
+    ]
+
+
+def test_active_recent_yc_lead_is_eligible_without_external_qualification():
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url="https://www.ycombinator.com/launches/Rdq-almanac",
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        founded_year=None,
+        ownership_status="active",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+
+    records = company_eligibility.evaluate_companies(
+        [lead],
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call search")
+        ),
+        lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("trusted YC identity should not call LLM")
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:40:00",
+    )
+
+    record = records["almanac"]
+    assert record.verdict == "eligible"
+    assert record.founded_year is None
+    assert record.ownership_status == "private_independent"
+    assert {proof.claim for proof in record.evidence} == {
+        "recent_batch",
+        "private_independent",
+    }
+    assert all(proof.source_url == lead.profile_url for proof in record.evidence)
+
+
+@pytest.mark.parametrize("status", ["public", "acquired"])
+def test_yc_disallowed_status_is_ineligible_without_external_lookup(status):
+    lead = CompanyLead(
+        company="OldCo",
+        description="A former startup.",
+        discovery_url="https://www.ycombinator.com/launches/oldco",
+        profile_url="https://www.ycombinator.com/companies/oldco",
+        official_url="https://oldco.example",
+        founded_year=2020,
+        ownership_status=status,
+        batch_or_cohort="Winter 2020",
+        source_name="YC Launches",
+    )
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("YC status should not call search")
+        ),
+        lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("YC status should not call LLM")
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:40:00",
+    )["oldco"]
+
+    assert record.verdict == "ineligible"
+    assert record.ownership_status == status
+    assert [proof.claim for proof in record.evidence] == [status]
 
 
 def test_one_search_failure_becomes_unknown_without_losing_other_company():

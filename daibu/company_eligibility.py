@@ -5,12 +5,15 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import re
 from collections.abc import Callable
 from datetime import datetime
+from urllib.parse import urlparse
 
 from daibu import clock, db
 from daibu.models import (
     CompanyEligibility,
+    CompanyLead,
     EligibilityEvidence,
     Material,
 )
@@ -69,32 +72,203 @@ IPO、股票代號或公開交易是 public；完成收購或成為子公司是 
 """
 
 
+def _company_name(company: str | CompanyLead) -> str:
+    return company.company if isinstance(company, CompanyLead) else company
+
+
+def _search_query(company: str | CompanyLead) -> str:
+    name = _company_name(company).strip()
+    identity = []
+    if isinstance(company, CompanyLead):
+        identity.extend(
+            value
+            for value in (
+                company.official_url,
+                company.profile_url,
+                company.batch_or_cohort,
+                str(company.founded_year) if company.founded_year else "",
+            )
+            if value
+        )
+    return " ".join(
+        [
+            f'"{name}"',
+            *identity,
+            "founded founding year funding private company IPO",
+            "publicly traded acquired acquisition subsidiary official",
+        ]
+    )
+
+
+def _identity_material(company: str | CompanyLead) -> Material | None:
+    if not isinstance(company, CompanyLead):
+        return None
+    source_url = company.profile_url or company.discovery_url
+    if not source_url:
+        return None
+    facts = [company.description.strip()]
+    if company.founded_year is not None:
+        facts.append(
+            f"{company.company.strip()} was founded in {company.founded_year}."
+        )
+    if company.batch_or_cohort:
+        facts.append(f"Cohort: {company.batch_or_cohort}.")
+    if company.official_url:
+        facts.append(f"Official website: {company.official_url}.")
+    if company.ownership_status:
+        facts.append(f"Directory status: {company.ownership_status}.")
+    return Material(
+        f"{company.company.strip()} directory profile",
+        source_url,
+        " ".join(fact for fact in facts if fact),
+    )
+
+
+def _cohort_year(value: str) -> int | None:
+    match = re.search(r"\b(20\d{2})\b", value)
+    return int(match.group(1)) if match else None
+
+
+def _trusted_yc_eligibility(
+    lead: CompanyLead,
+    *,
+    current_year: int,
+    checked_at: str,
+) -> CompanyEligibility | None:
+    profile_host = _host(lead.profile_url)
+    recent_year = lead.founded_year or _cohort_year(lead.batch_or_cohort)
+    if not (
+        lead.source_name == "YC Launches"
+        and profile_host == "ycombinator.com"
+        and lead.ownership_status == "active"
+        and _host(lead.official_url)
+        and recent_year is not None
+        and 0 <= current_year - recent_year <= 10
+    ):
+        return None
+    age_claim = "founded" if lead.founded_year is not None else "recent_batch"
+    age_quote = (
+        f"{lead.company.strip()} was founded in {lead.founded_year}"
+        if lead.founded_year is not None
+        else f"Cohort: {lead.batch_or_cohort}."
+    )
+    evidence = (
+        EligibilityEvidence(age_claim, lead.profile_url, age_quote),
+        EligibilityEvidence(
+            "private_independent",
+            lead.profile_url,
+            "Directory status: active.",
+        ),
+    )
+    return CompanyEligibility(
+        company_key=normalize_company(lead.company),
+        company=lead.company.strip(),
+        verdict="eligible",
+        founded_year=lead.founded_year,
+        ownership_status="private_independent",
+        reason="YC 官方公司頁顯示近期批次、Active 狀態與官方網站",
+        evidence=evidence,
+        checked_at=checked_at,
+    )
+
+
+def _trusted_yc_disqualification(
+    lead: CompanyLead,
+    *,
+    checked_at: str,
+) -> CompanyEligibility | None:
+    if not (
+        lead.source_name == "YC Launches"
+        and _host(lead.profile_url) == "ycombinator.com"
+        and lead.ownership_status in {"public", "acquired"}
+    ):
+        return None
+    status = lead.ownership_status
+    return CompanyEligibility(
+        company_key=normalize_company(lead.company),
+        company=lead.company.strip(),
+        verdict="ineligible",
+        founded_year=lead.founded_year,
+        ownership_status=status,
+        reason="YC 官方公司頁顯示已上市" if status == "public" else "YC 官方公司頁顯示已被收購",
+        evidence=(
+            EligibilityEvidence(
+                status,
+                lead.profile_url,
+                f"Directory status: {status}.",
+            ),
+        ),
+        checked_at=checked_at,
+    )
+
+
+def _trusted_yc_record(
+    lead: CompanyLead,
+    *,
+    current_year: int,
+    checked_at: str,
+) -> CompanyEligibility | None:
+    return _trusted_yc_disqualification(
+        lead,
+        checked_at=checked_at,
+    ) or _trusted_yc_eligibility(
+        lead,
+        current_year=current_year,
+        checked_at=checked_at,
+    )
+
+
 def evaluate_companies(
-    companies: list[str],
+    companies: list[str | CompanyLead],
     search_fn: Callable[..., list[Material]],
     generate_text: Callable[[str], str],
     *,
     current_year: int,
     checked_at: str | None = None,
 ) -> dict[str, CompanyEligibility]:
+    effective_checked_at = checked_at or clock.now()
     unique = {
-        normalize_company(company): company.strip()
+        normalize_company(_company_name(company)): company
         for company in companies
-        if company.strip()
+        if _company_name(company).strip()
     }
     if not unique:
         return {}
-    materials_by_company: dict[str, list[Material]] = {}
-    for company_key, company in unique.items():
-        query = (
-            f"{company} founded founding year funding private company IPO "
-            "publicly traded acquired acquisition subsidiary official"
+    trusted = {
+        company_key: record
+        for company_key, company in unique.items()
+        if isinstance(company, CompanyLead)
+        and (
+            record := _trusted_yc_record(
+                company,
+                current_year=current_year,
+                checked_at=effective_checked_at,
+            )
         )
+        is not None
+    }
+    pending = {
+        company_key: company
+        for company_key, company in unique.items()
+        if company_key not in trusted
+    }
+    if not pending:
+        return trusted
+    materials_by_company: dict[str, list[Material]] = {}
+    for company_key, company in pending.items():
+        query = _search_query(company)
+        identity_material = _identity_material(company)
         try:
-            materials_by_company[company_key] = search_fn(query, limit=5)
+            searched = search_fn(query, limit=5)
         except Exception:
-            materials_by_company[company_key] = []
-    company_names = list(unique.values())
+            searched = []
+        materials_by_company[company_key] = [
+            *([identity_material] if identity_material else []),
+            *searched,
+        ]
+    company_names = [
+        _company_name(company).strip() for company in pending.values()
+    ]
     raw = generate_text(
         build_prompt(
             company_names,
@@ -102,13 +276,19 @@ def evaluate_companies(
             current_year=current_year,
         )
     )
-    return verify_response(
+    researched = verify_response(
         raw,
         company_names,
         materials_by_company,
         current_year=current_year,
-        checked_at=checked_at or clock.now(),
+        checked_at=effective_checked_at,
+        identities={
+            company_key: company
+            for company_key, company in pending.items()
+            if isinstance(company, CompanyLead)
+        },
     )
+    return {**trusted, **researched}
 
 
 def backfill_existing(
@@ -194,6 +374,7 @@ def _decode_array(raw: str) -> list[object]:
 def _matching_evidence(
     items: object,
     materials: list[Material],
+    identity: CompanyLead | None = None,
 ) -> tuple[EligibilityEvidence, ...]:
     if not isinstance(items, list):
         return ()
@@ -206,28 +387,81 @@ def _matching_evidence(
         quote = str(item.get("quote", ""))
         if claim not in ALLOWED_CLAIMS or not quote:
             continue
-        if not any(
-            material.url == source_url and quote in material.snippet
-            for material in materials
+        material = next(
+            (
+                material
+                for material in materials
+                if material.url == source_url and quote in material.snippet
+            ),
+            None,
+        )
+        if material is None:
+            continue
+        if (
+            claim in {"founded", "public", "acquired"}
+            and identity is not None
+            and not _material_matches_identity(material, identity)
         ):
             continue
         matched.append(EligibilityEvidence(claim, source_url, quote))
     return tuple(matched)
 
 
+def _host(url: str) -> str:
+    return (urlparse(url).hostname or "").casefold().removeprefix("www.")
+
+
+def _material_matches_identity(
+    material: Material,
+    identity: CompanyLead,
+) -> bool:
+    if material.url in {
+        identity.discovery_url,
+        identity.profile_url,
+        identity.official_url,
+    }:
+        return True
+    official_host = _host(identity.official_url)
+    if not official_host:
+        return True
+    material_text = " ".join(
+        (material.url, material.title, material.snippet)
+    ).casefold()
+    return _host(material.url) == official_host or official_host in material_text
+
+
+def _directory_founded_evidence(
+    identity: CompanyLead | None,
+    materials: list[Material],
+) -> EligibilityEvidence | None:
+    if identity is None or identity.founded_year is None:
+        return None
+    source_url = identity.profile_url or identity.discovery_url
+    quote = f"{identity.company.strip()} was founded in {identity.founded_year}"
+    if not any(
+        material.url == source_url and quote in material.snippet
+        for material in materials
+    ):
+        return None
+    return EligibilityEvidence("founded", source_url, quote)
+
+
 def _unknown(
     company: str,
     checked_at: str,
     reason: str = "公開資料不足，無法確認新創資格",
+    *,
+    founded_year: int | None = None,
+    evidence: tuple[EligibilityEvidence, ...] = (),
 ) -> CompanyEligibility:
     return CompanyEligibility(
         company_key=normalize_company(company),
         company=company.strip(),
         verdict="unknown",
-        founded_year=None,
+        founded_year=founded_year,
         ownership_status="unknown",
         reason=reason,
-        evidence=(),
+        evidence=evidence,
         checked_at=checked_at,
     )
 
@@ -239,6 +473,7 @@ def verify_response(
     *,
     current_year: int,
     checked_at: str,
+    identities: dict[str, CompanyLead] | None = None,
 ) -> dict[str, CompanyEligibility]:
     requested = {normalize_company(company): company for company in companies}
     records: dict[str, CompanyEligibility] = {}
@@ -249,17 +484,33 @@ def verify_response(
         company_key = normalize_company(company)
         if company_key not in requested or company_key in records:
             continue
+        identity = (identities or {}).get(company_key)
         raw_year = item.get("founded_year")
-        founded_year = (
+        model_year = (
             raw_year
             if isinstance(raw_year, int) and not isinstance(raw_year, bool)
             else None
         )
-        ownership_status = str(item.get("ownership_status", "unknown"))
-        evidence = _matching_evidence(
-            item.get("evidence"),
-            materials_by_company.get(company_key, []),
+        founded_year = (
+            identity.founded_year
+            if identity is not None and identity.founded_year is not None
+            else model_year
         )
+        ownership_status = str(item.get("ownership_status", "unknown"))
+        materials = materials_by_company.get(company_key, [])
+        evidence = list(
+            _matching_evidence(
+                item.get("evidence"),
+                materials,
+                identity,
+            )
+        )
+        directory_founded = _directory_founded_evidence(identity, materials)
+        if directory_founded is not None and not any(
+            proof.claim == "founded" for proof in evidence
+        ):
+            evidence.append(directory_founded)
+        evidence_tuple = tuple(evidence)
         claims = {proof.claim for proof in evidence}
         ownership_claims = claims & {
             "private_independent",
@@ -293,6 +544,8 @@ def verify_response(
                 requested[company_key],
                 checked_at,
                 "公開資料對公司所有權的描述互相矛盾",
+                founded_year=founded_year if has_founded_proof else None,
+                evidence=evidence_tuple if has_founded_proof else (),
             )
         elif is_public or is_acquired:
             records[company_key] = CompanyEligibility(
@@ -303,7 +556,7 @@ def verify_response(
                 ownership_status=ownership_status,
                 reason=str(item.get("reason", "")).strip()
                 or ("已公開上市" if is_public else "已被收購"),
-                evidence=evidence,
+                evidence=evidence_tuple,
                 checked_at=checked_at,
             )
         elif is_too_old:
@@ -315,7 +568,7 @@ def verify_response(
                 ownership_status=ownership_status,
                 reason=str(item.get("reason", "")).strip()
                 or "成立已超過十年",
-                evidence=evidence,
+                evidence=evidence_tuple,
                 checked_at=checked_at,
             )
         elif is_eligible:
@@ -327,13 +580,15 @@ def verify_response(
                 ownership_status=ownership_status,
                 reason=str(item.get("reason", "")).strip()
                 or "成立不超過十年，且仍為私人獨立公司",
-                evidence=evidence,
+                evidence=evidence_tuple,
                 checked_at=checked_at,
             )
         else:
             records[company_key] = _unknown(
                 requested[company_key],
                 checked_at,
+                founded_year=founded_year if has_founded_proof else None,
+                evidence=evidence_tuple if has_founded_proof else (),
             )
     for company_key, company in requested.items():
         records.setdefault(company_key, _unknown(company, checked_at))
