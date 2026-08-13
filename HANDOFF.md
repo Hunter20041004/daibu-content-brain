@@ -18,6 +18,7 @@
 - **安全診斷**：所有候選產生錯誤會記錄 `error_type` 與 `cause_type`，不記 `str(error)` 或 traceback，避免第三方訊息意外含秘密或完整內容。
 - **TDD**：八個回歸切片都逐一看見紅燈再做最小修正轉綠；模型、資格管線與選題頁整合為 `174 passed in 30.47s`。
 - **功能分支全套**：`540 passed, 13 deselected, 1 warning in 59.38s`；13 個略過項目需真實外部服務，唯一 warning 是既有 Starlette／httpx 相依提醒。
+- **合併 main 後全套**：`540 passed, 13 deselected, 1 warning in 54.55s`，exit code 0；唯一 warning 仍是既有 Starlette／httpx 相依提醒。
 - **資料安全**：資格查核的三個 Gemini 錯誤測試都斷言 ideas 與資格快取為空；本輪沒有再次點擊正式產生按鈕。
 - **真實邊界（零 API 呼叫）**：在正式資料的暫存副本把 provider 設成受控無效值，從 8502 真實點擊「再產生 3 則」。前台顯示安全泛用訊息，server 只記錄 `generation_failed error_type=ValueError cause_type=none`，沒有記錄錯誤原文或無效設定值；副本仍為 12 筆 ideas、10 筆資格紀錄，證明錯誤跨過 Streamlit 邊界後也不會半套寫入。
 - **視覺驗收**：正式資料的 SQLite 副本在 8502 完成兩輪桌機／手機檢查。第一輪桌機抓到骨架載入未結束，判定狀態不合格；第二輪改以候選內容出現為條件，1280×800 與 375×812 都顯示 4 筆候選，手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings。最終證據：`.screenshots/generation-errors-round2-desktop.png`、`.screenshots/generation-errors-round2-mobile.png`。
@@ -29,7 +30,10 @@
   | 資格查核把 Gemini 錯誤包掉 | 額度／超時／繁忙保留到前台 | 不丟失真正失敗原因 |
   | 未知錯誤沒有 log | 只記錄外層與根因型別 | 可診斷，同時避免秘密外洩 |
 
-- **待完成**：main 合併後複驗與正式服務重啟。
+- **正式服務**：管理命令再次遇到既有 `launchctl` 卸載後立即載入的時序問題；確認 plist 為 `OK`、舊服務確實未載入後，只對精確標籤 `io.daibu.content-brain` 執行 bootstrap＋kickstart。最終 `state=running`、健康檢查回 `ok`，且只監聽 `127.0.0.1:8501`。
+- **正式資料複驗**：重啟前後都是 12 筆 ideas、10 筆資格紀錄；ideas 全 11 欄依 id 排序後的 SHA-256 都是 `86983e7be4f3f91b9eaca5f5f88e68bc385e78d56854ccc87efb7de82523a746`，本輪沒有修改正式內容。
+- **正式使用者視角**：`http://127.0.0.1:8501/選題` 顯示 4 則候選與 Risklytics；1280px 與 375px 的 `scrollWidth` 都等於 viewport，browser console 0 errors／0 warnings。最終截圖：`.screenshots/generation-errors-production-desktop.png`、`.screenshots/generation-errors-production-mobile.png`。
+- **狀態**：本輪程式、main 全測、受控錯誤邊界、正式服務、正式資料與正式畫面皆已驗收。
 
 ## 前一輪：AI 新創來源重整
 
