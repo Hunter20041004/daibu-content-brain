@@ -143,7 +143,7 @@ class GeminiProvider:
         self.timeout_ms = timeout_ms
 
     def generate_text(self, text: str) -> str:
-        return self._generate_content(text)
+        return self._generate_content(text, use_timeout=True)
 
     def generate_carousel_text(self, text: str) -> str:
         config = {
