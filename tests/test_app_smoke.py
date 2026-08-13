@@ -1874,7 +1874,7 @@ def test_settings_separates_gemma_ideas_from_gemini_carousels(
     )
     fallback_model_field = next(
         field for field in app.text_input
-        if field.label == "備援與輪播模型"
+        if field.label == "正文、備援與輪播模型"
     )
     assert idea_model_field.value == "gemma-4-26b-a4b-it"
     assert fallback_model_field.value == "gemini-3.5-flash-lite"

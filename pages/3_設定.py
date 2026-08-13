@@ -44,7 +44,7 @@ with settings_panel.form("system-config"):
             ),
         )
         model = st.text_input(
-            "備援與輪播模型",
+            "正文、備援與輪播模型",
             value=db.get_config(
                 conn,
                 "llm_model",
@@ -52,7 +52,8 @@ with settings_panel.form("system-config"):
             ),
         )
         st.caption(
-            "選題先用 Gemma；遇到暫時錯誤或格式失敗會自動改用 Gemini。"
+            "選題與必要資格查核先用 Gemma；正文與輪播使用 Gemini，"
+            "Gemma 暫時錯誤或選題格式失敗時會自動改用 Gemini。"
         )
     else:
         model = st.text_input(
