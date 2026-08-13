@@ -503,6 +503,144 @@ def test_directory_year_is_traceable_evidence():
     }
 
 
+def test_acquired_evidence_for_different_identity_does_not_disqualify_almanac():
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url=(
+            "https://www.ycombinator.com/launches/"
+            "Rdq-almanac-the-agent-with-a-company-brain"
+        ),
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    wrong_url = "https://www.linkedin.com/company/almanac-realty-investors"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Almanac Realty Investors",
+                wrong_url,
+                "On January 31, 2020, Almanac became a part of "
+                "Neuberger Berman after the acquisition.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Almanac",
+                    "founded_year": None,
+                    "ownership_status": "acquired",
+                    "reason": "Almanac was acquired",
+                    "evidence": [
+                        {
+                            "claim": "acquired",
+                            "source_url": wrong_url,
+                            "quote": "Almanac became a part of Neuberger Berman",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["almanac"]
+
+    assert record.verdict == "unknown"
+    assert record.ownership_status == "unknown"
+    assert record.evidence == ()
+
+
+def test_founded_year_for_different_identity_does_not_age_out_almanac():
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url="https://www.ycombinator.com/launches/Rdq-almanac",
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+    wrong_url = "https://realty.example/almanac-realty-investors"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Almanac Realty Investors history",
+                wrong_url,
+                "Almanac Realty Investors was founded in 1981.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Almanac",
+                    "founded_year": 1981,
+                    "ownership_status": "unknown",
+                    "evidence": [
+                        {
+                            "claim": "founded",
+                            "source_url": wrong_url,
+                            "quote": "Almanac Realty Investors was founded in 1981",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["almanac"]
+
+    assert record.verdict == "unknown"
+    assert record.founded_year is None
+
+
+def test_public_evidence_on_official_domain_still_disqualifies_known_identity():
+    lead = CompanyLead(
+        company="Cloudflare",
+        description="Connectivity cloud.",
+        discovery_url="https://example.com/cloudflare",
+        official_url="https://cloudflare.com",
+    )
+    source_url = "https://cloudflare.com/press/ipo"
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Cloudflare IPO",
+                source_url,
+                "Cloudflare became publicly traded on NYSE in 2019.",
+            )
+        ],
+        lambda _prompt: json.dumps(
+            [
+                {
+                    "company": "Cloudflare",
+                    "founded_year": None,
+                    "ownership_status": "public",
+                    "evidence": [
+                        {
+                            "claim": "public",
+                            "source_url": source_url,
+                            "quote": "publicly traded on NYSE in 2019",
+                        }
+                    ],
+                }
+            ]
+        ),
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["cloudflare"]
+
+    assert record.verdict == "ineligible"
+    assert record.ownership_status == "public"
+
+
 def test_one_search_failure_becomes_unknown_without_losing_other_company():
     def fake_search(query: str, limit: int) -> list[Material]:
         assert limit == 5

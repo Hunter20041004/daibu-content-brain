@@ -7,6 +7,7 @@ import os
 import sqlite3
 from collections.abc import Callable
 from datetime import datetime
+from urllib.parse import urlparse
 
 from daibu import clock, db
 from daibu.models import (
@@ -163,6 +164,11 @@ def evaluate_companies(
         materials_by_company,
         current_year=current_year,
         checked_at=checked_at or clock.now(),
+        identities={
+            company_key: company
+            for company_key, company in unique.items()
+            if isinstance(company, CompanyLead)
+        },
     )
 
 
@@ -249,6 +255,7 @@ def _decode_array(raw: str) -> list[object]:
 def _matching_evidence(
     items: object,
     materials: list[Material],
+    identity: CompanyLead | None = None,
 ) -> tuple[EligibilityEvidence, ...]:
     if not isinstance(items, list):
         return ()
@@ -261,13 +268,47 @@ def _matching_evidence(
         quote = str(item.get("quote", ""))
         if claim not in ALLOWED_CLAIMS or not quote:
             continue
-        if not any(
-            material.url == source_url and quote in material.snippet
-            for material in materials
+        material = next(
+            (
+                material
+                for material in materials
+                if material.url == source_url and quote in material.snippet
+            ),
+            None,
+        )
+        if material is None:
+            continue
+        if (
+            claim in {"founded", "public", "acquired"}
+            and identity is not None
+            and not _material_matches_identity(material, identity)
         ):
             continue
         matched.append(EligibilityEvidence(claim, source_url, quote))
     return tuple(matched)
+
+
+def _host(url: str) -> str:
+    return (urlparse(url).hostname or "").casefold().removeprefix("www.")
+
+
+def _material_matches_identity(
+    material: Material,
+    identity: CompanyLead,
+) -> bool:
+    if material.url in {
+        identity.discovery_url,
+        identity.profile_url,
+        identity.official_url,
+    }:
+        return True
+    official_host = _host(identity.official_url)
+    if not official_host:
+        return True
+    material_text = " ".join(
+        (material.url, material.title, material.snippet)
+    ).casefold()
+    return _host(material.url) == official_host or official_host in material_text
 
 
 def _unknown(
@@ -294,6 +335,7 @@ def verify_response(
     *,
     current_year: int,
     checked_at: str,
+    identities: dict[str, CompanyLead] | None = None,
 ) -> dict[str, CompanyEligibility]:
     requested = {normalize_company(company): company for company in companies}
     records: dict[str, CompanyEligibility] = {}
@@ -314,6 +356,7 @@ def verify_response(
         evidence = _matching_evidence(
             item.get("evidence"),
             materials_by_company.get(company_key, []),
+            (identities or {}).get(company_key),
         )
         claims = {proof.claim for proof in evidence}
         ownership_claims = claims & {
