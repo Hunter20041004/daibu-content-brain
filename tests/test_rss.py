@@ -17,6 +17,18 @@ def test_fetch_parses_items(monkeypatch):
     assert isinstance(items[0].snippet, str)
 
 
+def test_fetch_tagged_preserves_date_and_categories(monkeypatch):
+    raw = Path("tests/fixtures/techcrunch_startups.xml").read_text()
+    monkeypatch.setattr(rss, "_download", lambda _url: raw)
+
+    entries = rss.fetch_tagged(
+        "https://techcrunch.com/category/startups/feed/"
+    )
+
+    assert entries[0].published_at == "Wed, 12 Aug 2026 18:19:12 +0000"
+    assert {"AI", "Startups", "Cognition"} <= set(entries[0].tags)
+
+
 @pytest.mark.contract
 def test_real_rss_smoke():
     items = rss.fetch("https://techcrunch.com/feed/", limit=3)

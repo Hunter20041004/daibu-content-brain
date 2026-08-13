@@ -28,6 +28,15 @@ class Material:
 
 
 @dataclass(frozen=True)
+class TaggedFeedEntry:
+    title: str
+    url: str
+    snippet: str
+    published_at: str
+    tags: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class CompanyLead:
     company: str
     description: str
