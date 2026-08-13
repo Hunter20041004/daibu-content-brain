@@ -4,7 +4,7 @@ import pytest
 
 from daibu import company_eligibility, db
 from daibu.llm.base import Idea
-from daibu.models import Material, Theme
+from daibu.models import CompanyLead, Material, Theme
 
 
 def test_matching_founded_and_private_evidence_is_eligible_at_ten_year_boundary():
@@ -406,6 +406,101 @@ def test_evaluate_searches_each_company_once_and_generates_one_batch():
     assert len(generated_prompts) == 1
     assert all(name in generated_prompts[0] for name in ["Acme", "Beta", "Gamma"])
     assert all(records[key].verdict == "eligible" for key in records)
+
+
+def test_evaluate_companies_searches_with_official_identity():
+    queries: list[str] = []
+    lead = CompanyLead(
+        company="Almanac",
+        description="An agent with a company brain.",
+        discovery_url=(
+            "https://www.ycombinator.com/launches/"
+            "Rdq-almanac-the-agent-with-a-company-brain"
+        ),
+        profile_url="https://www.ycombinator.com/companies/almanac",
+        official_url="https://usealmanac.com",
+        founded_year=2026,
+        ownership_status="active",
+        batch_or_cohort="Summer 2026",
+        source_name="YC Launches",
+    )
+
+    company_eligibility.evaluate_companies(
+        [lead],
+        lambda query, limit: queries.append(query) or [],
+        lambda _prompt: "[]",
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )
+
+    assert len(queries) == 1
+    assert '"Almanac"' in queries[0]
+    assert "usealmanac.com" in queries[0]
+    assert "ycombinator.com/companies/almanac" in queries[0]
+    assert "Summer 2026" in queries[0]
+    assert "2026" in queries[0]
+
+
+def test_directory_year_is_traceable_evidence():
+    lead = CompanyLead(
+        company="Feldy",
+        description="Field-first AI for home services.",
+        discovery_url=(
+            "https://www.ycombinator.com/launches/"
+            "SiZ-feldy-field-first-ai-for-home-services-and-contractors"
+        ),
+        profile_url="https://www.ycombinator.com/companies/feldy",
+        official_url="https://feldy.ai",
+        founded_year=2024,
+        ownership_status="active",
+        batch_or_cohort="Winter 2024",
+        source_name="YC Launches",
+    )
+    private_url = "https://funding.example/feldy-seed"
+
+    def fake_generate(_prompt: str) -> str:
+        return json.dumps(
+            [
+                {
+                    "company": "Feldy",
+                    "founded_year": 2024,
+                    "ownership_status": "private_independent",
+                    "evidence": [
+                        {
+                            "claim": "founded",
+                            "source_url": lead.profile_url,
+                            "quote": "Feldy was founded in 2024",
+                        },
+                        {
+                            "claim": "private_independent",
+                            "source_url": private_url,
+                            "quote": "Feldy raised a seed round in 2026",
+                        },
+                    ],
+                }
+            ]
+        )
+
+    record = company_eligibility.evaluate_companies(
+        [lead],
+        lambda _query, limit: [
+            Material(
+                "Feldy seed round",
+                private_url,
+                "Feldy raised a seed round in 2026.",
+            )
+        ],
+        fake_generate,
+        current_year=2026,
+        checked_at="2026-08-13 12:00:00",
+    )["feldy"]
+
+    assert record.verdict == "eligible"
+    assert record.founded_year == 2024
+    assert {proof.source_url for proof in record.evidence} == {
+        lead.profile_url,
+        private_url,
+    }
 
 
 def test_one_search_failure_becomes_unknown_without_losing_other_company():

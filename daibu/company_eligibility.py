@@ -11,6 +11,7 @@ from datetime import datetime
 from daibu import clock, db
 from daibu.models import (
     CompanyEligibility,
+    CompanyLead,
     EligibilityEvidence,
     Material,
 )
@@ -69,8 +70,60 @@ IPO、股票代號或公開交易是 public；完成收購或成為子公司是 
 """
 
 
+def _company_name(company: str | CompanyLead) -> str:
+    return company.company if isinstance(company, CompanyLead) else company
+
+
+def _search_query(company: str | CompanyLead) -> str:
+    name = _company_name(company).strip()
+    identity = []
+    if isinstance(company, CompanyLead):
+        identity.extend(
+            value
+            for value in (
+                company.official_url,
+                company.profile_url,
+                company.batch_or_cohort,
+                str(company.founded_year) if company.founded_year else "",
+            )
+            if value
+        )
+    return " ".join(
+        [
+            f'"{name}"',
+            *identity,
+            "founded founding year funding private company IPO",
+            "publicly traded acquired acquisition subsidiary official",
+        ]
+    )
+
+
+def _identity_material(company: str | CompanyLead) -> Material | None:
+    if not isinstance(company, CompanyLead):
+        return None
+    source_url = company.profile_url or company.discovery_url
+    if not source_url:
+        return None
+    facts = [company.description.strip()]
+    if company.founded_year is not None:
+        facts.append(
+            f"{company.company.strip()} was founded in {company.founded_year}."
+        )
+    if company.batch_or_cohort:
+        facts.append(f"Cohort: {company.batch_or_cohort}.")
+    if company.official_url:
+        facts.append(f"Official website: {company.official_url}.")
+    if company.ownership_status:
+        facts.append(f"Directory status: {company.ownership_status}.")
+    return Material(
+        f"{company.company.strip()} directory profile",
+        source_url,
+        " ".join(fact for fact in facts if fact),
+    )
+
+
 def evaluate_companies(
-    companies: list[str],
+    companies: list[str | CompanyLead],
     search_fn: Callable[..., list[Material]],
     generate_text: Callable[[str], str],
     *,
@@ -78,23 +131,25 @@ def evaluate_companies(
     checked_at: str | None = None,
 ) -> dict[str, CompanyEligibility]:
     unique = {
-        normalize_company(company): company.strip()
+        normalize_company(_company_name(company)): company
         for company in companies
-        if company.strip()
+        if _company_name(company).strip()
     }
     if not unique:
         return {}
     materials_by_company: dict[str, list[Material]] = {}
     for company_key, company in unique.items():
-        query = (
-            f"{company} founded founding year funding private company IPO "
-            "publicly traded acquired acquisition subsidiary official"
-        )
+        query = _search_query(company)
+        identity_material = _identity_material(company)
         try:
-            materials_by_company[company_key] = search_fn(query, limit=5)
+            searched = search_fn(query, limit=5)
         except Exception:
-            materials_by_company[company_key] = []
-    company_names = list(unique.values())
+            searched = []
+        materials_by_company[company_key] = [
+            *([identity_material] if identity_material else []),
+            *searched,
+        ]
+    company_names = [_company_name(company).strip() for company in unique.values()]
     raw = generate_text(
         build_prompt(
             company_names,
