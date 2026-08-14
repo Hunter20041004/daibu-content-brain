@@ -31,7 +31,11 @@
 - **安全與成本**：無新依賴、付費服務、API key 或資料表。最壞三次分類＋一次寫題；資格查核成本沿用既有規則。分類與題目錯誤不顯示原始 provider detail。
 - **剩餘限制**：分類依目錄短描述，跨領域公司仍可能與人的判斷不同；分類目前不持久化，也沒有人工覆寫。Gemma 與 Gemini 同屬 Google，無法處理 Google 整體故障。
 - **main 全套測試**：合併後以 `PYTHON_DOTENV_DISABLED=1` 重跑，結果為 `592 passed, 15 deselected, 1 warning in 59.17s`。
-- **狀態**：功能、真實模型、資料副本、真實五則流程、兩輪明暗與桌機／手機 QA、合併 main 與 main 全測均已驗收；待推送與正式 localhost 驗證。
+- **推送**：`origin/main` 與本機 `main` 均為 `6fb2a07e136266a0b3f3552ace13429e64c1093e`。
+- **正式備份**：更新前建立 `backups/daibu-before-startup-diversity-20260813-1705.db`；備份與正式庫均為 18 ideas、16 筆資格、`integrity_check=ok`，系列數量為 3。
+- **正式搬遷**：重啟 `io.daibu.content-brain` 後，第一次實際開頁才執行 `init_schema`；只把 `company_profile.n_ideas` 更新為 5 並寫入一次性 key。正式 ideas 仍為 18、資格仍為 16、`integrity_check=ok`，ideas 指紋仍為 `b427d57b51bd51c85b387ff2aeaff18915a65e90dd7061ae3746a1af0bc86563`。
+- **正式服務與畫面**：LaunchAgent `state=running`，新 PID `46304`，只監聽 `127.0.0.1:8501`；stderr mtime 重啟前後相同，沒有新 server error。從首頁正常導覽到內容製作，顯示「再產生 5 則」；1280px 與 375px 都無水平溢出，console 0 errors／0 warnings。未在正式資料庫按產生按鈕。
+- **狀態**：功能、真實模型、資料副本、真實五則流程、兩輪明暗與桌機／手機 QA、main 全測、推送、正式搬遷與正式 localhost 均已驗收。
 
 ---
 
