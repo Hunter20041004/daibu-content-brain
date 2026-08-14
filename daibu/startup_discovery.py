@@ -152,7 +152,7 @@ def discover(
     warning_sink: Callable[[str], None] | None = None,
 ) -> DiscoveryResult:
     warnings: list[str] = []
-    directory_leads: list[CompanyLead] = []
+    directory_batches: list[list[CompanyLead]] = []
     fetched: list[tuple[str, int]] = []
     for source in sources:
         reader_name = DIRECTORY_READERS.get(source.name)
@@ -171,8 +171,14 @@ def discover(
             if warning_sink:
                 warning_sink(message)
             continue
-        directory_leads.extend(items)
+        directory_batches.append(items)
         fetched.append((source.name, len(items)))
+    directory_leads = [
+        batch[index]
+        for index in range(max(map(len, directory_batches), default=0))
+        for batch in directory_batches
+        if index < len(batch)
+    ]
     if not directory_leads:
         raise NoAvailableStartupSourcesError(
             "目前沒有可用的公司來源，請稍後再試。"
@@ -189,7 +195,7 @@ def discover(
         raise AllStartupCompaniesRepeatedError(
             "這批來源裡的公司都介紹過了。"
         )
-    enriched = _enrich_yc_candidates(unique[:12], warnings, warning_sink)
+    enriched = _enrich_yc_candidates(unique[:limit], warnings, warning_sink)
     allowed = [
         lead
         for lead in enriched

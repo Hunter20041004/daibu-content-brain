@@ -18,7 +18,7 @@ DEFAULT_THEMES = [
     ThemeSeed(
         "AI 新創介紹",
         4,
-        3,
+        5,
         [
             "YC Launches",
             "YC Companies",

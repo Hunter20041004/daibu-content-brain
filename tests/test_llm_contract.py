@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 
 from daibu.llm import base
 from daibu.llm.gemini import GeminiProvider
-from daibu.models import Material
+from daibu import company_diversity
+from daibu.models import CompanyLead, Material
 
 load_dotenv()
 
@@ -62,6 +63,60 @@ def test_real_gemma_returns_parsable_traditional_chinese_idea():
     assert ideas[0].company == "Feldy"
     assert ideas[0].title and ideas[0].angle
     assert any("\u4e00" <= char <= "\u9fff" for char in ideas[0].title)
+
+
+@pytest.mark.contract
+@pytest.mark.skipif(
+    not os.getenv("GEMINI_API_KEY"),
+    reason="無 Google AI Studio key",
+)
+def test_real_gemma_returns_parsable_company_categories():
+    leads = [
+        CompanyLead(
+            "InfraGrid",
+            "Model serving and GPU orchestration platform for AI developers.",
+            "https://example.com/infragrid",
+        ),
+        CompanyLead(
+            "WorkFlow AI",
+            "AI workflow assistant sold to finance operations teams.",
+            "https://example.com/workflow",
+        ),
+        CompanyLead(
+            "CreatorPal",
+            "Personal video editing assistant for individual creators.",
+            "https://example.com/creatorpal",
+        ),
+        CompanyLead(
+            "RobotFarm",
+            "Autonomous robots that move goods inside warehouses.",
+            "https://example.com/robotfarm",
+        ),
+        CompanyLead(
+            "BioProbe",
+            "AI drug discovery tools for biotech research laboratories.",
+            "https://example.com/bioprobe",
+        ),
+        CompanyLead(
+            "Risklytics",
+            "AI governance and regulatory risk analysis for organizations.",
+            "https://example.com/risklytics",
+        ),
+    ]
+    provider = GeminiProvider(
+        api_key=os.environ["GEMINI_API_KEY"],
+        model=base.DEFAULT_GOOGLE_IDEA_MODEL,
+    )
+
+    raw = provider.generate_text(
+        company_diversity.build_classification_prompt(leads)
+    )
+    classified = company_diversity.parse_classifications(raw, leads)
+
+    assert len(classified) == 6
+    assert {item.category for item in classified} == set(
+        company_diversity.CATEGORIES
+    )
 
 
 @pytest.mark.contract

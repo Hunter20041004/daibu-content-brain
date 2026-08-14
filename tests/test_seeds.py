@@ -64,6 +64,16 @@ def test_ai_startup_seed_is_a_company_profile_series(tmp_path):
     assert themes["AI 新創介紹"].content_kind == "company_profile"
 
 
+def test_ai_startup_seed_generates_five_candidates(tmp_path):
+    conn = db.connect(str(tmp_path / "five.db"))
+    db.init_schema(conn)
+
+    seeds.load(conn)
+
+    themes = {theme.name: theme for theme in db.get_themes(conn)}
+    assert themes["AI 新創介紹"].n_ideas == 5
+
+
 def test_fresh_startup_theme_uses_only_approved_discovery_sources(tmp_path):
     conn = db.connect(str(tmp_path / "fresh.db"))
     db.init_schema(conn)

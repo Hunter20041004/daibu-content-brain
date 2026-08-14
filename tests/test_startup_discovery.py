@@ -143,6 +143,98 @@ def test_discovery_excludes_history_before_detail_and_news_calls(monkeypatch):
     assert [lead.company for lead in result.leads] == ["NewCo"]
 
 
+def test_discovery_enriches_up_to_requested_limit(monkeypatch):
+    leads = [
+        CompanyLead(
+            f"Company{index}",
+            "AI product",
+            f"https://yc.example/{index}",
+            profile_url=f"https://www.ycombinator.com/companies/company{index}",
+            source_name="YC Launches",
+        )
+        for index in range(20)
+    ]
+    detail_calls = []
+    monkeypatch.setattr(
+        startup_discovery.directories,
+        "fetch_yc_launches",
+        lambda *_args, **_kwargs: leads,
+    )
+    monkeypatch.setattr(
+        startup_discovery.directories,
+        "fetch_speedrun_companies",
+        lambda *_args, **_kwargs: [],
+    )
+    monkeypatch.setattr(
+        startup_discovery.directories,
+        "enrich_yc_company",
+        lambda lead: detail_calls.append(lead.company) or lead,
+    )
+    monkeypatch.setattr(
+        startup_discovery.rss,
+        "fetch_tagged",
+        lambda *_args, **_kwargs: [],
+    )
+
+    result = startup_discovery.discover(configured_sources(), set(), limit=15)
+
+    assert len(result.leads) == 15
+    assert detail_calls == [f"Company{index}" for index in range(15)]
+
+
+def test_discovery_interleaves_directory_sources_before_limit(monkeypatch):
+    yc_leads = [
+        CompanyLead(
+            f"YC{index}",
+            "AI product",
+            f"https://yc.example/{index}",
+            profile_url=f"https://www.ycombinator.com/companies/yc{index}",
+            source_name="YC Launches",
+        )
+        for index in range(20)
+    ]
+    speedrun_leads = [
+        CompanyLead(
+            f"Speedrun{index}",
+            "AI product",
+            f"https://speedrun.example/{index}",
+            source_name="a16z Speedrun Companies",
+        )
+        for index in range(10)
+    ]
+    monkeypatch.setattr(
+        startup_discovery.directories,
+        "fetch_yc_launches",
+        lambda *_args, **_kwargs: yc_leads,
+    )
+    monkeypatch.setattr(
+        startup_discovery.directories,
+        "fetch_speedrun_companies",
+        lambda *_args, **_kwargs: speedrun_leads,
+    )
+    monkeypatch.setattr(
+        startup_discovery.directories,
+        "enrich_yc_company",
+        lambda lead: lead,
+    )
+    monkeypatch.setattr(
+        startup_discovery.rss,
+        "fetch_tagged",
+        lambda *_args, **_kwargs: [],
+    )
+
+    result = startup_discovery.discover(configured_sources(), set(), limit=6)
+
+    assert [lead.company for lead in result.leads] == [
+        "YC0",
+        "Speedrun0",
+        "YC1",
+        "Speedrun1",
+        "YC2",
+        "Speedrun2",
+    ]
+
+
 def test_discovery_continues_when_one_directory_fails(monkeypatch):
     monkeypatch.setattr(
         startup_discovery.directories,

@@ -382,6 +382,41 @@ def test_gemini_carousel_generation_uses_configured_timeout(monkeypatch):
     assert client_calls[0]["http_options"]["timeout"] == 12_345
 
 
+def test_gemini_text_generation_uses_configured_timeout(monkeypatch):
+    client_calls = []
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            return type("Response", (), {"text": "ok"})()
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            client_calls.append(kwargs)
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    provider = GeminiProvider(api_key="fake", timeout_ms=12_345)
+    provider.generate_text("分類 prompt")
+
+    assert client_calls[0]["http_options"]["timeout"] == 12_345
+
+
+def test_gemini_text_timeout_has_a_product_error(monkeypatch):
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            raise httpx.ReadTimeout("transport detail")
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.models = FakeModels()
+
+    monkeypatch.setattr("daibu.llm.gemini.genai.Client", FakeClient)
+
+    with pytest.raises(base.LLMTimeoutError, match="Gemini 回應超時"):
+        GeminiProvider(api_key="fake").generate_text("分類 prompt")
+
+
 def test_gemini_carousel_timeout_has_a_product_error(monkeypatch):
     class FakeModels:
         def generate_content(self, **kwargs):

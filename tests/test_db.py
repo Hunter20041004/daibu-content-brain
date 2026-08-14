@@ -975,3 +975,28 @@ def test_deleting_theme_removes_structured_carousel_sources(tmp_path):
         "SELECT COUNT(*) FROM carousel_sources"
     ).fetchone()[0] == 0
     conn.close()
+
+
+def test_add_ideas_atomic_rolls_back_all_rows_when_one_insert_fails(tmp_path):
+    conn = db.connect(str(tmp_path / "atomic.db"))
+    db.init_schema(conn)
+    conn.execute(
+        """
+        CREATE TRIGGER reject_boom_title
+        BEFORE INSERT ON ideas
+        WHEN NEW.title = 'boom'
+        BEGIN
+            SELECT RAISE(ABORT, 'test abort');
+        END
+        """
+    )
+    ideas = [
+        Idea("first", "angle", "https://example.com/first"),
+        Idea("boom", "angle", "https://example.com/boom"),
+        Idea("third", "angle", "https://example.com/third"),
+    ]
+
+    with pytest.raises(Exception, match="test abort"):
+        db.add_ideas_atomic(conn, None, ideas)
+
+    assert db.get_ideas(conn) == []

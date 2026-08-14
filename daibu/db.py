@@ -29,6 +29,7 @@ from daibu.models import (
 SINGLE_SERIES_CLEANUP_KEY = "single_series_cleanup_v1"
 SINGLE_SERIES_NAME = "AI 新創介紹"
 STARTUP_SOURCE_STRATEGY_KEY = "startup_source_strategy_v1"
+STARTUP_DIVERSITY_COUNT_KEY = "startup_diversity_count_v1"
 STARTUP_DISCOVERY_SOURCES = (
     (
         "YC Launches",
@@ -491,6 +492,18 @@ def init_schema(conn: sqlite3.Connection) -> None:
             WHERE name = 'AI 新創介紹'
             """
         )
+    diversity_count_migrated = conn.execute(
+        "SELECT 1 FROM config WHERE key = ?",
+        (STARTUP_DIVERSITY_COUNT_KEY,),
+    ).fetchone()
+    if not diversity_count_migrated:
+        conn.execute(
+            "UPDATE themes SET n_ideas = 5 WHERE content_kind = 'company_profile'"
+        )
+        conn.execute(
+            "INSERT INTO config (key, value) VALUES (?, '1')",
+            (STARTUP_DIVERSITY_COUNT_KEY,),
+        )
     idea_columns = _table_columns(conn, "ideas")
     for column in ("company", "source_excerpt"):
         if column not in idea_columns:
@@ -896,6 +909,45 @@ def add_idea(
     )
     conn.commit()
     return cursor.lastrowid
+
+
+def add_ideas_atomic(
+    conn: sqlite3.Connection,
+    theme_id: int | None,
+    ideas: list[Idea],
+    status: str = "候選",
+) -> list[int]:
+    conn.execute("SAVEPOINT add_ideas_atomic")
+    ids: list[int] = []
+    try:
+        for idea in ideas:
+            cursor = conn.execute(
+                """
+                INSERT INTO ideas (
+                    theme_id, title, angle, source_url, company,
+                    source_excerpt, status, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    theme_id,
+                    idea.title,
+                    idea.angle,
+                    idea.source_url,
+                    idea.company,
+                    idea.source_excerpt,
+                    status,
+                    _now(),
+                ),
+            )
+            ids.append(cursor.lastrowid)
+    except Exception:
+        conn.execute("ROLLBACK TO SAVEPOINT add_ideas_atomic")
+        conn.execute("RELEASE SAVEPOINT add_ideas_atomic")
+        raise
+    conn.execute("RELEASE SAVEPOINT add_ideas_atomic")
+    conn.commit()
+    return ids
 
 
 def get_ideas(

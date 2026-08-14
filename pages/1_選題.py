@@ -71,6 +71,10 @@ def generation_error_message(error: Exception) -> str:
         return "這批來源裡的公司都介紹過了。"
     if isinstance(error, selection.NoVerifiedCompanyCandidatesError):
         return "找到公司，但沒有符合本系列資格的公司。"
+    if isinstance(error, selection.CompanyClassificationError):
+        return "公司主類別分類暫時失敗；原本內容都還在，請稍後再試。"
+    if isinstance(error, selection.InsufficientCompanyDiversityError):
+        return str(error)
     if isinstance(error, base.LLMUnavailableError):
         return "Gemini 暫時繁忙，請稍後再試。"
     if isinstance(error, base.LLMQuotaError):
@@ -980,6 +984,7 @@ with candidate_column:
             )
         if find_topics_clicked:
             generation_warnings: list[str] = []
+            generation_status = st.empty()
             try:
                 provider = base.get_provider(provider_config)
                 with st.spinner("正在閱讀來源並整理候選…"):
@@ -989,12 +994,15 @@ with candidate_column:
                         provider,
                         sources,
                         warning_sink=generation_warnings.append,
+                        status_sink=generation_status.info,
                     )
+                generation_status.empty()
                 st.session_state.new_candidate_ids = generated_idea_ids
                 st.session_state.generation_warnings = generation_warnings
                 queue_toast(st.session_state, "候選已產生。")
                 st.rerun()
             except Exception as error:
+                generation_status.empty()
                 cause = error.__cause__
                 logger.warning(
                     "generation_failed error_type=%s cause_type=%s",
