@@ -30,7 +30,8 @@
 - **視覺 QA 第二輪**：深色 1280×800、375×812；同八項維持合格，手機無水平溢出，console 0 errors／0 warnings。最終截圖：`.screenshots/startup-diversity-round2-desktop.png`、`.screenshots/startup-diversity-round2-mobile.png`。
 - **安全與成本**：無新依賴、付費服務、API key 或資料表。最壞三次分類＋一次寫題；資格查核成本沿用既有規則。分類與題目錯誤不顯示原始 provider detail。
 - **剩餘限制**：分類依目錄短描述，跨領域公司仍可能與人的判斷不同；分類目前不持久化，也沒有人工覆寫。Gemma 與 Gemini 同屬 Google，無法處理 Google 整體故障。
-- **狀態**：功能、真實模型、資料副本、真實五則流程、兩輪明暗與桌機／手機 QA 均已驗收；待合併 main、main 全測、推送與正式 localhost 驗證。
+- **main 全套測試**：合併後以 `PYTHON_DOTENV_DISABLED=1` 重跑，結果為 `592 passed, 15 deselected, 1 warning in 59.17s`。
+- **狀態**：功能、真實模型、資料副本、真實五則流程、兩輪明暗與桌機／手機 QA、合併 main 與 main 全測均已驗收；待推送與正式 localhost 驗證。
 
 ---
 
