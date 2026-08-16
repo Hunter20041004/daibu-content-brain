@@ -1963,7 +1963,12 @@ def test_settings_page_only_keeps_system_settings(monkeypatch, tmp_path):
 
 def test_settings_reports_key_status(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
-    for key_name in ("GEMINI_API_KEY", "GROQ_API_KEY", "TAVILY_API_KEY"):
+    for key_name in (
+        "GEMINI_API_KEY",
+        "GROQ_API_KEY",
+        "TAVILY_API_KEY",
+        "BRANDFETCH_CLIENT_ID",
+    ):
         monkeypatch.delenv(key_name, raising=False)
 
     unset_app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
@@ -1974,9 +1979,11 @@ def test_settings_reports_key_status(monkeypatch, tmp_path):
 
     assert "Gemini 金鑰：尚未設定" in unset_text
     assert "Tavily 金鑰：尚未設定" in unset_text
+    assert "Brandfetch Client ID：尚未設定" in unset_text
 
     monkeypatch.setenv("GEMINI_API_KEY", "do-not-display-this-secret")
     monkeypatch.setenv("TAVILY_API_KEY", "also-secret")
+    monkeypatch.setenv("BRANDFETCH_CLIENT_ID", "never-render-this-client-id")
     configured_app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
     configured_app.run()
     configured_text = " ".join(
@@ -1985,8 +1992,10 @@ def test_settings_reports_key_status(monkeypatch, tmp_path):
 
     assert "Gemini 金鑰：已設定" in configured_text
     assert "Tavily 金鑰：已設定" in configured_text
+    assert "Brandfetch Client ID：已設定" in configured_text
     assert "do-not-display-this-secret" not in configured_text
     assert "also-secret" not in configured_text
+    assert "never-render-this-client-id" not in configured_text
 
 
 def test_settings_only_shows_the_active_provider_key(monkeypatch, tmp_path):

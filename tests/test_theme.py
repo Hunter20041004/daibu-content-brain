@@ -414,6 +414,27 @@ def test_logo_candidate_card_uses_brand_tokens_and_clear_status():
     assert ".logo-candidate-card__status {" in styles
 
 
+def test_logo_evidence_cards_have_scannable_hierarchy_and_responsive_facts():
+    styles = theme.css()
+
+    assert ".logo-evidence-card {" in styles
+    card_rule = styles.split(
+        ".logo-evidence-card {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+    assert "border-left: 3px solid var(--brand-primary)" in card_rule
+    assert "transition: transform 180ms ease" in card_rule
+    assert ".logo-evidence-card__heading {" in styles
+    assert ".logo-evidence-card__facts {" in styles
+    assert ".logo-evidence-card__facts span {" in styles
+    mobile_styles = styles.split("@media (max-width: 700px)", maxsplit=1)[1]
+    assert ".logo-evidence-card__facts {" in mobile_styles
+    assert "align-items: flex-start" in mobile_styles.split(
+        ".logo-evidence-card__facts {",
+        maxsplit=1,
+    )[1].split("}", maxsplit=1)[0]
+
+
 def test_css_has_no_unused_classes():
     source_paths = [
         *pathlib.Path("pages").glob("*.py"),

@@ -873,6 +873,61 @@ def css(mode: str | None = None) -> str:
         padding: 0.35rem 0.6rem;
     }}
 
+    .logo-evidence-card {{
+        background: color-mix(in srgb, var(--surface) 88%, var(--canvas));
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--brand-primary);
+        border-radius: 12px;
+        margin: 1rem 0 0.65rem;
+        padding: 0.85rem 0.95rem;
+        transition: transform 180ms ease, border-color 180ms ease;
+    }}
+
+    .logo-evidence-card__heading {{
+        align-items: baseline;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }}
+
+    .logo-evidence-card__heading span {{
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        opacity: 0.62;
+        text-transform: uppercase;
+    }}
+
+    .logo-evidence-card__heading strong {{
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+    }}
+
+    .logo-evidence-card__facts {{
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.65rem;
+    }}
+
+    .logo-evidence-card__facts span {{
+        background: var(--canvas);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        padding: 0.24rem 0.5rem;
+    }}
+
+    .logo-evidence-card p {{
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin: 0.65rem 0 0;
+        opacity: 0.7;
+    }}
+
     .verified-source strong,
     .verified-logo strong {{
         font-size: 0.875rem;
@@ -943,6 +998,11 @@ def css(mode: str | None = None) -> str:
     }}
 
     @media (hover: hover) and (pointer: fine) {{
+        .logo-evidence-card:hover {{
+            border-color: var(--brand-primary);
+            transform: translateY(-1px);
+        }}
+
         .series-row:hover {{
             border-color: var(--brand-primary);
             transform: translateY(-1px);
@@ -976,6 +1036,10 @@ def css(mode: str | None = None) -> str:
     }}
 
     @media (max-width: 700px) {{
+        .logo-evidence-card__facts {{
+            align-items: flex-start;
+        }}
+
         .mascot-coach {{
             gap: 0.75rem;
             grid-template-columns: 4.5rem minmax(0, 1fr);
