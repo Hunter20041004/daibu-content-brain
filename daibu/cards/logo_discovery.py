@@ -1,5 +1,6 @@
 """Find a logo candidate only through pages on a possible official website."""
 
+import json
 import re
 import ssl
 from collections.abc import Callable, Iterable
@@ -14,6 +15,7 @@ from xml.etree import ElementTree
 import certifi
 
 from daibu.cards import logo
+from daibu.cards.official_site import OfficialSite
 from daibu.fetch import company_research, search
 from daibu.models import Material
 
@@ -43,6 +45,12 @@ class LogoCandidate:
     data: bytes
     official_page_url: str
     asset_url: str
+    official_site_url: str = ""
+    source_kind: str = "official_site"
+    logo_kind: str = "logo"
+    theme: str = "unknown"
+    confidence: str = "high"
+    reasons: tuple[str, ...] = ()
 
 
 class _OfficialPageParser(HTMLParser):
@@ -50,12 +58,13 @@ class _OfficialPageParser(HTMLParser):
         super().__init__()
         self.page_url = page_url
         self.company = company
-        self.logo_urls: list[tuple[int, str]] = []
+        self.logo_urls: list[tuple[int, str, str]] = []
         self.inline_logos: list[tuple[int, str]] = []
         self.brand_page_urls: list[str] = []
         self._inline_parts: list[str] | None = None
         self._inline_depth = 0
         self._inline_score = 0
+        self._json_ld_parts: list[str] | None = None
 
     def handle_starttag(
         self,
@@ -63,6 +72,9 @@ class _OfficialPageParser(HTMLParser):
         attrs: list[tuple[str, str | None]],
     ) -> None:
         values = {name.casefold(): value or "" for name, value in attrs}
+        if tag == "script" and values.get("type").casefold() == "application/ld+json":
+            self._json_ld_parts = []
+            return
         if self._inline_parts is not None:
             self._inline_parts.append(self.get_starttag_text() or f"<{tag}>")
             if tag == "svg":
@@ -90,20 +102,59 @@ class _OfficialPageParser(HTMLParser):
                 ]
                 self._inline_depth = 1
                 return
-        if tag == "img" and values.get("src"):
+        if tag == "img" and (values.get("src") or values.get("srcset")):
             description = " ".join(
                 values.get(name, "")
-                for name in ("alt", "title", "class", "id", "src")
+                for name in (
+                    "alt",
+                    "title",
+                    "class",
+                    "id",
+                    "src",
+                    "srcset",
+                )
             )
             if "logo" in description.casefold() or _normalized(
                 self.company
             ) in _normalized(description):
+                source = values.get("src", "")
+                if values.get("srcset"):
+                    variants = [
+                        item.strip().split()[0]
+                        for item in values["srcset"].split(",")
+                        if item.strip()
+                    ]
+                    if variants:
+                        source = variants[-1]
                 self.logo_urls.append(
                     (
                         _logo_score(description),
-                        urljoin(self.page_url, values["src"]),
+                        urljoin(self.page_url, source),
+                        description,
                     )
                 )
+        style = values.get("style", "")
+        description = " ".join(
+            values.get(name, "")
+            for name in ("aria-label", "title", "class", "id")
+        )
+        background = re.search(
+            r"background(?:-image)?\s*:\s*url\(\s*['\"]?([^'\")]+)",
+            style,
+            flags=re.IGNORECASE,
+        )
+        if background and (
+            "logo" in description.casefold()
+            or "brand" in description.casefold()
+            or _normalized(self.company) in _normalized(description)
+        ):
+            self.logo_urls.append(
+                (
+                    _logo_score(description),
+                    urljoin(self.page_url, background.group(1)),
+                    description,
+                )
+            )
         if tag == "a" and values.get("href"):
             target = urljoin(self.page_url, values["href"])
             path = urlparse(target).path.casefold()
@@ -121,6 +172,22 @@ class _OfficialPageParser(HTMLParser):
         self.handle_starttag(tag, attrs)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "script" and self._json_ld_parts is not None:
+            try:
+                payload = json.loads("".join(self._json_ld_parts))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                payload = None
+            self._json_ld_parts = None
+            if isinstance(payload, dict) and payload.get("logo"):
+                description = "Organization.logo company logo"
+                self.logo_urls.append(
+                    (
+                        _logo_score(description),
+                        urljoin(self.page_url, str(payload["logo"])),
+                        description,
+                    )
+                )
+            return
         if self._inline_parts is None:
             return
         self._inline_parts.append(f"</{tag}>")
@@ -133,6 +200,9 @@ class _OfficialPageParser(HTMLParser):
                 self._inline_parts = None
 
     def handle_data(self, data: str) -> None:
+        if self._json_ld_parts is not None:
+            self._json_ld_parts.append(data)
+            return
         if self._inline_parts is not None:
             self._inline_parts.append(html_escape(data))
 
@@ -157,6 +227,24 @@ def _logo_score(description: str) -> int:
     if "dark" in descriptor or "logo-dark" in descriptor:
         score += 1
     return score
+
+
+def _logo_kind(description: str) -> str:
+    descriptor = description.casefold()
+    if "symbol" in descriptor or "brand-mark" in descriptor:
+        return "symbol"
+    if "icon" in descriptor or "app" in descriptor:
+        return "icon"
+    return "logo"
+
+
+def _logo_theme(description: str) -> str:
+    descriptor = description.casefold()
+    if "white" in descriptor or "light" in descriptor:
+        return "light"
+    if "dark" in descriptor:
+        return "dark"
+    return "unknown"
 
 
 def _hostname(value: str) -> str:
@@ -243,6 +331,124 @@ def _safe_inline_svg(raw_svg: str, company: str) -> tuple[bytes, str]:
     return data, filename
 
 
+def extract_candidates(
+    site: OfficialSite,
+    *,
+    html_fetch_fn: Callable[[str], str] | None = None,
+    asset_fetch_fn: Callable[[str], tuple[bytes, str]] | None = None,
+    excluded_asset_urls: Iterable[str] = (),
+) -> tuple[LogoCandidate, ...]:
+    """Collect up to three distinct, safe Logo forms from one official site."""
+    fetch_html = html_fetch_fn or _download_html
+    fetch_asset = asset_fetch_fn or _download_asset
+    excluded = set(excluded_asset_urls)
+    page_urls = [site.website_url]
+    visited: set[str] = set()
+    seen_assets: set[str] = set()
+    candidates: list[tuple[int, LogoCandidate]] = []
+
+    while page_urls and len(visited) < MAX_OFFICIAL_PAGES:
+        page_url = page_urls.pop(0)
+        if page_url in visited or not _same_site(page_url, site.website_url):
+            continue
+        visited.add(page_url)
+        try:
+            parser = _parse_page(page_url, site.company, fetch_html(page_url))
+        except (OSError, UnicodeError, ValueError):
+            continue
+        page_urls.extend(
+            url
+            for url in parser.brand_page_urls
+            if url not in visited and _same_site(url, site.website_url)
+        )
+        for index, (score, raw_svg) in enumerate(
+            sorted(
+                parser.inline_logos,
+                key=lambda item: item[0],
+                reverse=True,
+            ),
+            start=1,
+        ):
+            page_base_url = page_url.split("#", maxsplit=1)[0]
+            asset_url = f"{page_base_url}#inline-logo-{index}"
+            if asset_url in excluded or asset_url in seen_assets:
+                continue
+            seen_assets.add(asset_url)
+            try:
+                data, filename = _safe_inline_svg(raw_svg, site.company)
+            except ValueError:
+                continue
+            candidates.append(
+                (
+                    score,
+                    LogoCandidate(
+                        site.company,
+                        filename,
+                        data,
+                        page_url,
+                        asset_url,
+                        site.website_url,
+                        "official_site",
+                        "logo",
+                        "unknown",
+                        "high",
+                        ("官網內嵌 SVG",),
+                    ),
+                )
+            )
+        for score, asset_url, description in sorted(
+            parser.logo_urls,
+            key=lambda item: item[0],
+            reverse=True,
+        ):
+            if asset_url in excluded or asset_url in seen_assets:
+                continue
+            seen_assets.add(asset_url)
+            parsed = urlparse(asset_url)
+            if parsed.scheme != "https" or not parsed.netloc:
+                continue
+            try:
+                data, content_type = fetch_asset(asset_url)
+                filename = _filename(asset_url, content_type, site.company)
+                logo.validate_upload(data, filename)
+            except (OSError, ValueError):
+                continue
+            kind = _logo_kind(description)
+            candidates.append(
+                (
+                    score,
+                    LogoCandidate(
+                        site.company,
+                        filename,
+                        data,
+                        page_url,
+                        asset_url,
+                        site.website_url,
+                        "official_site",
+                        kind,
+                        _logo_theme(description),
+                        "high",
+                        (
+                            "Organization.logo"
+                            if "organization.logo" in description.casefold()
+                            else "官網頁面直接引用",
+                        ),
+                    ),
+                )
+            )
+
+    best_by_kind: dict[str, tuple[int, LogoCandidate]] = {}
+    for item in candidates:
+        kind = item[1].logo_kind
+        if kind not in best_by_kind or item[0] > best_by_kind[kind][0]:
+            best_by_kind[kind] = item
+    return tuple(
+        best_by_kind[kind][1]
+        for kind in ("logo", "symbol", "icon")
+        if kind in best_by_kind
+    )[:3]
+
+
 def discover(
     company: str,
     *,
@@ -322,7 +528,7 @@ def discover(
                     page_url,
                     asset_url,
                 )
-            for _, asset_url in sorted(
+            for _, asset_url, _description in sorted(
                 parser.logo_urls,
                 key=lambda candidate: candidate[0],
                 reverse=True,

@@ -1,13 +1,139 @@
 import pytest
 
 from daibu.cards import logo_discovery
+from daibu.cards.official_site import OfficialSite
 from daibu.models import Material
+from tests.card_fixtures import solid_png
 
 
 VALID_SVG = (
     b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">'
     b'<path fill="#111" d="M0 0h240v80H0z"/></svg>'
 )
+
+
+def test_extract_candidates_returns_three_deduplicated_ranked_assets():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+    html = (
+        '<img alt="Acme logo" src="/wordmark.svg">'
+        '<img alt="Acme logo duplicate" src="/wordmark.svg">'
+        '<img alt="Acme symbol" src="/symbol.svg">'
+        '<img alt="Acme app icon" src="/icon.png">'
+        '<img alt="Acme extra logo" src="/extra.svg">'
+    )
+
+    def fetch(url):
+        if url.endswith(".png"):
+            return solid_png(128, 128), "image/png"
+        return VALID_SVG, "image/svg+xml"
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: html,
+        asset_fetch_fn=fetch,
+    )
+
+    assert [item.logo_kind for item in candidates] == [
+        "logo",
+        "symbol",
+        "icon",
+    ]
+    assert len({item.asset_url for item in candidates}) == 3
+
+
+def test_extracts_organization_logo_from_json_ld():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+    html = (
+        '<script type="application/ld+json">'
+        '{"@context":"https://schema.org","@type":"Organization",'
+        '"name":"Acme","logo":"/assets/logo.svg"}'
+        "</script>"
+    )
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: html,
+        asset_fetch_fn=lambda _url: (VALID_SVG, "image/svg+xml"),
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0].asset_url == "https://acme.example/assets/logo.svg"
+    assert candidates[0].logo_kind == "logo"
+    assert "Organization.logo" in candidates[0].reasons
+
+
+def test_extracts_srcset_and_explicit_brand_background_only():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+    html = (
+        '<img alt="Acme logo" '
+        'srcset="/small.svg 1x, /large.svg 2x">'
+        '<header><div class="brand-symbol" '
+        'style="background-image:url(\'/brand-symbol.svg\')"></div></header>'
+        '<article><div class="article-background" '
+        'style="background-image:url(\'/story.svg\')"></div></article>'
+    )
+    fetched = []
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: html,
+        asset_fetch_fn=lambda url: (
+            fetched.append(url) or (VALID_SVG, "image/svg+xml")
+        ),
+    )
+
+    assert [item.asset_url for item in candidates] == [
+        "https://acme.example/large.svg",
+        "https://acme.example/brand-symbol.svg",
+    ]
+    assert "https://acme.example/small.svg" not in fetched
+    assert "https://acme.example/story.svg" not in fetched
+
+
+def test_extract_candidates_keeps_safe_inline_svg():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+    html = (
+        '<svg aria-label="Acme logo" viewBox="0 0 240 80">'
+        '<path d="M0 0h240v80H0z"/></svg>'
+    )
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: html,
+        asset_fetch_fn=lambda _url: pytest.fail(
+            "Inline SVG must not use the asset downloader"
+        ),
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0].filename == "acme-inline-logo.svg"
+    assert candidates[0].asset_url == (
+        "https://acme.example/#inline-logo-1"
+    )
 
 
 def test_discover_downloads_logo_referenced_by_official_brand_page():
