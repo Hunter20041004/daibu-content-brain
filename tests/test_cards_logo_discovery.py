@@ -1,6 +1,7 @@
 import pytest
 
 from daibu.cards import logo_discovery
+from daibu.cards.logo_browser import RenderedPage
 from daibu.cards.official_site import OfficialSite
 from daibu.models import Material
 from tests.card_fixtures import solid_png
@@ -134,6 +135,60 @@ def test_extract_candidates_keeps_safe_inline_svg():
     assert candidates[0].asset_url == (
         "https://acme.example/#inline-logo-1"
     )
+
+
+def test_static_candidate_prevents_browser_rendering():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: (
+            '<img alt="Acme logo" src="/logo.svg">'
+        ),
+        asset_fetch_fn=lambda _url: (VALID_SVG, "image/svg+xml"),
+        rendered_fetch_fn=lambda _url: pytest.fail(
+            "Browser rendering must not run after static success"
+        ),
+    )
+
+    assert len(candidates) == 1
+
+
+def test_dynamic_page_is_used_once_after_static_page_has_no_logo():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+    rendered_calls = []
+
+    def render(url):
+        rendered_calls.append(url)
+        return RenderedPage(
+            '<img alt="Acme logo" src="https://acme.example/dynamic.svg">',
+            (),
+        )
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: "<main>No static asset</main>",
+        asset_fetch_fn=lambda _url: (VALID_SVG, "image/svg+xml"),
+        rendered_fetch_fn=render,
+    )
+
+    assert rendered_calls == ["https://acme.example/"]
+    assert len(candidates) == 1
+    assert candidates[0].asset_url == "https://acme.example/dynamic.svg"
+    assert candidates[0].source_kind == "official_site"
+    assert candidates[0].reasons == ("官網動態頁面引用",)
 
 
 def test_discover_downloads_logo_referenced_by_official_brand_page():

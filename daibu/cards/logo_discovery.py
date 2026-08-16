@@ -4,7 +4,7 @@ import json
 import re
 import ssl
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html import escape as html_escape
 from html.parser import HTMLParser
 from pathlib import PurePosixPath
@@ -336,6 +336,7 @@ def extract_candidates(
     *,
     html_fetch_fn: Callable[[str], str] | None = None,
     asset_fetch_fn: Callable[[str], tuple[bytes, str]] | None = None,
+    rendered_fetch_fn: Callable[[str], object] | None = None,
     excluded_asset_urls: Iterable[str] = (),
 ) -> tuple[LogoCandidate, ...]:
     """Collect up to three distinct, safe Logo forms from one official site."""
@@ -442,11 +443,33 @@ def extract_candidates(
         kind = item[1].logo_kind
         if kind not in best_by_kind or item[0] > best_by_kind[kind][0]:
             best_by_kind[kind] = item
-    return tuple(
+    result = tuple(
         best_by_kind[kind][1]
         for kind in ("logo", "symbol", "icon")
         if kind in best_by_kind
     )[:3]
+    if result or rendered_fetch_fn is None:
+        return result
+
+    rendered = rendered_fetch_fn(site.website_url)
+    background_html = "".join(
+        (
+            f'<img alt="{html_escape(description)} brand logo" '
+            f'src="{html_escape(asset_url)}">'
+        )
+        for asset_url, description in rendered.background_assets
+    )
+    dynamic = extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: rendered.html + background_html,
+        asset_fetch_fn=fetch_asset,
+        rendered_fetch_fn=None,
+        excluded_asset_urls=excluded,
+    )
+    return tuple(
+        replace(candidate, reasons=("官網動態頁面引用",))
+        for candidate in dynamic
+    )
 
 
 def discover(
