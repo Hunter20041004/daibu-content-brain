@@ -4,6 +4,7 @@ import re
 from datetime import date, timedelta
 from pathlib import Path
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 from daibu import (
@@ -3027,14 +3028,13 @@ def test_carousel_logo_block_explains_missing_asset_and_disables_render(
     assert render_button.disabled
 
 
-def test_official_logo_candidate_is_previewed_without_persisting(
+def test_three_logo_candidates_show_identity_evidence_without_persisting(
     tmp_path,
     monkeypatch,
 ):
-    import base64
     import streamlit as st
 
-    from daibu.cards import logo_discovery
+    from daibu.cards import logo_discovery, logo_search, official_site
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3061,15 +3061,39 @@ def test_official_logo_candidate_is_previewed_without_persisting(
         idea_id,
         "已有正文，所以可以開始找官方 Logo。",
     )
-    monkeypatch.setattr(
-        logo_discovery,
-        "discover",
-        lambda _company: logo_discovery.LogoCandidate(
+    site = official_site.OfficialSite(
+        company="Acme",
+        website_url="https://acme.example",
+        domain="acme.example",
+        confidence="high",
+        evidence=(),
+    )
+    candidates = tuple(
+        logo_discovery.LogoCandidate(
             "Acme",
-            "acme.svg",
+            f"acme-{kind}.svg",
             b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"/>',
             "https://acme.example/brand",
-            "https://acme.example/assets/acme.svg",
+            f"https://acme.example/assets/acme-{kind}.svg?secret=hidden",
+            official_site_url="https://acme.example",
+            source_kind=source,
+            logo_kind=kind,
+            confidence=confidence,
+            reasons=(reason,),
+        )
+        for kind, source, confidence, reason in (
+            ("logo", "official_site", "high", "官網品牌頁引用"),
+            ("symbol", "official_site", "high", "官網頁首引用"),
+            ("icon", "brandfetch", "needs_review", "以已驗證網域查詢"),
+        )
+    )
+    monkeypatch.setattr(
+        logo_search,
+        "find_candidates",
+        lambda *_args, **_kwargs: logo_search.LogoSearchResult(
+            site,
+            candidates,
+            True,
         ),
     )
     preview_values = []
@@ -3084,22 +3108,95 @@ def test_official_logo_candidate_is_previewed_without_persisting(
     rendered = " ".join(block.value for block in app.markdown)
 
     assert not app.exception
-    assert "找到一張官方 Logo 候選" in rendered
+    assert "找到 3 張 Logo 候選" in rendered
     assert "待你確認" in rendered
-    assert len(preview_values) == 1
-    assert preview_values[0].startswith("data:image/svg+xml;base64,")
-    assert base64.b64decode(preview_values[0].split(",", 1)[1]) == (
-        b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"/>'
-    )
+    assert "acme.example" in rendered
+    assert "官網" in rendered
+    assert "Brandfetch" in rendered
+    assert "完整 Logo" in rendered
+    assert "品牌符號" in rendered
+    assert "網站圖示" in rendered
+    assert "高信心" in rendered
+    assert "需要人工確認" in rendered
+    assert "secret=hidden" not in rendered
+    assert len(preview_values) == 3
+    assert sum(
+        button.label == "確認這是官方 Logo"
+        for button in app.button
+    ) == 3
     assert db.get_brand_asset(conn, "Acme") is None
     assert not (tmp_path / "logos").exists()
 
 
-def test_confirming_official_logo_candidate_persists_it_once(
+def test_logo_search_receives_the_full_idea_context(
     tmp_path,
     monkeypatch,
 ):
-    from daibu.cards import logo_discovery
+    from daibu.cards import logo_discovery, logo_search, official_site
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea(
+            "SUN 用 AI 找出適合的患者",
+            "從醫療配對切入",
+            "",
+            company="SUN",
+        ),
+        status="採用",
+    )
+    pipeline.update_body(conn, idea_id, "SUN 協助病患找到臨床試驗。")
+    source_pack = carousel_draft().sources
+    db.save_idea_sources(conn, idea_id, source_pack)
+    seen = []
+
+    def fake_find_candidates(context, **kwargs):
+        seen.append((context, kwargs))
+        site = official_site.OfficialSite(
+            company="SUN",
+            website_url="https://sun.example",
+            domain="sun.example",
+            confidence="high",
+            evidence=(),
+        )
+        candidate = logo_discovery.LogoCandidate(
+            "SUN",
+            "sun.svg",
+            b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"/>',
+            "https://sun.example/brand",
+            "https://sun.example/sun.svg",
+        )
+        return logo_search.LogoSearchResult(site, (candidate,), False)
+
+    monkeypatch.setattr(logo_search, "find_candidates", fake_find_candidates)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=10)
+
+    assert not app.exception
+    assert len(seen) == 1
+    context, kwargs = seen[0]
+    assert context.company == "SUN"
+    assert context.title == "SUN 用 AI 找出適合的患者"
+    assert context.angle == "從醫療配對切入"
+    assert context.body == "SUN 協助病患找到臨床試驗。"
+    assert context.sources == source_pack
+    assert "brandfetch_client_id" in kwargs
+
+
+def test_confirming_second_logo_candidate_persists_only_that_candidate(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import logo_discovery, logo_search, official_site
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3121,23 +3218,39 @@ def test_confirming_official_logo_candidate_persists_it_once(
         b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">'
         b'<path fill="#111" d="M0 0h240v80H0z"/></svg>'
     )
-    monkeypatch.setattr(
-        logo_discovery,
-        "discover",
-        lambda _company: logo_discovery.LogoCandidate(
+    site = official_site.OfficialSite(
+        "Acme",
+        "https://acme.example",
+        "acme.example",
+        "high",
+        (),
+    )
+    candidates = tuple(
+        logo_discovery.LogoCandidate(
             "Acme",
-            "acme.svg",
-            svg,
+            f"acme-{index}.svg",
+            svg.replace(b"240", str(240 + index).encode(), 1),
             "https://acme.example/brand",
-            "https://acme.example/assets/acme.svg",
+            f"https://acme.example/assets/acme-{index}.svg",
+        )
+        for index in range(1, 4)
+    )
+    monkeypatch.setattr(
+        logo_search,
+        "find_candidates",
+        lambda *_args, **_kwargs: logo_search.LogoSearchResult(
+            site,
+            candidates,
+            False,
         ),
     )
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
-    next(
+    confirmation_buttons = [
         button for button in app.button
-        if button.label == "確認是官方 Logo"
-    ).click().run()
+        if button.label == "確認這是官方 Logo"
+    ]
+    confirmation_buttons[1].click().run()
 
     stored = db.get_brand_asset(conn, "Acme")
     count = conn.execute(
@@ -3147,15 +3260,17 @@ def test_confirming_official_logo_candidate_persists_it_once(
     assert not app.exception
     assert stored is not None
     assert stored.local_path.is_file()
+    assert stored.local_path.read_bytes() == candidates[1].data
     assert stored.official_source_url == "https://acme.example/brand"
     assert count == 1
+    assert f"logo-search-result-{idea_id}" not in app.session_state
 
 
-def test_rejecting_logo_candidate_keeps_manual_fallback_and_can_retry(
+def test_rejecting_first_logo_candidate_keeps_other_two_without_searching_again(
     tmp_path,
     monkeypatch,
 ):
-    from daibu.cards import logo_discovery
+    from daibu.cards import logo_discovery, logo_search, official_site
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3177,41 +3292,106 @@ def test_rejecting_logo_candidate_keeps_manual_fallback_and_can_retry(
         b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">'
         b'<path fill="#111" d="M0 0h240v80H0z"/></svg>'
     )
-    seen_excluded = []
-
-    def fake_discover(_company, **kwargs):
-        seen_excluded.append(tuple(kwargs.get("excluded_asset_urls", ())))
-        suffix = "second" if seen_excluded[-1] else "first"
-        return logo_discovery.LogoCandidate(
+    calls = []
+    site = official_site.OfficialSite(
+        "Acme",
+        "https://acme.example",
+        "acme.example",
+        "high",
+        (),
+    )
+    candidates = tuple(
+        logo_discovery.LogoCandidate(
             "Acme",
-            f"acme-{suffix}.svg",
+            f"acme-{index}.svg",
             svg,
             "https://acme.example/brand",
-            f"https://acme.example/assets/acme-{suffix}.svg",
+            f"https://acme.example/assets/acme-{index}.svg",
         )
+        for index in range(1, 4)
+    )
 
-    monkeypatch.setattr(logo_discovery, "discover", fake_discover)
+    def fake_find_candidates(*args, **kwargs):
+        calls.append((args, kwargs))
+        return logo_search.LogoSearchResult(site, candidates, False)
+
+    monkeypatch.setattr(logo_search, "find_candidates", fake_find_candidates)
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
 
-    next(
+    first_reject = next(
         button for button in app.button
-        if button.label == "不是官方 Logo"
-    ).click().run()
+        if button.label == "不是這個品牌的 Logo"
+    )
+    first_reject.click().run()
 
     assert db.get_brand_asset(conn, "Acme") is None
     assert not (tmp_path / "logos").exists()
     assert len(app.file_uploader) == 1
-    retry = next(
-        button for button in app.button
-        if button.label == "重新搜尋官方 Logo"
+    assert not app.exception
+    assert len(calls) == 1
+    assert sum(
+        button.label == "確認這是官方 Logo"
+        for button in app.button
+    ) == 2
+    assert not any(
+        button.label == "重新搜尋官方 Logo"
+        for button in app.button
     )
 
-    retry.click().run()
+
+@pytest.mark.parametrize(
+    ("stage", "expected_heading"),
+    (
+        ("official_site", "無法確認官方網站"),
+        ("brandfetch", "找不到可核對的 Logo 候選"),
+        ("service", "Logo 搜尋服務暫時中斷"),
+    ),
+)
+def test_logo_search_errors_explain_the_failed_stage_without_blocking_draft(
+    tmp_path,
+    monkeypatch,
+    stage,
+    expected_heading,
+):
+    from daibu.cards import logo_search
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 1),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("Logo 錯誤復原", "採用角度", "", company="Acme"),
+        status="採用",
+    )
+    pipeline.update_body(conn, idea_id, "已有正文。")
+
+    def fail_search(*_args, **_kwargs):
+        raise logo_search.LogoSearchError(stage, "可安全顯示的錯誤細節。")
+
+    monkeypatch.setattr(logo_search, "find_candidates", fail_search)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    warning_text = " ".join(warning.value for warning in app.warning)
+    draft_button = next(
+        button for button in app.button
+        if button.label == "產生輪播草稿"
+    )
 
     assert not app.exception
-    assert seen_excluded == [(), (
-        "https://acme.example/assets/acme-first.svg",
-    )]
+    assert expected_heading in warning_text
+    assert "可安全顯示的錯誤細節" in warning_text
+    assert len(app.file_uploader) == 1
+    assert not draft_button.disabled
+    assert any(
+        button.label == "重新搜尋官方 Logo"
+        for button in app.button
+    )
     assert db.get_brand_asset(conn, "Acme") is None
 
 

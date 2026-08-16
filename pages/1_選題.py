@@ -1,10 +1,11 @@
 import base64
+import hashlib
 import html
 import logging
 import os
 from dataclasses import replace
 from datetime import date
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 import streamlit as st
 
@@ -22,6 +23,7 @@ from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
 from daibu.cards import logo as carousel_logo
 from daibu.cards import logo_discovery
+from daibu.cards import logo_search
 from daibu.cards import pages as carousel_pages
 from daibu.cards import research_draft as carousel_research_draft
 from daibu.cards import shoot as carousel_shoot
@@ -163,13 +165,22 @@ def render_logo_upload_form(idea_id: int, company: str, suffix: str) -> None:
             st.rerun()
 
 
-def logo_candidate_key(idea_id: int) -> str:
-    return f"logo-candidate-{idea_id}"
+def logo_search_result_key(idea_id: int) -> str:
+    return f"logo-search-result-{idea_id}"
+
+
+def public_asset_url(asset_url: str) -> str:
+    parts = urlsplit(asset_url)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+
+
+def logo_candidate_id(candidate: logo_discovery.LogoCandidate) -> str:
+    return hashlib.sha256(candidate.asset_url.encode("utf-8")).hexdigest()[:12]
 
 
 def clear_logo_discovery_state(idea_id: int) -> None:
     for key in (
-        logo_candidate_key(idea_id),
+        logo_search_result_key(idea_id),
         f"logo-discovery-attempted-{idea_id}",
         f"logo-discovery-error-{idea_id}",
         f"logo-discovery-excluded-{idea_id}",
@@ -177,106 +188,167 @@ def clear_logo_discovery_state(idea_id: int) -> None:
         st.session_state.pop(key, None)
 
 
-def discover_logo_candidate_once(idea_id: int, company: str) -> None:
+def discover_logo_candidate_once(
+    idea_id: int,
+    company: str,
+    title: str,
+    angle: str,
+    body: str,
+    sources: tuple,
+) -> None:
     attempted_key = f"logo-discovery-attempted-{idea_id}"
     if st.session_state.get(attempted_key):
         return
     st.session_state[attempted_key] = True
     try:
         with st.spinner("正在公司官網找 Logo…"):
-            excluded = tuple(
-                st.session_state.get(
-                    f"logo-discovery-excluded-{idea_id}",
-                    (),
-                )
+            result = logo_search.find_candidates(
+                logo_search.LogoSearchContext(
+                    company=company,
+                    title=title,
+                    angle=angle,
+                    body=body,
+                    sources=sources,
+                ),
+                brandfetch_client_id=os.getenv("BRANDFETCH_CLIENT_ID"),
             )
-            if excluded:
-                candidate = logo_discovery.discover(
-                    company,
-                    excluded_asset_urls=excluded,
-                )
-            else:
-                candidate = logo_discovery.discover(company)
-            st.session_state[logo_candidate_key(idea_id)] = candidate
+            st.session_state[logo_search_result_key(idea_id)] = result
         st.session_state.pop(f"logo-discovery-error-{idea_id}", None)
-    except logo_discovery.LogoDiscoveryError as error:
-        st.session_state[f"logo-discovery-error-{idea_id}"] = str(error)
+    except logo_search.LogoSearchError as error:
+        st.session_state[f"logo-discovery-error-{idea_id}"] = (
+            error.stage,
+            error.user_message,
+        )
 
 
 def render_logo_candidate_preview(idea_id: int) -> None:
-    candidate = st.session_state.get(logo_candidate_key(idea_id))
-    if candidate is None:
+    result = st.session_state.get(logo_search_result_key(idea_id))
+    if result is None or not result.candidates:
         return
     st.markdown(
         '<div class="logo-candidate-card">'
         '<span class="logo-candidate-card__status">待你確認</span>'
-        '<strong>找到一張官方 Logo 候選</strong>'
-        '<p>我只是從公司官網頁面取得候選，現在還沒有儲存或用於出圖。</p>'
+        f'<strong>找到 {len(result.candidates)} 張 Logo 候選</strong>'
+        '<p>每一張都要由你核對品牌身分；確認前不會儲存或用於出圖。</p>'
         "</div>",
         unsafe_allow_html=True,
     )
-    preview = candidate.data
-    if candidate.filename.casefold().endswith(".svg"):
-        preview = (
-            "data:image/svg+xml;base64,"
-            + base64.b64encode(candidate.data).decode("ascii")
+    source_labels = {
+        "official_site": "官網",
+        "brandfetch": "Brandfetch",
+    }
+    kind_labels = {
+        "logo": "完整 Logo",
+        "symbol": "品牌符號",
+        "icon": "網站圖示",
+    }
+    confidence_labels = {
+        "high": "高信心",
+        "needs_review": "需要人工確認",
+    }
+    for index, candidate in enumerate(result.candidates, start=1):
+        candidate_id = logo_candidate_id(candidate)
+        reason_markup = " · ".join(
+            html.escape(reason) for reason in candidate.reasons
         )
-    st.image(preview, width=240)
-    source_column, asset_column = st.columns(2)
-    source_column.link_button(
-        "查看官方頁面",
-        candidate.official_page_url,
-        width="stretch",
-    )
-    asset_column.link_button(
-        "開啟 Logo 原檔",
-        candidate.asset_url,
-        width="stretch",
-    )
-    confirm_column, reject_column = st.columns(2)
-    if confirm_column.button(
-        "確認是官方 Logo",
-        key=f"confirm-logo-candidate-{idea_id}",
-        type="primary",
-        width="stretch",
-    ):
-        try:
-            carousel_assets.store_logo(
-                conn,
-                candidate.company,
-                candidate.filename,
-                candidate.data,
-                candidate.official_page_url,
-                date.today().isoformat(),
+        st.markdown(
+            '<div class="logo-evidence-card">'
+            '<div class="logo-evidence-card__heading">'
+            f'<span>候選 {index}</span>'
+            f'<strong>{html.escape(result.site.domain)}</strong>'
+            "</div>"
+            '<div class="logo-evidence-card__facts">'
+            f'<span>{html.escape(source_labels.get(candidate.source_kind, candidate.source_kind))}</span>'
+            f'<span>{html.escape(kind_labels.get(candidate.logo_kind, candidate.logo_kind))}</span>'
+            f'<span>{html.escape(confidence_labels.get(candidate.confidence, candidate.confidence))}</span>'
+            "</div>"
+            f'<p>{reason_markup}</p>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        preview = candidate.data
+        if candidate.filename.casefold().endswith(".svg"):
+            preview = (
+                "data:image/svg+xml;base64,"
+                + base64.b64encode(candidate.data).decode("ascii")
             )
-        except carousel_logo.InvalidBrandAsset as error:
-            st.error(str(error))
-            return
-        clear_logo_discovery_state(idea_id)
-        queue_toast(st.session_state, "官方 Logo 已確認並儲存。")
-        st.rerun()
-    if reject_column.button(
-        "不是官方 Logo",
-        key=f"reject-logo-candidate-{idea_id}",
-        width="stretch",
-    ):
-        excluded_key = f"logo-discovery-excluded-{idea_id}"
-        excluded = set(st.session_state.get(excluded_key, ()))
-        excluded.add(candidate.asset_url)
-        st.session_state[excluded_key] = tuple(excluded)
-        st.session_state.pop(logo_candidate_key(idea_id), None)
-        st.session_state[f"logo-discovery-error-{idea_id}"] = (
-            "已略過這張候選，尚未儲存任何 Logo。"
+        st.image(preview, width=240)
+        source_column, asset_column = st.columns(2)
+        source_column.link_button(
+            "查看身分來源",
+            candidate.official_page_url,
+            width="stretch",
         )
-        st.rerun()
+        asset_column.link_button(
+            "開啟 Logo 原檔",
+            public_asset_url(candidate.asset_url),
+            width="stretch",
+        )
+        confirm_column, reject_column = st.columns(2)
+        if confirm_column.button(
+            "確認這是官方 Logo",
+            key=f"confirm-logo-candidate-{idea_id}-{candidate_id}",
+            type="primary",
+            width="stretch",
+        ):
+            try:
+                carousel_assets.store_logo(
+                    conn,
+                    candidate.company,
+                    candidate.filename,
+                    candidate.data,
+                    candidate.official_page_url,
+                    date.today().isoformat(),
+                )
+            except carousel_logo.InvalidBrandAsset as error:
+                st.error(str(error))
+                return
+            clear_logo_discovery_state(idea_id)
+            queue_toast(st.session_state, "官方 Logo 已確認並儲存。")
+            st.rerun()
+        if reject_column.button(
+            "不是這個品牌的 Logo",
+            key=f"reject-logo-candidate-{idea_id}-{candidate_id}",
+            width="stretch",
+        ):
+            excluded_key = f"logo-discovery-excluded-{idea_id}"
+            excluded = set(st.session_state.get(excluded_key, ()))
+            excluded.add(candidate.asset_url)
+            st.session_state[excluded_key] = tuple(excluded)
+            remaining = tuple(
+                item for item in result.candidates
+                if item.asset_url != candidate.asset_url
+            )
+            if remaining:
+                st.session_state[logo_search_result_key(idea_id)] = replace(
+                    result,
+                    candidates=remaining,
+                )
+            else:
+                st.session_state.pop(logo_search_result_key(idea_id), None)
+                st.session_state[f"logo-discovery-error-{idea_id}"] = (
+                    "candidate",
+                    "已略過所有候選，尚未儲存任何 Logo。",
+                )
+            st.rerun()
 
 
 def render_logo_discovery_recovery(idea_id: int) -> None:
-    if st.session_state.get(logo_candidate_key(idea_id)) is not None:
+    if st.session_state.get(logo_search_result_key(idea_id)) is not None:
         return
     error = st.session_state.get(f"logo-discovery-error-{idea_id}")
     if error:
-        st.warning(error)
+        if isinstance(error, tuple):
+            stage, detail = error
+            heading = {
+                "official_site": "無法確認官方網站",
+                "brandfetch": "找不到可核對的 Logo 候選",
+                "service": "Logo 搜尋服務暫時中斷",
+                "candidate": "候選已全部略過",
+            }.get(stage, "Logo 搜尋尚未完成")
+            st.warning(f"**{heading}**\n\n{detail}")
+        else:
+            st.warning(error)
     if st.session_state.get(f"logo-discovery-attempted-{idea_id}"):
         if st.button(
             "重新搜尋官方 Logo",
@@ -1550,6 +1622,10 @@ with candidate_column:
                             discover_logo_candidate_once(
                                 idea.id,
                                 idea.company,
+                                idea.title,
+                                idea.angle,
+                                body,
+                                source_pack,
                             )
                             render_logo_candidate_preview(idea.id)
                             render_logo_discovery_recovery(idea.id)
