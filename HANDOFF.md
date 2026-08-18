@@ -22,11 +22,15 @@
 - **TDD 證據**：官網空結果測試先得到舊第三方 stage 再轉成 `official_assets`；工作台先捕捉到仍傳憑證參數再移除；設定頁與 runtime 檔案存在測試先紅再刪除。搜尋編排 `4 passed`、工作台 `11 passed`、設定 `9 passed`、Logo／設定聚焦 `39 passed`、預覽與設定聚焦 `25 passed`。
 - **真實邊界**：SUN 精確解析為 `sunapp.ai`，Moove 官網 Logo 通過本機安全驗證；合併執行為 `2 passed, 20 deselected in 1.04s`。一般官網單元為 `20 passed, 2 deselected in 0.13s`。
 - **視覺 QA 第一輪**：1280×800 與 375×812 發現白色 SUN Logo 在淺色背景幾乎不可見；其餘層次、留白、字體、配色、對齊、狀態與響應式合格。
-- **視覺 QA 最終輪**：加入左右淺／深雙背景預覽後，白色 SUN Logo 可清楚核對。手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings；最終截圖為 `.screenshots/logo-official-only-final-desktop.png`、`.screenshots/logo-official-only-final-mobile.png`。
+- **視覺 QA 最終輪**：加入左右淺／深雙背景預覽後，白色 SUN Logo 可清楚核對。手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings；副本最終截圖為 `.screenshots/logo-official-only-final-desktop.png`、`.screenshots/logo-official-only-final-mobile.png`。
 - **全套測試**：第一次為 `616 passed, 16 deselected, 1 warning`，另有一個既有 CSS 測試因全域字串比對誤判 Logo 卡片邊線；將測量範圍縮到輪播清單後，第二次為 `617 passed, 16 deselected, 1 warning in 74.00s`。warning 是既有 Starlette/httpx 相依提醒。
 - **殘留掃描**：先以 `rg --version` 確認 ripgrep 15.2.0 可用，再掃 runtime 與刪除臨時計畫後的完整 active tree；兩次皆為退出碼 1、空輸出，代表移除的供應商名稱與環境變數沒有殘留。
+- **main 與推送**：fast-forward 合併後以 `PYTHON_DOTENV_DISABLED=1` 重跑，結果為 `617 passed, 16 deselected, 1 warning in 70.23s`；compileall、`git diff --check` 與殘留掃描通過。本機與 `origin/main` 當時均為 `b48460305c2e048ef995ab2005926e0a3d846365`。
+- **正式備份與資料安全**：重啟前建立 `/private/tmp/daibu-before-official-logo-20260818-134035.db`；備份與正式庫皆為 23 ideas、0 brand assets、6 idea sources、`integrity_check=ok`。唯讀畫面驗收後正式庫數量不變，沒有儲存候選。
+- **正式服務與畫面**：既有 `io.daibu.content-brain` 已重啟，`state=running`、PID `39504`、只監聽 `127.0.0.1:8501`，HTTP 200。從首頁正常進入 SUN 輪播工作區，系統將官方網站解析為 `sunapp.ai`，顯示一張官網直接引用候選、原始 Logo 連結與人工確認閘門；畫面沒有舊第三方服務文字。
+- **正式前端驗收**：1280×800 與 375×812 的候選區層次、留白、字體、配色、對齊、響應式、狀態與微動效全部合格；手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings。正式細節截圖為 `.screenshots/logo-official-only-production-desktop-detail.png`、`.screenshots/logo-official-only-production-mobile-detail.png`。伺服器 stderr 最後修改時間仍為 2026-08-13 12:45:16，本輪沒有新增 server exception。
 - **剩餘限制**：Canvas、封閉資源或反爬嚴格的官網仍可能無法自動擷取；品牌身分與最終 Logo 選擇仍需使用者判斷。
-- **狀態**：功能、真實官網契約、資料庫副本與兩輪桌機／手機 QA 已完成；待分支文件提交、main 複驗、推送與既有 localhost 正式服務驗收。
+- **狀態**：功能、真實官網契約、資料庫副本、兩輪桌機／手機 QA、main 複驗、推送與既有 localhost 正式服務皆已完成。
 
 ---
 
