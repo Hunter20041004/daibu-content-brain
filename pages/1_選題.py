@@ -209,8 +209,7 @@ def discover_logo_candidate_once(
                     angle=angle,
                     body=body,
                     sources=sources,
-                ),
-                brandfetch_client_id=os.getenv("BRANDFETCH_CLIENT_ID"),
+                )
             )
             st.session_state[logo_search_result_key(idea_id)] = result
         st.session_state.pop(f"logo-discovery-error-{idea_id}", None)
@@ -235,7 +234,6 @@ def render_logo_candidate_preview(idea_id: int) -> None:
     )
     source_labels = {
         "official_site": "官網",
-        "brandfetch": "Brandfetch",
     }
     kind_labels = {
         "logo": "完整 Logo",
@@ -244,7 +242,6 @@ def render_logo_candidate_preview(idea_id: int) -> None:
     }
     confidence_labels = {
         "high": "高信心",
-        "needs_review": "需要人工確認",
     }
     for index, candidate in enumerate(result.candidates, start=1):
         candidate_id = logo_candidate_id(candidate)
@@ -342,7 +339,7 @@ def render_logo_discovery_recovery(idea_id: int) -> None:
             stage, detail = error
             heading = {
                 "official_site": "無法確認官方網站",
-                "brandfetch": "找不到可核對的 Logo 候選",
+                "official_assets": "官網找不到可核對的 Logo 候選",
                 "service": "Logo 搜尋服務暫時中斷",
                 "candidate": "候選已全部略過",
             }.get(stage, "Logo 搜尋尚未完成")

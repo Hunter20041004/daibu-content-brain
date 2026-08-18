@@ -3093,7 +3093,7 @@ def test_three_logo_candidates_show_identity_evidence_without_persisting(
         for kind, source, confidence, reason in (
             ("logo", "official_site", "high", "官網品牌頁引用"),
             ("symbol", "official_site", "high", "官網頁首引用"),
-            ("icon", "brandfetch", "needs_review", "以已驗證網域查詢"),
+            ("icon", "official_site", "high", "官網動態頁面引用"),
         )
     )
     monkeypatch.setattr(
@@ -3102,7 +3102,6 @@ def test_three_logo_candidates_show_identity_evidence_without_persisting(
         lambda *_args, **_kwargs: logo_search.LogoSearchResult(
             site,
             candidates,
-            True,
         ),
     )
     preview_values = []
@@ -3121,12 +3120,10 @@ def test_three_logo_candidates_show_identity_evidence_without_persisting(
     assert "待你確認" in rendered
     assert "acme.example" in rendered
     assert "官網" in rendered
-    assert "Brandfetch" in rendered
     assert "完整 Logo" in rendered
     assert "品牌符號" in rendered
     assert "網站圖示" in rendered
     assert "高信心" in rendered
-    assert "需要人工確認" in rendered
     assert "secret=hidden" not in rendered
     assert len(preview_values) == 3
     assert sum(
@@ -3184,7 +3181,7 @@ def test_logo_search_receives_the_full_idea_context(
             "https://sun.example/brand",
             "https://sun.example/sun.svg",
         )
-        return logo_search.LogoSearchResult(site, (candidate,), False)
+        return logo_search.LogoSearchResult(site, (candidate,))
 
     monkeypatch.setattr(logo_search, "find_candidates", fake_find_candidates)
 
@@ -3198,7 +3195,7 @@ def test_logo_search_receives_the_full_idea_context(
     assert context.angle == "從醫療配對切入"
     assert context.body == "SUN 協助病患找到臨床試驗。"
     assert context.sources == source_pack
-    assert "brandfetch_client_id" in kwargs
+    assert kwargs == {}
 
 
 def test_confirming_second_logo_candidate_persists_only_that_candidate(
@@ -3250,7 +3247,6 @@ def test_confirming_second_logo_candidate_persists_only_that_candidate(
         lambda *_args, **_kwargs: logo_search.LogoSearchResult(
             site,
             candidates,
-            False,
         ),
     )
 
@@ -3322,7 +3318,7 @@ def test_rejecting_first_logo_candidate_keeps_other_two_without_searching_again(
 
     def fake_find_candidates(*args, **kwargs):
         calls.append((args, kwargs))
-        return logo_search.LogoSearchResult(site, candidates, False)
+        return logo_search.LogoSearchResult(site, candidates)
 
     monkeypatch.setattr(logo_search, "find_candidates", fake_find_candidates)
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
@@ -3352,7 +3348,7 @@ def test_rejecting_first_logo_candidate_keeps_other_two_without_searching_again(
     ("stage", "expected_heading"),
     (
         ("official_site", "無法確認官方網站"),
-        ("brandfetch", "找不到可核對的 Logo 候選"),
+        ("official_assets", "官網找不到可核對的 Logo 候選"),
         ("service", "Logo 搜尋服務暫時中斷"),
     ),
 )
