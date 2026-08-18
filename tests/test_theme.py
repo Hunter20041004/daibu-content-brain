@@ -435,6 +435,17 @@ def test_logo_evidence_cards_have_scannable_hierarchy_and_responsive_facts():
     )[1].split("}", maxsplit=1)[0]
 
 
+def test_logo_preview_stage_shows_light_and_dark_backgrounds():
+    styles = theme.css()
+    selector = '[class*="st-key-logo-preview-"] {'
+
+    assert selector in styles
+    rule = styles.split(selector, maxsplit=1)[1].split("}", maxsplit=1)[0]
+    assert "linear-gradient(" in rule
+    assert "#f8fafc 0 50%" in rule
+    assert "#171733 50% 100%" in rule
+
+
 def test_css_has_no_unused_classes():
     source_paths = [
         *pathlib.Path("pages").glob("*.py"),

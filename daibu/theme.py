@@ -928,6 +928,22 @@ def css(mode: str | None = None) -> str:
         opacity: 0.7;
     }}
 
+    [class*="st-key-logo-preview-"] {{
+        background: linear-gradient(
+            90deg,
+            #f8fafc 0 50%,
+            #171733 50% 100%
+        );
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        min-height: 8.5rem;
+        padding: 1.25rem;
+    }}
+
+    [class*="st-key-logo-preview-"] [data-testid="stImage"] {{
+        margin-inline: auto;
+    }}
+
     .verified-source strong,
     .verified-logo strong {{
         font-size: 0.875rem;

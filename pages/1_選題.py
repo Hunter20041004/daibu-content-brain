@@ -269,7 +269,10 @@ def render_logo_candidate_preview(idea_id: int) -> None:
                 "data:image/svg+xml;base64,"
                 + base64.b64encode(candidate.data).decode("ascii")
             )
-        st.image(preview, width=240)
+        with st.container(
+            key=f"logo-preview-{idea_id}-{candidate_id}",
+        ):
+            st.image(preview, width=240)
         source_column, asset_column = st.columns(2)
         source_column.link_button(
             "查看身分來源",
