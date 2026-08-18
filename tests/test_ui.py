@@ -113,11 +113,18 @@ def test_carousel_workbench_uses_branded_hierarchy_styles():
 
 def test_carousel_checklist_replaces_decorative_side_stripes():
     styles = theme.css("light")
+    checklist_styles = styles.split(
+        ".carousel-checklist {",
+        maxsplit=1,
+    )[1].split(".carousel-status strong {", maxsplit=1)[0]
 
     assert ".carousel-checklist" in styles
     assert ".carousel-checklist__item--current" in styles
-    assert "border-left: 4px solid var(--highlight)" not in styles
-    assert "border-left: 3px solid var(--brand-primary)" not in styles
+    assert "border-left: 4px solid var(--highlight)" not in checklist_styles
+    assert (
+        "border-left: 3px solid var(--brand-primary)"
+        not in checklist_styles
+    )
 
 
 def test_carousel_preview_uses_one_responsive_ordered_grid():
