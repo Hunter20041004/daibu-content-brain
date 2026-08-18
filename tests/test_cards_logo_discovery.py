@@ -75,6 +75,27 @@ def test_extracts_organization_logo_from_json_ld():
     assert "Organization.logo" in candidates[0].reasons
 
 
+def test_static_parser_ignores_script_without_a_type_before_inline_logo():
+    site = OfficialSite(
+        "Acme",
+        "https://acme.example/",
+        "acme.example",
+        "high",
+        (),
+    )
+
+    candidates = logo_discovery.extract_candidates(
+        site,
+        html_fetch_fn=lambda _url: (
+            '<script defer src="/app.js"></script>'
+            '<svg aria-label="Acme logo" viewBox="0 0 240 80">'
+            '<path d="M0 0h240v80H0z"/></svg>'
+        ),
+    )
+
+    assert candidates[0].logo_kind == "logo"
+
+
 def test_extracts_srcset_and_explicit_brand_background_only():
     site = OfficialSite(
         "Acme",

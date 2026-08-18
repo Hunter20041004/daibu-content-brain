@@ -72,7 +72,10 @@ class _OfficialPageParser(HTMLParser):
         attrs: list[tuple[str, str | None]],
     ) -> None:
         values = {name.casefold(): value or "" for name, value in attrs}
-        if tag == "script" and values.get("type").casefold() == "application/ld+json":
+        if (
+            tag == "script"
+            and values.get("type", "").casefold() == "application/ld+json"
+        ):
             self._json_ld_parts = []
             return
         if self._inline_parts is not None:

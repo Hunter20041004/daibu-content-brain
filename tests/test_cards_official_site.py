@@ -1,7 +1,12 @@
+import os
+from urllib.parse import urlparse
+
 import pytest
+from dotenv import load_dotenv
 
 from daibu.cards import official_site
 from daibu.cards.schema import VerifiedSource
+from daibu.fetch import search as web_search
 from daibu.models import Material
 
 
@@ -168,3 +173,43 @@ def test_default_html_downloader_decodes_a_bounded_response(monkeypatch):
         "timeout": 15,
         "limit": official_site.MAX_HTML_BYTES,
     }
+
+
+@pytest.mark.contract
+def test_sun_resolves_to_sunapp_ai_against_real_search():
+    load_dotenv()
+    if not os.getenv("TAVILY_API_KEY"):
+        pytest.skip("需要 TAVILY_API_KEY 才能執行真實搜尋契約")
+    inspected_domains = []
+
+    def inspect_search(query, limit):
+        results = web_search.search_web(query, limit)
+        inspected_domains.extend(
+            (urlparse(result.url).hostname or "") for result in results
+        )
+        return results
+
+    source = VerifiedSource(
+        "S1",
+        "Product Hunt",
+        "2026-08-15",
+        "https://www.producthunt.com/products/sun-ai",
+        "SUN creates personalized AI podcasts, audiobooks and courses.",
+        "third_party",
+    )
+    try:
+        site = official_site.resolve(
+            "SUN",
+            context="personalized AI audio podcasts audiobooks courses",
+            sources=(source,),
+            search_fn=inspect_search,
+        )
+    except official_site.OfficialSiteError as error:
+        pytest.fail(
+            f"SUN 官網解析失敗；實際檢查網域={inspected_domains!r}；{error}"
+        )
+
+    assert site.domain == "sunapp.ai", (
+        f"預期 sunapp.ai，實際 {site.domain!r}；"
+        f"實際檢查網域={inspected_domains!r}"
+    )
