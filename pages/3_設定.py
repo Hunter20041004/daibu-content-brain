@@ -98,16 +98,6 @@ with settings_panel.form("system-config"):
         "Tavily 金鑰："
         f"{'已設定' if os.getenv('TAVILY_API_KEY') else '尚未設定'}"
     )
-    brandfetch_client_id = st.text_input(
-        "Brandfetch Client ID",
-        type="password",
-        placeholder="已設環境變數時可留空",
-        help="只在官網找不到可用 Logo 時，以已確認的官方網域查詢。",
-    )
-    st.caption(
-        "Brandfetch Client ID："
-        f"{'已設定' if os.getenv('BRANDFETCH_CLIENT_ID') else '尚未設定'}"
-    )
     if st.form_submit_button("儲存系統設定", type="primary"):
         db.set_config(conn, "llm_provider", provider)
         db.set_config(conn, "llm_model", model)
@@ -120,6 +110,4 @@ with settings_panel.form("system-config"):
             os.environ["GROQ_API_KEY"] = groq_key
         if tavily_key:
             os.environ["TAVILY_API_KEY"] = tavily_key
-        if brandfetch_client_id:
-            os.environ["BRANDFETCH_CLIENT_ID"] = brandfetch_client_id
         st.success("設定已儲存；新輸入的 key 只在本次 App 執行期間有效。")

@@ -1967,7 +1967,6 @@ def test_settings_reports_key_status(monkeypatch, tmp_path):
         "GEMINI_API_KEY",
         "GROQ_API_KEY",
         "TAVILY_API_KEY",
-        "BRANDFETCH_CLIENT_ID",
     ):
         monkeypatch.delenv(key_name, raising=False)
 
@@ -1979,11 +1978,9 @@ def test_settings_reports_key_status(monkeypatch, tmp_path):
 
     assert "Gemini 金鑰：尚未設定" in unset_text
     assert "Tavily 金鑰：尚未設定" in unset_text
-    assert "Brandfetch Client ID：尚未設定" in unset_text
 
     monkeypatch.setenv("GEMINI_API_KEY", "do-not-display-this-secret")
     monkeypatch.setenv("TAVILY_API_KEY", "also-secret")
-    monkeypatch.setenv("BRANDFETCH_CLIENT_ID", "never-render-this-client-id")
     configured_app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
     configured_app.run()
     configured_text = " ".join(
@@ -1992,10 +1989,45 @@ def test_settings_reports_key_status(monkeypatch, tmp_path):
 
     assert "Gemini 金鑰：已設定" in configured_text
     assert "Tavily 金鑰：已設定" in configured_text
-    assert "Brandfetch Client ID：已設定" in configured_text
     assert "do-not-display-this-secret" not in configured_text
     assert "also-secret" not in configured_text
-    assert "never-render-this-client-id" not in configured_text
+
+
+def test_settings_has_no_third_party_logo_service(monkeypatch, tmp_path):
+    monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+    app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py").run()
+    removed_name = "Brand" + "fetch"
+
+    visible = " ".join(
+        element.value
+        for elements in (app.markdown, app.caption)
+        for element in elements
+    )
+    assert removed_name not in visible
+    assert all(
+        removed_name not in field.label
+        for field in app.text_input
+    )
+
+
+def test_removed_logo_provider_has_no_runtime_surface():
+    removed = "brand" + "fetch"
+    runtime_files = [
+        PROJECT_ROOT / "daibu/cards" / f"{removed}.py",
+        PROJECT_ROOT / "tests" / f"test_cards_{removed}.py",
+    ]
+    assert not any(path.exists() for path in runtime_files)
+
+    checked = [
+        PROJECT_ROOT / ".env.example",
+        PROJECT_ROOT / "pages/1_選題.py",
+        PROJECT_ROOT / "pages/3_設定.py",
+        PROJECT_ROOT / "daibu/cards/logo_search.py",
+    ]
+    assert all(
+        removed not in path.read_text(encoding="utf-8").casefold()
+        for path in checked
+    )
 
 
 def test_settings_only_shows_the_active_provider_key(monkeypatch, tmp_path):
