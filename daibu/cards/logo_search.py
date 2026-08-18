@@ -1,8 +1,8 @@
-"""Orchestrate official-site and third-party Logo discovery."""
+"""Orchestrate official-site Logo discovery."""
 
 from dataclasses import dataclass
 
-from daibu.cards import brandfetch, logo_browser, logo_discovery, official_site
+from daibu.cards import logo_browser, logo_discovery, official_site
 from daibu.cards.logo_discovery import LogoCandidate
 from daibu.cards.official_site import OfficialSite
 from daibu.cards.schema import VerifiedSource
@@ -21,7 +21,6 @@ class LogoSearchContext:
 class LogoSearchResult:
     site: OfficialSite
     candidates: tuple[LogoCandidate, ...]
-    used_brandfetch: bool
 
 
 class LogoSearchError(ValueError):
@@ -37,8 +36,6 @@ def find_candidates(
     site_resolver=official_site.resolve,
     official_finder=logo_discovery.extract_candidates,
     rendered_fetch_fn=logo_browser.render_site,
-    brandfetch_finder=brandfetch.fetch_candidates,
-    brandfetch_client_id: str | None = None,
 ) -> LogoSearchResult:
     text_context = " ".join(
         value.strip()
@@ -64,22 +61,8 @@ def find_candidates(
             "公司官網暫時無法讀取；你可以重新搜尋或手動上傳 Logo。",
         ) from error
     if official:
-        return LogoSearchResult(site, official, False)
-    try:
-        fallback = brandfetch_finder(
-            site,
-            client_id=brandfetch_client_id,
-        )
-    except brandfetch.BrandfetchNotConfigured as error:
-        raise LogoSearchError("brandfetch", str(error)) from error
-    except OSError as error:
-        raise LogoSearchError(
-            "service",
-            "Brandfetch 暫時無法使用；你可以重新搜尋或手動上傳 Logo。",
-        ) from error
-    if not fallback:
-        raise LogoSearchError(
-            "brandfetch",
-            "官網與 Brandfetch 都沒有可用 Logo；請手動上傳。",
-        )
-    return LogoSearchResult(site, fallback, True)
+        return LogoSearchResult(site, official)
+    raise LogoSearchError(
+        "official_assets",
+        "官網沒有找到可安全預覽的 Logo；請手動上傳。",
+    )
