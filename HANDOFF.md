@@ -1,29 +1,29 @@
-# HANDOFF — 七頁貼文模板 v13 品牌一致性細修原型
+# HANDOFF — 七頁貼文模板 v14 聚焦修正版
 
-> 2026-08-20 更新。本輪依使用者核可，只細修瀏覽器中的七頁視覺原型；正文資料、正式產圖模板、Streamlit 與 SQLite 都沒有修改。
+> 2026-08-20 更新。本輪依使用者要求修正失敗的 v13：保留既有首頁與最後一頁，第 3–7 頁精確恢復 v12，只重做第 2 頁與原型預覽方式。正文資料、正式產圖模板、Streamlit 與 SQLite 都沒有修改。
 
 ## 本輪目標與驗收
 
-- 保留 v12 已核可方向、首頁與收尾構圖，不更換內容主題或敘事順序。
-- 第 2 頁改成一個主敘事與兩個補充層級；第 3、4 頁使用單一路徑；第 5 頁放大跨色面的「到」；第 6 頁移除編號微標籤。
-- 保留每頁呆一布機器人，讓它參與構圖而非成為可移除貼紙。
-- SUN、Billow AI Labs、Shiraz AI 各七頁都要通過 1280px 與 375px 驗證。
+- 第 3–7 頁不得繼續 v13 實驗，render 片段需與 v12 完全相同。
+- 第 2 頁改成「公司是什麼 → 怎麼使用 → 一句話記住」的連續資訊流，保留呆一布機器人並避免任何文字、色塊碰撞。
+- 原型從雙欄縮圖牆改為單欄大圖，讓觀眾以實際閱讀尺度檢查每頁。
+- SUN、Billow AI Labs、Shiraz AI 都要在 1280×800 與 375×812 通過字級、堆疊、溢位與互動檢查。
 
 ## 本輪狀態
 
-- **產品能力**：新增隔離的 v13 三公司壓力測試原型；七頁可共用同一資料結構，並依標題／核心句長度調整一行、兩行與收尾區位置。
-- **使用者體驗**：首頁與最後一頁保留原方向；第 2 頁改為主論點＋兩條閱讀路徑，第 3 頁改為因果線，第 4 頁移除橢圓並整合人工責任，第 5 頁讓「到」真正跨接對比色，第 6 頁改為一主兩輔且不顯示「訊號 1／2／3」。
-- **技術結構**：`multi-company-template-stress-v13.html` 由 v12 隔離複製，新增頁面專屬語意類別與 CSS；`refined-v13-contract.js` 鎖住七頁結構、字級、跨縫位置、微標籤、溢位與三家公司套版。兩檔仍位於 `.superpowers/`，不影響正式程式。
-- **資料流程**：三家公司既有測試資料 → `renderCompany` → v13 七頁 DOM → 瀏覽器契約檢查 → 公司切換器。沒有 LLM、外部 API、資料保存或正式發文。
-- **設計理由**：沿用深藍、青色、珊瑚橘與 LINE Seed 的既有品牌辨識；以單一閱讀軌道、非對稱主輔比例與大字轉折取代平均方格、橢圓流程與細碎標籤，降低 AI 模板感。
-- **替代方案**：只把 v12 文字放大成本最低，但會保留平均方格與無效留白；全面換風格又會重複前幾版失敗。v13 採局部結構細修，風險最低且最接近使用者已接受的方向。
-- **安全與成本**：沒有新增套件、字型服務、生成圖片、付費操作、schema 或正式資料異動；既有兩份使用者內容 HTML 未觸碰。
-- **TDD 證據**：逐頁先看到 `P2 refined profile missing`、`P3 refined problem missing`、`P4 refined mechanism missing`、`P5 refined comparison missing`、`P5 bridge is not dominant enough`、`P6 refined signals missing`、`P7 refined closing missing` 與 `P7 thesis is not readable enough`，再做最小 DOM／CSS 修改轉綠。
-- **視覺 QA**：兩輪各一張 1280×800 七頁總覽與一張 375×812 單頁閱讀。第一輪抓到第 2、6 頁內文偏小、右欄無效空間、詞組被拆與第 7 頁固定空洞；第二輪修正後八項清單全數合格。最終截圖為 `.screenshots/refined-v13-round2-desktop.png`、`.screenshots/refined-v13-round2-mobile.png`。
-- **跨內容壓力測試**：三家公司各七頁、兩種寬度共 42 個版面狀態通過；每組都有七頁與七個機器人，主區塊沒有越界，375px `scrollWidth=clientWidth=375`，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
-- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 83.23s`；warning 是既有 Starlette／httpx 相依提醒。
-- **剩餘限制**：v13 仍是本機隔離原型，不是正式貼文產圖模板；需先由使用者逐頁視覺確認，核可後才搬入正式產圖流程。
-- **狀態**：v13 原型與驗證完成，等待使用者在 localhost 逐頁檢視。
+- **產品能力**：v14 仍使用三家公司同一份七頁內容架構，但將預覽改成一次專注一張的大圖串流；可直接切換公司驗證長短內容是否套版。
+- **使用者體驗**：首頁與收尾保留使用者選定的版本；第 3–7 頁回到較穩定的 v12；第 2 頁以紙白頁首、青色公司定位、紙白使用方式與深藍核心記憶帶形成單一路徑，不再出現散落方框或線條亂飛。
+- **技術結構**：本機隔離原型沿用 `.superpowers/brainstorm/31101-1787251453/content/multi-company-template-stress-v13.html` 供既有 localhost 直接讀取，內部標記為 `v14`；新增 `focused-v14-contract.js` 鎖住回退基準、第 2 頁結構、字級、段落間距、連續堆疊、單欄預覽與溢位。正式程式未變。
+- **資料流程**：三家公司既有測試資料 → `renderCompany` → v14 七頁 DOM → 單欄大圖預覽 → 瀏覽器契約檢查。沒有 LLM、外部 API、資料保存或正式發文。
+- **設計理由**：主方案採「成熟編輯式資訊頁」，沿用深藍、青色、珊瑚橘與 LINE Seed；透過大標、細註記線、連續色面與不等節奏留白建立特色。備援是完整回到 v12，成本更低但第二頁仍會保留使用者不滿意的空間利用；因此只重做第 2 頁。
+- **安全與成本**：沒有新增依賴、字型服務、生成圖片、付費操作、schema 或正式資料異動；工作區中使用者正在修改的兩份 HTML 沒有被 stage 或覆寫。
+- **TDD 證據**：先看到 `v14 marker missing`、`P3 v13 experiment remains`、`P2 v14 profile missing`、`P2 body text is too small`、`v14 preview mode missing`、`P2 use copy collides with anchor`、`P2 continuous flow missing`，再逐一做最小 DOM／CSS 修正轉綠；桌機字級跨公司檢查再抓到共同失敗後，將第 2 頁最小內文提高到 20.02px，手機為 13.34px。
+- **視覺 QA**：完成四輪、每輪各一張 1280×800 與 375×812。第一輪抓到使用說明撞核心帶；第二輪抓到手機公司脈絡撞使用標籤；第三輪完成連續堆疊；第四輪放大內文後八項清單全數合格。最終截圖為 `.screenshots/focused-v14-round4-desktop.png`、`.screenshots/focused-v14-round4-mobile.png`。
+- **跨內容壓力測試**：三家公司、兩種寬度各執行 7 項契約，共 42 項，失敗 0；兩種寬度都無水平溢位，三個公司切換按鈕正確更新內容，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
+- **回退精確度**：以 `rg` 擷取 v12 與 v14 的第 3–7 頁 render 片段後執行 `diff -u`，退出碼 0、沒有差異。
+- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 85.45s`；warning 是既有 Starlette／httpx 相依提醒。
+- **剩餘限制**：v14 是本機隔離視覺原型，不是正式貼文產圖模板；必須先由使用者確認畫面，核可後才搬入正式流程。
+- **狀態**：v14 視覺、跨內容檢查與全套測試完成，等待使用者在 localhost 檢視。
 
 ---
 
