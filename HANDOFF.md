@@ -1,4 +1,79 @@
-# HANDOFF — 僅限官網的官方 Logo 搜尋
+# HANDOFF — 七頁貼文模板 v13 品牌一致性細修原型
+
+> 2026-08-20 更新。本輪依使用者核可，只細修瀏覽器中的七頁視覺原型；正文資料、正式產圖模板、Streamlit 與 SQLite 都沒有修改。
+
+## 本輪目標與驗收
+
+- 保留 v12 已核可方向、首頁與收尾構圖，不更換內容主題或敘事順序。
+- 第 2 頁改成一個主敘事與兩個補充層級；第 3、4 頁使用單一路徑；第 5 頁放大跨色面的「到」；第 6 頁移除編號微標籤。
+- 保留每頁呆一布機器人，讓它參與構圖而非成為可移除貼紙。
+- SUN、Billow AI Labs、Shiraz AI 各七頁都要通過 1280px 與 375px 驗證。
+
+## 本輪狀態
+
+- **產品能力**：新增隔離的 v13 三公司壓力測試原型；七頁可共用同一資料結構，並依標題／核心句長度調整一行、兩行與收尾區位置。
+- **使用者體驗**：首頁與最後一頁保留原方向；第 2 頁改為主論點＋兩條閱讀路徑，第 3 頁改為因果線，第 4 頁移除橢圓並整合人工責任，第 5 頁讓「到」真正跨接對比色，第 6 頁改為一主兩輔且不顯示「訊號 1／2／3」。
+- **技術結構**：`multi-company-template-stress-v13.html` 由 v12 隔離複製，新增頁面專屬語意類別與 CSS；`refined-v13-contract.js` 鎖住七頁結構、字級、跨縫位置、微標籤、溢位與三家公司套版。兩檔仍位於 `.superpowers/`，不影響正式程式。
+- **資料流程**：三家公司既有測試資料 → `renderCompany` → v13 七頁 DOM → 瀏覽器契約檢查 → 公司切換器。沒有 LLM、外部 API、資料保存或正式發文。
+- **設計理由**：沿用深藍、青色、珊瑚橘與 LINE Seed 的既有品牌辨識；以單一閱讀軌道、非對稱主輔比例與大字轉折取代平均方格、橢圓流程與細碎標籤，降低 AI 模板感。
+- **替代方案**：只把 v12 文字放大成本最低，但會保留平均方格與無效留白；全面換風格又會重複前幾版失敗。v13 採局部結構細修，風險最低且最接近使用者已接受的方向。
+- **安全與成本**：沒有新增套件、字型服務、生成圖片、付費操作、schema 或正式資料異動；既有兩份使用者內容 HTML 未觸碰。
+- **TDD 證據**：逐頁先看到 `P2 refined profile missing`、`P3 refined problem missing`、`P4 refined mechanism missing`、`P5 refined comparison missing`、`P5 bridge is not dominant enough`、`P6 refined signals missing`、`P7 refined closing missing` 與 `P7 thesis is not readable enough`，再做最小 DOM／CSS 修改轉綠。
+- **視覺 QA**：兩輪各一張 1280×800 七頁總覽與一張 375×812 單頁閱讀。第一輪抓到第 2、6 頁內文偏小、右欄無效空間、詞組被拆與第 7 頁固定空洞；第二輪修正後八項清單全數合格。最終截圖為 `.screenshots/refined-v13-round2-desktop.png`、`.screenshots/refined-v13-round2-mobile.png`。
+- **跨內容壓力測試**：三家公司各七頁、兩種寬度共 42 個版面狀態通過；每組都有七頁與七個機器人，主區塊沒有越界，375px `scrollWidth=clientWidth=375`，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
+- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 83.23s`；warning 是既有 Starlette／httpx 相依提醒。
+- **剩餘限制**：v13 仍是本機隔離原型，不是正式貼文產圖模板；需先由使用者逐頁視覺確認，核可後才搬入正式產圖流程。
+- **狀態**：v13 原型與驗證完成，等待使用者在 localhost 逐頁檢視。
+
+---
+
+# 前一輪 — 七頁貼文模板 v12 混合回退原型
+
+> 2026-08-20 更新。本輪只調整瀏覽器中的三公司壓力測試原型；正式貼文模板、內容資料與 SQLite 都沒有修改。
+
+## 本輪目標與驗收
+
+- 保留 v11 已獲核可的首頁與最後一頁。
+- 第 2–6 頁完整恢復 v10 的 DOM 與排版，不混入 v11 中間頁元素。
+- SUN、Billow AI Labs、Shiraz AI 各七頁都要通過 1280px 與 375px 寬度驗證。
+- 正式貼文模板、內容資料與 SQLite 維持原狀，先交付隔離原型供使用者比較。
+
+## 本輪狀態
+
+- **產品能力**：新增隔離的 v12 混合原型；第 1、7 頁沿用 v11，第 2–6 頁完整恢復 v10，可用同一套結構切換 SUN、Billow AI Labs 與 Shiraz AI。
+- **使用者體驗**：首頁與收尾保留使用者較喜歡的新版構圖，中間五頁回到上一版已熟悉的閱讀節奏，不再承擔 v11 新構圖造成的線條、框線與資訊層級風險。
+- **技術結構**：以 v10 複製建立 multi-company-template-stress-v12.html，只把 cover-v12 與 closing-v12 兩個區塊換成 v11；hybrid-v12-contract.js 鎖住頁面組成與溢位。v10、v11、正式 Streamlit 元件、產圖模板及 SQLite 均未修改。
+- **資料流程**：三家公司測試資料 → renderCompany → v12 七頁 DOM → 混合版契約檢查 → 公司切換器。沒有外部 API、資料保存、資料庫寫入或正式發文。
+- **設計理由**：依使用者逐頁比較結果做回退，而不是再次發明新風格；保留獲肯定的首尾辨識度，同時讓中段回到較穩定的內容結構。
+- **替代方案**：直接修補 v11 中間頁仍可能遺留不滿意的結構；完全退回 v10 則會失去已核可的首頁與最後一頁。v12 混合版以最小變動精確對應使用者選擇。
+- **安全與成本**：沒有新相依、字型服務、生成圖片、付費操作、schema 變更或正式資料異動；原型仍位於 .superpowers/ 並受 .gitignore 排除。
+- **TDD 證據**：先看到 v12 marker missing，再補版本標記；接著依序看到 v11 cover missing 與 v11 closing missing，再移植首尾。視覺檢查發現 v10 的 nowrap 洩漏到新版封面後，先補上 v10 cover nowrap leaked 失敗契約，再以 cover-v12 範圍覆寫修正。
+- **回退精確度**：以程式比對 v10 與 v12 的第 2–6 頁 render 片段，diff 為空；契約同時禁止 v11 中間頁選擇器出現在 v12。
+- **視覺 QA**：完成三輪桌面 1280×800／手機 375×812 截圖；最終封面與第二頁證據為 .screenshots/hybrid-v12-verify-desktop.png、.screenshots/hybrid-v12-verify-mobile.png，最後一頁證據為 .screenshots/hybrid-v12-final-mobile.png。
+- **跨內容壓力測試**：三家公司各七頁、兩種寬度共 42 個版面狀態均為 0 overflow；三個實際切換按鈕皆正確更新 aria-pressed，手機 scrollWidth=clientWidth=375，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
+- **全套測試**：PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q 為 617 passed, 16 deselected, 1 warning in 90.44s；warning 是既有 Starlette/httpx 相依提醒。
+- **剩餘限制**：目前是本機視覺原型，不是正式貼文模板；必須先由使用者確認 v12 的逐頁畫面，才會搬入正式產圖流程。
+- **狀態**：v12 原型與驗證已完成，等待使用者視覺確認。
+
+### 前一版 v11 紀錄
+
+- **產品能力**：新增隔離的 v11 七頁原型，同一份公司資料可切換 SUN、Billow AI Labs、Shiraz AI；封面、定位、問題、機制、結果、訊號與收束各自使用不同閱讀構圖，不再是一組格子重複換字。
+- **使用者體驗**：封面以大標、描邊公司字與橘色註記線形成科技編輯海報；第二頁改為貼齊的青色主論點＋右側兩段資訊；第三頁用逐步加重的問題鏈；第四頁用階梯整合 AI 與人工責任；第五頁讓大字「到」跨接雙色色面；第六頁改為三列 evidence ledger；第七頁用全寬深色問題區與底部橘色帶收束。
+- **技術結構**：保留 v10 為只讀失敗基準，另建 `multi-company-template-stress-v11.html` 與 `editorial-v11-contract.js`。`renderCompany` 仍提供資料，v11 只替換七頁 DOM 與 CSS；正式 Streamlit 元件、產圖模板與 SQLite 均未修改。
+- **資料流程**：三家公司測試資料 → `renderCompany` → v11 七頁語意 DOM → 瀏覽器契約檢查 → 公司切換器。沒有外部 API、資料保存、資料庫寫入或正式發文。
+- **設計理由**：採科技編輯雜誌方向，以 LINE Seed、深藍、紙白、青色與珊瑚橘延續品牌；用不對稱欄位、橫線、註記與色面建立節奏，刻意排除圓角 SaaS 卡片、bento grid、橢圓流程、hashtag 方格、日期與來源。
+- **替代方案**：保留 v10 卡片骨架的成本最低，但會延續「每頁長得一樣」與 AI 模板感；全頁都改成深色海報辨識度高，卻會犧牲內容閱讀與跨公司彈性。現行方案保留一個設計語言、讓七頁使用不同構圖，較適合作為可重複模板。
+- **安全與成本**：沒有新相依、字型服務、生成圖片、付費操作或 schema 變更。v11 原型位於 `.superpowers/` 並受 `.gitignore` 排除；使用者核可前不搬入正式產圖流程。
+- **TDD 證據**：逐頁先看見 `v11 marker missing`、`editorial cover structure missing`、`profile thesis missing`、`problem chain missing`、`mechanism steps missing`、`large transition word missing`、`evidence ledger missing`、`closing question missing` 等紅燈，再做最小 DOM／CSS 實作轉綠。後續新增標題碰撞與結尾占版契約，先重現桌面碰撞與問題區過小，再修成雙寬度通過。
+- **視覺 QA**：完成六輪桌面 1280×800／手機 375×812 截圖檢查；實際抓到第二頁無效大白、第三／四頁上擠下空、第六頁標題撞線、第七頁問題區過小，逐項修正後再截。最終證據為 `.screenshots/editorial-v11-final2-desktop.png`、`.screenshots/editorial-v11-final2-mobile.png`。
+- **跨內容壓力測試**：SUN、Billow AI Labs、Shiraz AI 各七頁，在 1280px 與 375px 共 42 個版面狀態皆為 0 overflow；三個實際切換按鈕皆更新 `aria-pressed` 並維持契約通過；手機 `scrollWidth=clientWidth=375`，console 0 errors／0 warnings，localhost HTTP 200。
+- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 94.98s`；warning 是既有 Starlette/httpx 相依提醒。
+- **剩餘限制**：目前是本機視覺原型，不是正式貼文模板；下一步必須由使用者先確認 v11 的整體方向與個別頁面，再把核可結構搬入正式產圖流程。
+- **狀態**：v11 原型與驗證完成，正式模板、正式內容與 SQLite 維持原狀，等待使用者視覺確認。
+
+---
+
+# 前一輪 — 僅限官網的官方 Logo 搜尋
 
 > 2026-08-18 更新。產品負責人要求完全移除第三方 Logo API；系統現在只從已驗證官網尋找候選，找不到就手動上傳。
 
