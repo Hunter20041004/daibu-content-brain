@@ -1,29 +1,31 @@
-# HANDOFF — 七頁貼文模板 v14 聚焦修正版
+# HANDOFF — 七頁貼文模板 v15 共同視覺語法
 
-> 2026-08-20 更新。本輪依使用者要求修正失敗的 v13：保留既有首頁與最後一頁，第 3–7 頁精確恢復 v12，只重做第 2 頁與原型預覽方式。正文資料、正式產圖模板、Streamlit 與 SQLite 都沒有修改。
+> 2026-08-20 更新。本輪依使用者逐頁回饋，保留三家公司現有內容資料與品牌色，重新設計七頁視覺結構；重點是消除等大格子與 AI 模板感、統一編輯式語法，並重新設計第 5 頁的「到」。正式產圖模板、Streamlit、SQLite 與內容資料沒有修改。
 
 ## 本輪目標與驗收
 
-- 第 3–7 頁不得繼續 v13 實驗，render 片段需與 v12 完全相同。
-- 第 2 頁改成「公司是什麼 → 怎麼使用 → 一句話記住」的連續資訊流，保留呆一布機器人並避免任何文字、色塊碰撞。
-- 原型從雙欄縮圖牆改為單欄大圖，讓觀眾以實際閱讀尺度檢查每頁。
-- SUN、Billow AI Labs、Shiraz AI 都要在 1280×800 與 375×812 通過字級、堆疊、溢位與互動檢查。
+- 七頁要像同一個成熟帳號的作品，但每頁依內容功能採不同構圖，不再重複相同卡片。
+- 線條只負責串連或註記；呆一布機器人要與色面、軸線或行動帶互動，不能漂在空白角落。
+- 第 5 頁維持左右 50/50 對比，「到」必須是跨在接縫上的雙色字體本身，不可做成方塊、圓形、徽章或小標籤。
+- 標題最多兩行（封面最多三行），內文依中文詞組換行；SUN、Billow AI Labs、Shiraz AI 都要在 1280×800 與 375×812 通過。
 
 ## 本輪狀態
 
-- **產品能力**：v14 仍使用三家公司同一份七頁內容架構，但將預覽改成一次專注一張的大圖串流；可直接切換公司驗證長短內容是否套版。
-- **使用者體驗**：首頁與收尾保留使用者選定的版本；第 3–7 頁回到較穩定的 v12；第 2 頁以紙白頁首、青色公司定位、紙白使用方式與深藍核心記憶帶形成單一路徑，不再出現散落方框或線條亂飛。
-- **技術結構**：本機隔離原型沿用 `.superpowers/brainstorm/31101-1787251453/content/multi-company-template-stress-v13.html` 供既有 localhost 直接讀取，內部標記為 `v14`；新增 `focused-v14-contract.js` 鎖住回退基準、第 2 頁結構、字級、段落間距、連續堆疊、單欄預覽與溢位。正式程式未變。
-- **資料流程**：三家公司既有測試資料 → `renderCompany` → v14 七頁 DOM → 單欄大圖預覽 → 瀏覽器契約檢查。沒有 LLM、外部 API、資料保存或正式發文。
-- **設計理由**：主方案採「成熟編輯式資訊頁」，沿用深藍、青色、珊瑚橘與 LINE Seed；透過大標、細註記線、連續色面與不等節奏留白建立特色。備援是完整回到 v12，成本更低但第二頁仍會保留使用者不滿意的空間利用；因此只重做第 2 頁。
-- **安全與成本**：沒有新增依賴、字型服務、生成圖片、付費操作、schema 或正式資料異動；工作區中使用者正在修改的兩份 HTML 沒有被 stage 或覆寫。
-- **TDD 證據**：先看到 `v14 marker missing`、`P3 v13 experiment remains`、`P2 v14 profile missing`、`P2 body text is too small`、`v14 preview mode missing`、`P2 use copy collides with anchor`、`P2 continuous flow missing`，再逐一做最小 DOM／CSS 修正轉綠；桌機字級跨公司檢查再抓到共同失敗後，將第 2 頁最小內文提高到 20.02px，手機為 13.34px。
-- **視覺 QA**：完成四輪、每輪各一張 1280×800 與 375×812。第一輪抓到使用說明撞核心帶；第二輪抓到手機公司脈絡撞使用標籤；第三輪完成連續堆疊；第四輪放大內文後八項清單全數合格。最終截圖為 `.screenshots/focused-v14-round4-desktop.png`、`.screenshots/focused-v14-round4-mobile.png`。
-- **跨內容壓力測試**：三家公司、兩種寬度各執行 7 項契約，共 42 項，失敗 0；兩種寬度都無水平溢位，三個公司切換按鈕正確更新內容，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
-- **回退精確度**：以 `rg` 擷取 v12 與 v14 的第 3–7 頁 render 片段後執行 `diff -u`，退出碼 0、沒有差異。
-- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 85.45s`；warning 是既有 Starlette／httpx 相依提醒。
-- **剩餘限制**：v14 是本機隔離視覺原型，不是正式貼文產圖模板；必須先由使用者確認畫面，核可後才搬入正式流程。
-- **狀態**：v14 視覺、跨內容檢查與全套測試完成，等待使用者在 localhost 檢視。
+- **產品能力**：同一份資料可切換三家公司並產生七頁 v15 原型；封面、定位、問題、機制、前後變化、觀察訊號與收尾各有專屬構圖，仍維持同一品牌語法。
+- **使用者體驗**：封面改為深藍主面＋右側青色色面；第 2 頁是主資訊面／細節段／深色結論帶；第 3 頁是三段遞進問題；第 4 頁用單一主軸串三步並以整條珊瑚色警示帶收尾；第 5 頁左右滿版對比；第 6 頁是一主兩輔訊號且移除編號微標籤；第 7 頁讓提問占下半部並與全寬 CTA 色帶相接。
+- **「到」的設計**：字位於 50/50 接縫與垂直轉軸上，使用文字漸層讓左半深藍、右半珊瑚；沒有底色、邊框或圓角。左右標題與「到」同列，讀成「從……到……」，機器人則跨在線軸下方。
+- **技術結構**：既有 localhost 仍讀 `.superpowers/brainstorm/31101-1787251453/content/multi-company-template-stress-v13.html`，內部版本升為 `v15`；新增隔離的 `editorial-v15-contract.js`，逐頁鎖定七種語意結構、預覽不遮圖、兩行標題、詞組換行與文字邊界。正式程式未變。
+- **資料流程**：既有三家公司測試資料 → `renderCompany` → v15 七頁 DOM → 單欄大圖預覽 → 頁面契約與逐頁截圖。沒有 LLM、外部 API、資料保存或正式發文。
+- **設計理由**：主方案採成熟科技編輯式構圖，沿用 LINE Seed、深藍、青色、珊瑚與紙白；共用頁首基線、標題尺度、髮絲線與色面邏輯，但不讓七頁長成同一格子。備援是只細修 v14，成本較低，卻會保留中段卡片重複與第 5 頁「到」缺乏角色的問題，因此未採用。
+- **TDD 證據**：依序先看到 `v15 marker missing`、`switcher covers posts`、`cover-v15 missing`、`profile-v15 missing`、`problem-v15 missing`、`how-v15 missing`、`results-v15 missing`、`signals-v15 missing`、`closing-v15 missing`、`closing question should use one or two phrase-aware lines`，再逐項做最小 DOM／CSS 修正轉綠。
+- **中文換行**：結尾問題使用瀏覽器 `Intl.Segmenter` 先依中文詞組切分，再選接近 69% 的語意斷點；SUN 的「什麼」、Billow 的「會計流程／交給」、Shiraz 的「工廠任務」不再從詞中間斷開。
+- **視覺 QA**：逐頁檢查三家公司共 21 張畫面後，再完成三輪整頁 1280×800／375×812。第一輪發現瀏覽器保留舊捲動位置而判定無效；第二輪從頁首檢查 SUN，第三輪以最長公司名 Billow AI Labs 壓力測試。最終證據為 `.screenshots/v15-qa-round3-desktop.png`、`.screenshots/v15-qa-round3-mobile.png`；最終 SUN 頁面校稿另見 `.screenshots/v15-sun-round2/page-1.png` 至 `page-7.png`。
+- **視覺清單**：層次、留白節奏、字體、三色限制、對齊、375px 響應式、切換／focus 狀態與 hover 微動效均合格；靜態原型沒有載入、錯誤或空資料狀態。
+- **跨內容壓力測試**：三家公司、兩種寬度各執行 9 項契約，共 54 項，失敗 0；1280px 與 375px 都是 `scrollWidth = clientWidth`，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
+- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 82.97s`；warning 是既有 Starlette／httpx 相依提醒。
+- **安全與成本**：沒有新增套件、字型服務、生成圖片、付費操作、schema 或正式資料異動；使用者正在修改的兩份 HTML 與未追蹤個人檔案沒有被 stage 或覆寫。
+- **剩餘限制**：v15 仍是本機隔離視覺原型，不是正式貼文產圖模板；必須先由使用者確認，再把核可結構搬入正式產圖流程。
+- **狀態**：v15 視覺、三公司雙尺寸契約、逐頁截圖與全套測試完成，等待使用者在 localhost 逐頁檢視。
 
 ---
 
