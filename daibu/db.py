@@ -441,6 +441,35 @@ def init_schema(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
         );
 
+        CREATE TABLE IF NOT EXISTS carousel_template_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            theme_id INTEGER NOT NULL,
+            version_no INTEGER NOT NULL,
+            schema_version INTEGER NOT NULL,
+            layout_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (theme_id, version_no),
+            FOREIGN KEY (theme_id) REFERENCES themes(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS carousel_template_settings (
+            theme_id INTEGER PRIMARY KEY,
+            active_version_id INTEGER NOT NULL,
+            FOREIGN KEY (theme_id) REFERENCES themes(id),
+            FOREIGN KEY (active_version_id)
+                REFERENCES carousel_template_versions(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS carousel_drafts (
+            idea_id INTEGER PRIMARY KEY,
+            template_version_id INTEGER NOT NULL,
+            content_revision INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (idea_id) REFERENCES ideas(id),
+            FOREIGN KEY (template_version_id)
+                REFERENCES carousel_template_versions(id)
+        );
+
         CREATE TABLE IF NOT EXISTS idea_sources (
             idea_id INTEGER NOT NULL,
             source_key TEXT NOT NULL,

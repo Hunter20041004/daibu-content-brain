@@ -570,6 +570,36 @@ def test_migration_adds_structured_carousel_storage_idempotently(tmp_path):
     ).fetchone()
 
 
+def test_migration_adds_carousel_template_tables_idempotently(tmp_path):
+    conn = db.connect(str(tmp_path / "layout.db"))
+
+    db.init_schema(conn)
+    db.init_schema(conn)
+
+    names = {
+        row["name"]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+    }
+    assert {
+        "carousel_template_versions",
+        "carousel_template_settings",
+        "carousel_drafts",
+    } <= names
+    indexes = conn.execute(
+        "PRAGMA index_list(carousel_template_versions)"
+    ).fetchall()
+    indexed_columns = {
+        tuple(
+            item["name"]
+            for item in conn.execute(f"PRAGMA index_info({row['name']})")
+        )
+        for row in indexes
+    }
+    assert ("theme_id", "version_no") in indexed_columns
+
+
 def test_migration_adds_carousel_source_position_idempotently(tmp_path):
     path = tmp_path / "carousel-sources.db"
     conn = db.connect(str(path))
