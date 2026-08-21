@@ -1,7 +1,7 @@
-# HANDOFF — 七頁內容與系列模板編輯器設計
+# HANDOFF — 七頁內容與系列模板編輯器待實作
 
-> 2026-08-20 更新。使用者已逐段確認日常內容編輯器與設定頁系列模板管理的完整設計；
-> 本輪只新增設計規格，尚未修改 Streamlit、SQLite schema、正式 Renderer 或產圖流程。
+> 2026-08-21 更新。使用者已明確「規格確認」；完整產品設計已拆成三份可執行的 TDD 計畫並完成自審。
+> 本輪只寫計畫文件，尚未修改 Streamlit、SQLite schema、正式 Renderer 或產圖流程。
 
 ## 本輪目標與驗收
 
@@ -13,16 +13,20 @@
 
 ## 本輪狀態
 
-- **產品能力**：完成內容編輯、即時預覽、七頁原子保存、模板畫布、版本綁定、錯誤復原與舊資料搬遷的設計邊界。
-- **使用者體驗**：日常內容與偶爾模板調整分成兩個工作區；內容編輯保持快速，模板工具集中在設定，不把複雜控制塞進每篇貼文。
-- **技術結構**：沿用 `CarouselDraft`、`carousel_pages`、`carousel_sources`、`render.page_html()` 與 Playwright；新增 Layout Document、模板版本 repository、草稿 metadata 與本機雙向 Streamlit Component 的設計。
-- **資料流程**：未存工作副本 → 共用 Renderer 快速預覽 → 七頁內容／Chromium 驗證 → SQLite 原子保存；正式產圖只讀已保存草稿與其綁定模板版本。
-- **設計理由與備援**：主方案採 HTML 快速預覽＋保存時精準驗證；每次輸入產 PNG 太慢，只靠字數又抓不到真實跑版，因此均未採用。模板採受限制畫布，不做完整 Canva。
-- **安全與成本**：模板 JSON 必須由 Python 依元素白名單重驗，不接受任意 HTML／CSS／script；全部本機運作，不新增付費服務或每次編輯的 LLM 呼叫。
-- **測試設計**：規格要求垂直切片 TDD、SQLite migration／transaction、真實拖曳元件、真實 Chromium 版面測量、Streamlit E2E、三家公司七頁壓力測試與兩輪視覺 QA；實作拆成版本／Renderer 基礎、內容編輯器、模板畫布三階段。
-- **文件**：`docs/superpowers/specs/2026-08-20-七頁內容與系列模板編輯器-design.md`。
-- **剩餘限制**：尚未寫 TDD 實作計畫，也尚未修改正式工具；必須先由使用者審閱書面規格。
-- **狀態**：設計對話已確認；書面規格已完成 placeholder、矛盾、歧義與範圍自審，等待使用者複核。
+- **產品能力**：規格已核可；實作將依 A 版型與版本底層 → B 七頁內容編輯器 → C 受限制模板畫布三階段進行，每階段都可獨立驗收。
+- **使用者體驗**：日常編內容與偶爾改模板維持分流；完成後可先逐頁看欄位與預覽、修完再一次儲存，模板則在設定頁以視覺畫布統一調整。
+- **技術結構**：階段 A 建 `LayoutDocument`、不可變版本表、草稿 metadata、v15.1 正式 Renderer 與 Chromium validator；階段 B 建內容 payload／component／保存服務；階段 C 建模板 payload／component／版本與升級服務。
+- **資料流程**：未存工作副本 → 同源 Renderer 即時預覽 → 內容／schema 驗證 → Chromium 實際測量 → SQLite 原子保存；PNG 只讀已存內容與該草稿綁定版本。
+- **設計理由與備援**：主方案仍是 HTML 即時預覽＋保存時 Chromium 精準驗證；備援是關閉 component 時仍可以已存草稿＋已綁模板產圖，不會因編輯交互失效而破壞資料。
+- **安全與成本**：所有瀏覽器 payload 由 Python 重建，未知元素／屬性／表情全拒絕；不載 CDN、不加付費服務或 LLM 呼叫。模板儲存與草稿升級均先驗證再交易寫入。
+- **TDD 與驗收**：三份計畫皆以一次一個失敗測試拆 Red → Green → Refactor；含 migration 內容指紋、revision conflict、真實 Components v2 交互、真實 Chromium、三公司與長文／橫直 Logo 壓力案例、兩輪雙尺寸截圖 QA。
+- **設計規格**：`docs/superpowers/specs/2026-08-20-七頁內容與系列模板編輯器-design.md`。
+- **實作計畫 A**：`docs/superpowers/plans/2026-08-21-carousel-layout-foundation.md`。
+- **實作計畫 B**：`docs/superpowers/plans/2026-08-21-carousel-content-editor.md`。
+- **實作計畫 C**：`docs/superpowers/plans/2026-08-21-carousel-template-editor.md`。
+- **文件自審**：三份計畫 code fence 成對、`git diff --check` 規則通過，無 TODO／TBD／錯誤函式名，所有 `git add` 均為精確路徑。
+- **剩餘限制**：目前只是可執行計畫，正式工具功能與畫面尚未改變；實作必須依 A → B → C 順序進行。
+- **狀態**：書面規格已核可，三份 TDD 計畫已就緒，等待使用者選擇執行方式。
 
 ---
 
