@@ -97,7 +97,7 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
             heading=ElementRule("頁面標題", True),
             thesis=ElementRule("收束結論", True),
             question=ElementRule("讀者問題", True),
-            invitation=ElementRule("互動邀請", True),
+            invitation=ElementRule("互動邀請", True, "allow"),
             mascot=ElementRule("呆一布機器人", False, "allow", 120, 120),
         ),
     }

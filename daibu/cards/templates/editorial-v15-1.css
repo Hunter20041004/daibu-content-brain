@@ -49,7 +49,8 @@ body {
 h1,
 [data-layout-id="heading"] {
   white-space: pre-wrap;
-  word-break: keep-all;
+  word-break: normal;
+  word-break: auto-phrase;
   overflow-wrap: normal;
 }
 .story-mascot {
@@ -94,7 +95,8 @@ h1,
   color: #c9e8ea;
   font-size: 27px;
   font-weight: 800;
-  letter-spacing: -.025em;
+  letter-spacing: -.045em;
+  white-space: nowrap;
 }
 .cover-v151 [data-layout-id="company-logo"] {
   left: 702px;
@@ -163,6 +165,16 @@ h1,
 
 /* 第 2 頁：兩個既有內容角色，使用兩段大色面建立節奏。 */
 .profile-v151 { background: var(--paper); }
+.profile-v151::after {
+  position: absolute;
+  z-index: 0;
+  left: 73px;
+  top: 576px;
+  width: 934px;
+  height: 520px;
+  background: var(--ink-deep);
+  content: "";
+}
 .editorial-header {
   left: 73px;
   top: 73px;
@@ -219,19 +231,9 @@ h1,
   top: 576px;
   width: 934px;
   height: 215px;
-  padding: 38px 350px 38px 46px;
+  padding: 24px 46px;
   color: white;
   background: var(--ink-deep);
-}
-.profile-facts::before {
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 520px;
-  background: var(--ink-deep);
-  content: "";
 }
 .profile-facts p { color: rgba(255, 255, 255, .78); }
 .profile-v151 [data-layout-id="mascot"] {
@@ -452,21 +454,6 @@ h1,
   line-height: .84;
   text-align: center;
 }
-.result-to small,
-.result-to em {
-  position: absolute;
-  left: 50%;
-  display: block;
-  width: 270px;
-  color: var(--cyan);
-  font-size: 21px;
-  font-style: normal;
-  font-weight: 800;
-  line-height: 1.2;
-  transform: translateX(-50%);
-}
-.result-to small { top: 108px; }
-.result-to em { top: 136px; font-weight: 400; }
 .result-copy {
   top: 518px;
   width: 415px;
@@ -475,7 +462,15 @@ h1,
 .result-copy--before { left: 63px; height: 270px; }
 .result-copy--after { left: 603px; height: 217px; color: white; }
 .result-copy strong,
+.result-copy small,
 .result-copy p { display: block; margin: 0; }
+.result-copy small {
+  margin-bottom: 14px;
+  color: var(--cyan);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+}
 .result-copy strong {
   font-size: 50px;
   font-weight: 800;

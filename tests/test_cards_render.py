@@ -522,7 +522,7 @@ def test_story_css_prioritizes_heading_readability_without_source_footer(
     assert "font-size: 72px" in output
     assert ".page-source" not in output
     assert ".story-mascot" in output
-    assert "word-break: keep-all" in output
+    assert "word-break: auto-phrase" in output
     assert "overflow-wrap: normal" in output
 
 

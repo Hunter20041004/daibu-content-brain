@@ -90,6 +90,7 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
             "company-name",
             html.escape(company),
             classes="company-name",
+            aria_hidden=True,
         )
         + _layout_box(
             "heading",
@@ -119,10 +120,13 @@ def _layout_box(
     *,
     tag: str = "div",
     classes: str = "",
+    aria_hidden: bool = False,
 ) -> str:
     class_attribute = f' class="{classes}"' if classes else ""
+    aria_attribute = ' aria-hidden="true"' if aria_hidden else ""
     return (
-        f'<{tag}{class_attribute} data-layout-id="{element_id}">'
+        f'<{tag}{class_attribute} data-layout-id="{element_id}"'
+        f"{aria_attribute}>"
         f"{content}</{tag}>"
     )
 
@@ -144,7 +148,10 @@ def _element_css(element_id: str, element: LayoutElement) -> str:
                 f"text-align:{text_style.text_align}",
             )
         )
-    return f'[data-layout-id="{element_id}"]{{{";".join(declarations)}}}'
+    return (
+        f'.carousel-canvas [data-layout-id="{element_id}"]'
+        f'{{{";".join(declarations)}}}'
+    )
 
 
 def layout_css(document: LayoutDocument, page_type: str) -> str:
@@ -352,9 +359,7 @@ def _results(page: CarouselPage, company: str) -> str:
         + _layout_box("axis", "", classes="result-axis")
         + _layout_box(
             "to",
-            "到"
-            f'<small>{html.escape(transition.title)}</small>'
-            f'<em>{html.escape(transition.text)}</em>',
+            "到",
             tag="span",
             classes="result-to",
         )
@@ -366,6 +371,8 @@ def _results(page: CarouselPage, company: str) -> str:
         )
         + _layout_box(
             "after-copy",
+            f'<small>{html.escape(transition.title)}｜'
+            f'{html.escape(transition.text)}</small>'
             f'<strong>{html.escape(after.text)}</strong>'
             f'<p>{html.escape(change.text)}</p>',
             tag="section",
@@ -373,8 +380,7 @@ def _results(page: CarouselPage, company: str) -> str:
         )
         + _layout_box(
             "summary",
-            f'<strong>{html.escape(purchase.label)}</strong>'
-            f'<span>{html.escape(purchase.text)}</span>',
+            html.escape(purchase.text),
             tag="p",
             classes="result-summary",
         )
