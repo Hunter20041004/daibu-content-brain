@@ -984,6 +984,10 @@ with candidate_column:
                 content_parts.append(
                     f"{content_counts['輪播草稿']} 份輪播草稿"
                 )
+            if content_counts["模板版本"]:
+                content_parts.append(
+                    f"{content_counts['模板版本']} 個模板版本"
+                )
             content_summary = "、".join(content_parts)
             warning_message = (
                 f"這會一併刪掉 {content_summary}，且無法復原。"

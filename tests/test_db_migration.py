@@ -600,6 +600,94 @@ def test_migration_adds_carousel_template_tables_idempotently(tmp_path):
     assert ("theme_id", "version_no") in indexed_columns
 
 
+def test_template_backfill_preserves_existing_carousel_content(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "template-backfill.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+    )
+    idea_id = db.add_idea(conn, theme_id, Idea("題目", "角度", ""))
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+    for table in (
+        "carousel_template_settings",
+        "carousel_drafts",
+        "carousel_template_versions",
+    ):
+        conn.execute(f"DROP TABLE {table}")
+    conn.commit()
+    before = {
+        "carousel_pages": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_pages ORDER BY idea_id, page_no"
+            )
+        ],
+        "carousel_sources": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_sources "
+                "ORDER BY idea_id, position, source_key"
+            )
+        ],
+        "ideas": [
+            tuple(row)
+            for row in conn.execute("SELECT * FROM ideas ORDER BY id")
+        ],
+    }
+
+    db.init_schema(conn)
+
+    after = {
+        "carousel_pages": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_pages ORDER BY idea_id, page_no"
+            )
+        ],
+        "carousel_sources": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_sources "
+                "ORDER BY idea_id, position, source_key"
+            )
+        ],
+        "ideas": [
+            tuple(row)
+            for row in conn.execute("SELECT * FROM ideas ORDER BY id")
+        ],
+    }
+    assert after == before
+    metadata = conn.execute(
+        """
+        SELECT drafts.idea_id, drafts.content_revision,
+               versions.theme_id, versions.version_no
+        FROM carousel_drafts AS drafts
+        JOIN carousel_template_versions AS versions
+          ON versions.id = drafts.template_version_id
+        """
+    ).fetchall()
+    assert [tuple(row) for row in metadata] == [(idea_id, 1, theme_id, 1)]
+    counts_before = {
+        table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in (
+            "carousel_template_versions",
+            "carousel_template_settings",
+            "carousel_drafts",
+        )
+    }
+
+    db.init_schema(conn)
+
+    counts_after = {
+        table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in counts_before
+    }
+    assert counts_after == counts_before
+
+
 def test_migration_adds_carousel_source_position_idempotently(tmp_path):
     path = tmp_path / "carousel-sources.db"
     conn = db.connect(str(path))
@@ -704,6 +792,8 @@ def test_migration_adds_brand_assets_idempotently(tmp_path):
 
 
 def test_single_series_cleanup_keeps_target_graph_and_shared_assets(tmp_path):
+    from daibu.cards import layout_repository
+
     conn = db.connect(str(tmp_path / "single-series.db"))
     db.init_schema(conn)
     conn.execute(
@@ -788,6 +878,20 @@ def test_single_series_cleanup_keeps_target_graph_and_shared_assets(tmp_path):
         """
     )
     conn.commit()
+    kept_version = layout_repository.ensure_default_version(conn, target_id)
+    removed_version = layout_repository.ensure_default_version(conn, other_id)
+    conn.executemany(
+        """
+        INSERT INTO carousel_drafts (
+            idea_id, template_version_id, content_revision, updated_at
+        ) VALUES (?, ?, 1, '2026-08-01')
+        """,
+        [
+            (kept_idea_id, kept_version.id),
+            (removed_idea_id, removed_version.id),
+        ],
+    )
+    conn.commit()
 
     db.init_schema(conn)
 
@@ -802,10 +906,17 @@ def test_single_series_cleanup_keeps_target_graph_and_shared_assets(tmp_path):
         "carousel_pages",
         "carousel_sources",
         "idea_sources",
+        "carousel_drafts",
     ):
         assert conn.execute(
             f"SELECT COUNT(*) AS count FROM {table}"
         ).fetchone()["count"] == 1
+    assert conn.execute(
+        "SELECT COUNT(*) AS count FROM carousel_template_settings"
+    ).fetchone()["count"] == 1
+    assert conn.execute(
+        "SELECT COUNT(*) AS count FROM carousel_template_versions"
+    ).fetchone()["count"] == 1
     assert conn.execute(
         "SELECT COUNT(*) AS count FROM sources"
     ).fetchone()["count"] == 5

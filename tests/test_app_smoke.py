@@ -1129,6 +1129,8 @@ def test_selection_can_create_a_series_when_none_are_left(monkeypatch, tmp_path)
 
 
 def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
+    from daibu.cards import layout_repository
+
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
     conn = db.connect(str(database_path))
@@ -1146,6 +1148,7 @@ def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
         Idea("已發布", "角度", ""),
         status="已發",
     )
+    layout_repository.ensure_default_version(conn, theme_id)
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
     app.run()
@@ -1153,6 +1156,7 @@ def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
     warning_text = " ".join(warning.value for warning in app.warning)
     assert "2 則候選" in warning_text
     assert "1 則已發" in warning_text
+    assert "1 個模板版本" in warning_text
     assert "無法復原" in warning_text
 
 
