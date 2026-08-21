@@ -1,0 +1,242 @@
+@font-face {
+  font-family: "LINE Seed TW";
+  font-weight: 400;
+  src: url("__FONT_RG__") format("opentype");
+}
+@font-face {
+  font-family: "LINE Seed TW";
+  font-weight: 700;
+  src: url("__FONT_BD__") format("opentype");
+}
+@font-face {
+  font-family: "LINE Seed TW";
+  font-weight: 800;
+  src: url("__FONT_EB__") format("opentype");
+}
+
+:root {
+  --ink: #173d4d;
+  --ink-deep: #102f3d;
+  --teal: #2f7c87;
+  --cyan: #86ccd4;
+  --cyan-soft: #dceff1;
+  --coral: #ec9870;
+  --paper: #fafbf8;
+  --ice: #edf6f7;
+  --line: #9fc7d0;
+  --muted: #61747d;
+}
+
+* { box-sizing: border-box; }
+html, body { width: 1080px; height: 1350px; margin: 0; }
+body {
+  overflow: hidden;
+  background: var(--paper);
+  font-family: "LINE Seed TW", "PingFang TC", sans-serif;
+}
+.carousel-canvas,
+.card {
+  position: relative;
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+}
+.card {
+  color: var(--ink-deep);
+  background: var(--paper);
+}
+[data-layout-id] { position: absolute; z-index: 2; }
+h1,
+[data-layout-id="heading"] {
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+.story-mascot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* v15.1 核可封面：企業名稱是右側主視覺，Logo 保留獨立安全區。 */
+.cover-v151 {
+  color: white;
+  background: var(--ink-deep);
+}
+.cover-v151::before {
+  position: absolute;
+  right: -292px;
+  top: 230px;
+  width: 760px;
+  height: 760px;
+  border: 10px solid rgba(134, 204, 212, .76);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 74px rgba(134, 204, 212, .08),
+    0 0 0 168px rgba(134, 204, 212, .045);
+  content: "";
+}
+.cover-v151::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 24px;
+  background: var(--coral);
+  content: "";
+}
+.cover-v151 [data-layout-id="series"] {
+  left: 76px;
+  top: 88px;
+  width: 176px;
+  height: 44px;
+  color: #c9e8ea;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+.cover-v151 [data-layout-id="company-logo"] {
+  left: 702px;
+  top: 76px;
+  width: 302px;
+  height: 69px;
+}
+.cover-v151 [data-layout-id="company-logo"] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right center;
+}
+.cover-v151 .company-name {
+  left: 858px;
+  top: 173px;
+  width: 222px;
+  height: 580px;
+  overflow: hidden;
+  color: transparent;
+  -webkit-text-stroke: 5px rgba(134, 204, 212, .28);
+  font-size: 270px;
+  font-weight: 800;
+  line-height: .82;
+  letter-spacing: -.08em;
+  writing-mode: vertical-rl;
+  text-transform: uppercase;
+}
+.cover-v151 .cover-heading {
+  left: 76px;
+  top: 302px;
+  width: 842px;
+  height: 320px;
+  margin: 0;
+  color: white;
+  font-size: 112px;
+  font-weight: 800;
+  line-height: .95;
+  letter-spacing: -.065em;
+}
+.cover-v151 .cover-rule {
+  left: 76px;
+  top: 680px;
+  width: 875px;
+  height: 6px;
+  background: var(--coral);
+}
+.cover-v151 .cover-copy {
+  left: 76px;
+  top: 724px;
+  width: 529px;
+  height: 120px;
+  margin: 0;
+  color: rgba(255, 255, 255, .88);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.cover-v151 [data-layout-id="mascot"] {
+  left: 744px;
+  top: 1053px;
+  width: 282px;
+  height: 254px;
+}
+
+/* 第 2 頁：兩個既有內容角色，使用兩段大色面建立節奏。 */
+.profile-v151 { background: var(--paper); }
+.editorial-header {
+  left: 73px;
+  top: 73px;
+  display: flex;
+  width: 934px;
+  height: 37px;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ink-deep);
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.editorial-header .series { font-weight: 800; letter-spacing: -.025em; }
+.editorial-header .company { color: var(--teal); font-weight: 800; }
+.editorial-heading {
+  left: 73px;
+  top: 147px;
+  width: 934px;
+  height: 73px;
+  margin: 0;
+  color: var(--ink-deep);
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.055em;
+}
+.profile-v151 section small,
+.profile-v151 section p { display: block; margin: 0; }
+.profile-v151 section small {
+  margin-bottom: 16px;
+  color: var(--coral);
+  font-size: 27px;
+  font-weight: 800;
+}
+.profile-v151 section p {
+  font-size: 28px;
+  line-height: 1.42;
+}
+.profile-positioning {
+  left: 73px;
+  top: 248px;
+  width: 934px;
+  height: 310px;
+  padding: 44px 54px;
+  background: var(--cyan);
+}
+.profile-positioning p {
+  color: var(--ink-deep);
+  font-weight: 700;
+}
+.profile-facts {
+  left: 73px;
+  top: 576px;
+  width: 934px;
+  height: 215px;
+  padding: 38px 350px 38px 46px;
+  color: white;
+  background: var(--ink-deep);
+}
+.profile-facts::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 520px;
+  background: var(--ink-deep);
+  content: "";
+}
+.profile-facts p { color: rgba(255, 255, 255, .78); }
+.profile-v151 [data-layout-id="mascot"] {
+  left: 801px;
+  top: 1092px;
+  width: 260px;
+  height: 234px;
+}

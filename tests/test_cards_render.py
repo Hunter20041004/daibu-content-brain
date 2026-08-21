@@ -23,6 +23,45 @@ def _render(tmp_path: Path, page_index: int = 0) -> str:
     )
 
 
+def test_cover_uses_editorial_v15_1_without_page_number_or_source(tmp_path):
+    output = _render(tmp_path)
+
+    assert 'data-template="editorial-v15.1"' in output
+    assert 'data-page-type="cover"' in output
+    for element_id in (
+        "company-logo",
+        "company-name",
+        "heading",
+        "positioning",
+        "mascot",
+    ):
+        assert f'data-layout-id="{element_id}"' in output
+    assert 'alt="ElevenLabs Logo"' in output
+    assert 'class="company-name"' in output
+    assert "讓每段文字保留說話方式" in output
+    assert "ElevenLabs 用 AI 生成與轉換保有語氣的聲音。" in output
+    assert 'class="page-tag"' not in output
+    assert 'class="page-source' not in output
+    assert "來源：" not in output
+
+
+def test_who_uses_only_positioning_and_facts_sections(tmp_path):
+    page = carousel_draft().pages[1]
+    output = _render(tmp_path, page_index=1)
+    markup = output.split("</style>", 1)[1]
+
+    assert 'data-template="editorial-v15.1"' in output
+    assert 'data-page-type="who"' in output
+    for element_id in ("header", "heading", "positioning", "facts", "mascot"):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert page.sections[0].text in output
+    assert page.sections[1].text in output
+    assert "本頁定位" not in output
+    assert "一句話看懂" not in output
+    assert 'class="page-source' not in output
+    assert "來源：" not in output
+
+
 def test_every_page_has_logo_and_inner_pages_keep_their_source(tmp_path):
     asset = brand_asset(_logo(tmp_path))
     outputs = [
@@ -60,15 +99,19 @@ def test_cover_leads_with_series_and_hook_without_industry_or_source(
 ):
     output = _render(tmp_path)
 
-    assert '<div class="series-lockup">一布懂 AI 新創</div>' in output
     assert (
-        '<h1 class="cover-hook">讓每段文字保留說話方式</h1>'
+        '<div class="series" data-layout-id="series">一布懂 AI 新創</div>'
         in output
     )
-    assert 'class="cover-positioning"' in output
+    assert (
+        '<h1 class="cover-heading" data-layout-id="heading">'
+        "讓每段文字保留說話方式</h1>"
+        in output
+    )
+    assert 'class="cover-copy" data-layout-id="positioning"' in output
     assert "生成式語音" not in output
     assert "來源：ElevenLabs" not in output
-    assert 'class="company-name company-name--short"' in output
+    assert 'class="company-name" data-layout-id="company-name"' in output
 
 
 def test_html_escapes_heading_section_and_company_text(tmp_path):
