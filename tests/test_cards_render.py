@@ -6,6 +6,7 @@ from PIL import Image
 import pytest
 
 from daibu.cards import pages, render
+from daibu.cards.layout_schema import load_builtin_layout, replace_element
 from tests.card_fixtures import brand_asset, carousel_draft
 
 
@@ -43,6 +44,31 @@ def test_cover_uses_editorial_v15_1_without_page_number_or_source(tmp_path):
     assert 'class="page-tag"' not in output
     assert 'class="page-source' not in output
     assert "來源：" not in output
+
+
+def test_layout_css_uses_saved_geometry(tmp_path):
+    layout = replace_element(
+        load_builtin_layout(),
+        "cover",
+        "heading",
+        x=123,
+        y=234,
+        w=500,
+        h=190,
+    )
+
+    output = render.page_html(
+        carousel_draft().pages[0],
+        "ElevenLabs",
+        brand_asset(_logo(tmp_path)),
+        layout,
+    )
+
+    assert '[data-layout-id="heading"]' in output
+    assert "left:123px" in output
+    assert "top:234px" in output
+    assert "width:500px" in output
+    assert "height:190px" in output
 
 
 def test_who_uses_only_positioning_and_facts_sections(tmp_path):

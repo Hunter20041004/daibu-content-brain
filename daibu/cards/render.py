@@ -2,7 +2,11 @@ import html
 from pathlib import Path
 
 from daibu.cards import diagrams, logo, pages
-from daibu.cards.layout_schema import LayoutDocument
+from daibu.cards.layout_schema import (
+    LayoutDocument,
+    LayoutElement,
+    load_builtin_layout,
+)
 from daibu.cards.schema import BrandAsset, CarouselPage, ContentSection
 
 ASSETS = Path(__file__).resolve().parent.parent.parent / "assets"
@@ -123,7 +127,42 @@ def _layout_box(
     )
 
 
-def _editorial_document(page: CarouselPage, content: str) -> str:
+def _element_css(element_id: str, element: LayoutElement) -> str:
+    rect = element.rect
+    text_style = element.text_style
+    declarations = [
+        "position:absolute!important",
+        f"left:{rect.x:g}px",
+        f"top:{rect.y:g}px",
+        f"width:{rect.w:g}px",
+        f"height:{rect.h:g}px",
+    ]
+    if text_style is not None:
+        declarations.extend(
+            (
+                f"font-size:{text_style.font_size:g}px",
+                f"text-align:{text_style.text_align}",
+            )
+        )
+    return f'[data-layout-id="{element_id}"]{{{";".join(declarations)}}}'
+
+
+def layout_css(document: LayoutDocument, page_type: str) -> str:
+    try:
+        page_layout = document.pages[page_type]
+    except KeyError as error:
+        raise ValueError(f"版面缺少頁型：{page_type}") from error
+    return "\n".join(
+        _element_css(element_id, element)
+        for element_id, element in page_layout.elements.items()
+    )
+
+
+def _editorial_document(
+    page: CarouselPage,
+    content: str,
+    layout: LayoutDocument,
+) -> str:
     css = (TEMPLATES / "editorial-v15-1.css").read_text(encoding="utf-8")
     for token, filename in FONT_FILES.items():
         css = css.replace(token, (ASSETS / "fonts" / filename).as_uri())
@@ -131,6 +170,7 @@ def _editorial_document(page: CarouselPage, content: str) -> str:
         (TEMPLATES / "editorial-v15-1.html")
         .read_text(encoding="utf-8")
         .replace("__CSS__", css)
+        .replace("__LAYOUT_CSS__", layout_css(layout, page.page_type))
         .replace("__PAGE_TYPE__", html.escape(page.page_type))
         .replace("__CONTENT__", content)
     )
@@ -455,22 +495,26 @@ def page_html(
     brand_asset: BrandAsset | None,
     layout: LayoutDocument | None = None,
 ) -> str:
-    del layout
+    document = layout or load_builtin_layout()
     logo_uri = logo.logo_data_uri(brand_asset, company)
     if page.page_type == "cover":
-        return _editorial_document(page, _cover(page, company, logo_uri))
+        return _editorial_document(
+            page,
+            _cover(page, company, logo_uri),
+            document,
+        )
     if page.page_type == "who":
-        return _editorial_document(page, _who(page, company))
+        return _editorial_document(page, _who(page, company), document)
     if page.page_type == "problem":
-        return _editorial_document(page, _problem(page, company))
+        return _editorial_document(page, _problem(page, company), document)
     if page.page_type == "how-ai":
-        return _editorial_document(page, _how_ai(page, company))
+        return _editorial_document(page, _how_ai(page, company), document)
     if page.page_type == "results":
-        return _editorial_document(page, _results(page, company))
+        return _editorial_document(page, _results(page, company), document)
     if page.page_type == "why-care":
-        return _editorial_document(page, _why_care(page, company))
+        return _editorial_document(page, _why_care(page, company), document)
     if page.page_type == "cta":
-        return _editorial_document(page, _cta(page, company))
+        return _editorial_document(page, _cta(page, company), document)
 
     css = (TEMPLATES / "ai-startup.css").read_text(encoding="utf-8")
     for token, filename in FONT_FILES.items():
