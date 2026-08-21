@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+import json
 import math
+from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
 
@@ -47,6 +49,11 @@ class LayoutDocument:
     canvas_width: int
     canvas_height: int
     pages: Mapping[str, LayoutPage]
+
+
+def load_builtin_layout() -> LayoutDocument:
+    layout_path = Path(__file__).with_name("layouts") / "editorial-v15-1.json"
+    return parse_layout(json.loads(layout_path.read_text(encoding="utf-8")))
 
 
 def layout_to_mapping(document: LayoutDocument) -> dict[str, object]:

@@ -4,6 +4,7 @@ from daibu.cards.layout_registry import ELEMENT_REGISTRY
 from daibu.cards.layout_schema import (
     LayoutValidationError,
     layout_to_mapping,
+    load_builtin_layout,
     parse_layout,
     replace_element,
 )
@@ -344,3 +345,11 @@ def test_replace_element_rejects_text_style_on_non_text_element():
 
     with pytest.raises(LayoutValidationError, match="mascot.*font_size"):
         replace_element(original, "cover", "mascot", font_size=48)
+
+
+def test_builtin_layout_covers_every_registered_element():
+    document = load_builtin_layout()
+
+    assert set(document.pages) == set(ELEMENT_REGISTRY)
+    for page_type, rules in ELEMENT_REGISTRY.items():
+        assert set(document.pages[page_type].elements) == set(rules)

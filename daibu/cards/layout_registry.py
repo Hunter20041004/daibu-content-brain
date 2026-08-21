@@ -27,7 +27,12 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
             series=ElementRule("系列名稱", True),
             **{
                 "company-logo": ElementRule("企業 Logo"),
-                "company-name": ElementRule("企業名稱", True, "allow"),
+                "company-name": ElementRule(
+                    "企業名稱",
+                    True,
+                    "allow",
+                    max_font_size=320,
+                ),
                 "heading": ElementRule("封面標題", True),
                 "rule": ElementRule("標題分隔線", False, "background", 24, 2),
                 "positioning": ElementRule("一句話定位", True),
