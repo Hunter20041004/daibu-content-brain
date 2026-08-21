@@ -1,31 +1,30 @@
-# HANDOFF — 七頁貼文模板 v15 共同視覺語法
+# HANDOFF — 七頁貼文模板 v15.1 逐頁細修
 
-> 2026-08-20 更新。本輪依使用者逐頁回饋，保留三家公司現有內容資料與品牌色，重新設計七頁視覺結構；重點是消除等大格子與 AI 模板感、統一編輯式語法，並重新設計第 5 頁的「到」。正式產圖模板、Streamlit、SQLite 與內容資料沒有修改。
+> 2026-08-20 更新。本輪保留三家公司內容資料與 v15 的頁面語法，依使用者指定恢復右側大型企業名稱封面，另設右上 Logo 區，並逐頁修正白洞、段距、碰撞、機器人比例、第 5 頁標題與「到」、第 6 頁主訊號色塊。正式產圖模板、Streamlit、SQLite 與內容資料沒有修改。
 
 ## 本輪目標與驗收
 
-- 七頁要像同一個成熟帳號的作品，但每頁依內容功能採不同構圖，不再重複相同卡片。
-- 線條只負責串連或註記；呆一布機器人要與色面、軸線或行動帶互動，不能漂在空白角落。
-- 第 5 頁維持左右 50/50 對比，「到」必須是跨在接縫上的雙色字體本身，不可做成方塊、圓形、徽章或小標籤。
-- 標題最多兩行（封面最多三行），內文依中文詞組換行；SUN、Billow AI Labs、Shiraz AI 都要在 1280×800 與 375×812 通過。
+- 第 1 頁恢復 v12 已核可的右側大型直式描邊企業名稱；右上角另留正式 Logo 安全區，原型先以公司字標佔位。
+- 第 2 頁深藍結論回到正常文流並延伸到畫面 85% 以下；第 3 頁三段內容舒展到畫面 82% 以下；第 4 頁警示帶與機器人天線至少保留 `1.5cqw`。
+- 七頁呆一布相對 v15 至少縮小 10%，且完整留在畫布內。
+- 第 5 頁維持左右 50/50 對比，左右標題放大並靠近中線，但與放大的雙色「到」至少保留 `2cqw`；機器人移到左側紙白區。
+- 第 6 頁主訊號使用深藍底白字；SUN、Billow AI Labs、Shiraz AI 都要在 1280×800 與 375×812 通過。
 
 ## 本輪狀態
 
-- **產品能力**：同一份資料可切換三家公司並產生七頁 v15 原型；封面、定位、問題、機制、前後變化、觀察訊號與收尾各有專屬構圖，仍維持同一品牌語法。
-- **使用者體驗**：封面改為深藍主面＋右側青色色面；第 2 頁是主資訊面／細節段／深色結論帶；第 3 頁是三段遞進問題；第 4 頁用單一主軸串三步並以整條珊瑚色警示帶收尾；第 5 頁左右滿版對比；第 6 頁是一主兩輔訊號且移除編號微標籤；第 7 頁讓提問占下半部並與全寬 CTA 色帶相接。
-- **「到」的設計**：字位於 50/50 接縫與垂直轉軸上，使用文字漸層讓左半深藍、右半珊瑚；沒有底色、邊框或圓角。左右標題與「到」同列，讀成「從……到……」，機器人則跨在線軸下方。
-- **技術結構**：既有 localhost 仍讀 `.superpowers/brainstorm/31101-1787251453/content/multi-company-template-stress-v13.html`，內部版本升為 `v15`；新增隔離的 `editorial-v15-contract.js`，逐頁鎖定七種語意結構、預覽不遮圖、兩行標題、詞組換行與文字邊界。正式程式未變。
-- **資料流程**：既有三家公司測試資料 → `renderCompany` → v15 七頁 DOM → 單欄大圖預覽 → 頁面契約與逐頁截圖。沒有 LLM、外部 API、資料保存或正式發文。
-- **設計理由**：主方案採成熟科技編輯式構圖，沿用 LINE Seed、深藍、青色、珊瑚與紙白；共用頁首基線、標題尺度、髮絲線與色面邏輯，但不讓七頁長成同一格子。備援是只細修 v14，成本較低，卻會保留中段卡片重複與第 5 頁「到」缺乏角色的問題，因此未採用。
-- **TDD 證據**：依序先看到 `v15 marker missing`、`switcher covers posts`、`cover-v15 missing`、`profile-v15 missing`、`problem-v15 missing`、`how-v15 missing`、`results-v15 missing`、`signals-v15 missing`、`closing-v15 missing`、`closing question should use one or two phrase-aware lines`，再逐項做最小 DOM／CSS 修正轉綠。
-- **中文換行**：結尾問題使用瀏覽器 `Intl.Segmenter` 先依中文詞組切分，再選接近 69% 的語意斷點；SUN 的「什麼」、Billow 的「會計流程／交給」、Shiraz 的「工廠任務」不再從詞中間斷開。
-- **視覺 QA**：逐頁檢查三家公司共 21 張畫面後，再完成三輪整頁 1280×800／375×812。第一輪發現瀏覽器保留舊捲動位置而判定無效；第二輪從頁首檢查 SUN，第三輪以最長公司名 Billow AI Labs 壓力測試。最終證據為 `.screenshots/v15-qa-round3-desktop.png`、`.screenshots/v15-qa-round3-mobile.png`；最終 SUN 頁面校稿另見 `.screenshots/v15-sun-round2/page-1.png` 至 `page-7.png`。
-- **視覺清單**：層次、留白節奏、字體、三色限制、對齊、375px 響應式、切換／focus 狀態與 hover 微動效均合格；靜態原型沒有載入、錯誤或空資料狀態。
-- **跨內容壓力測試**：三家公司、兩種寬度各執行 9 項契約，共 54 項，失敗 0；1280px 與 375px 都是 `scrollWidth = clientWidth`，console 0 errors／0 warnings，帶 key 的 localhost 為 HTTP 200。
-- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 82.97s`；warning 是既有 Starlette／httpx 相依提醒。
+- **產品能力**：同一份三家公司資料可產生七頁 v15.1 原型；封面同時有大型企業名稱識別與獨立 Logo 安全區，其餘六頁維持 v15 的內容功能。
+- **使用者體驗**：封面先用企業名稱與主題建立記憶點；第 2 頁深藍結論不再硬釘頁底或留下白洞，第 3 頁三段問題更舒展，第 4 頁天線不碰警示帶，第 5 頁清楚讀成「從節目搜尋／到／直接生成」，第 6 頁主訊號與機器人不再黏色。
+- **技術結構**：localhost 仍讀 `.superpowers/brainstorm/31101-1787251453/content/multi-company-template-stress-v13.html` 與 `editorial-v15-contract.js`；版本標記升為 `v15.1`，只新增 `.cover-v151` 與範圍化 CSS／幾何契約。正式程式未變。
+- **資料流程**：既有三家公司測試資料 → `renderCompany` → v15.1 七頁 DOM → 單欄預覽 → 三公司雙尺寸契約 → 逐頁與整頁截圖。沒有 LLM、外部 API、資料保存或正式發文。
+- **設計理由與備援**：主方案恢復使用者較喜歡的名稱主導封面，再將正式 Logo 當成另一個品牌層級；這比把 Logo 與大型名稱二選一更完整。備援是只保留右上 Logo、拿掉大型名稱，成本較低但會失去封面辨識度，因此未採用。
 - **安全與成本**：沒有新增套件、字型服務、生成圖片、付費操作、schema 或正式資料異動；使用者正在修改的兩份 HTML 與未追蹤個人檔案沒有被 stage 或覆寫。
-- **剩餘限制**：v15 仍是本機隔離視覺原型，不是正式貼文產圖模板；必須先由使用者確認，再把核可結構搬入正式產圖流程。
-- **狀態**：v15 視覺、三公司雙尺寸契約、逐頁截圖與全套測試完成，等待使用者在 localhost 逐頁檢視。
+- **TDD 證據**：依序看見 `v15.1 marker missing`、`approved cover word missing`、`page 3 mascot leaves the canvas`、`profile anchor leaves a white hole`、`problem stages are cramped`、`mechanism antenna touches caution band`、`result titles are too small`、`到 is too small`、`result mascot should move to the white side`、`primary signal blends into mascot`、`primary signal text lacks contrast`、`profile conclusion lacks vertical weight`、`problem story does not use enough vertical space`、`result connector crowds the titles`，再逐項做最小修正轉綠。
+- **視覺 QA**：第一輪 1280×800／375×812 與七頁校稿抓到第 2、3 頁垂直張力不足及第 5 頁「到」太靠近標題；第 4 頁元素截圖疑似裁切，改用完整 viewport 校準後確認實際安全，沒有用壞測量去改正常畫面。修正後第二輪八項清單全數合格。最終證據為 `.screenshots/v15-1-round2-desktop.png`、`.screenshots/v15-1-round2-mobile.png`；逐頁證據為 `.screenshots/v15-1-page1.png` 至 `.screenshots/v15-1-page7.png`，第 2、3、5 頁複驗另有 `*-updated.png`。
+- **視覺清單**：層次合格；區塊間距有長短節奏；使用 LINE Seed 而非系統預設；主色限制為深藍、青、珊瑚；左右基線一致；375px 無橫向溢位；公司切換有 pressed／focus 狀態；卡片 hover 微動效保留。靜態原型不涉及載入、錯誤或空資料狀態。
+- **跨內容壓力測試**：桌機三家公司各 12 項、手機三家公司各 11 項，共 69 項契約，失敗 0；1280px 與 375px 都是 `scrollWidth = clientWidth`，console 0 errors／0 warnings。無 key root 回 HTTP 403，帶既有 key 的 localhost 回 HTTP 200，符合保護設定。
+- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `617 passed, 16 deselected, 1 warning in 78.88s`；warning 是既有 Starlette／httpx 相依提醒。
+- **剩餘限制**：右上 Logo 目前是公司字標佔位，取得正式 Logo 後才能替換；v15.1 仍是本機隔離視覺原型，不是正式貼文產圖模板，必須先由使用者確認再搬入正式流程。
+- **狀態**：v15.1 逐頁細修、三公司雙尺寸契約、兩輪截圖與全套測試完成，等待使用者在 localhost 逐頁檢視。
 
 ---
 
