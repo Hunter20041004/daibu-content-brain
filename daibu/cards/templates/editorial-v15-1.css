@@ -240,3 +240,410 @@ h1,
   width: 260px;
   height: 234px;
 }
+
+/* 第 3 頁：脈絡線只服務閱讀順序，不跨越無關區塊。 */
+.problem-v151 { background: var(--paper); }
+.problem-v151 .editorial-heading {
+  width: 878px;
+  height: 158px;
+  font-size: 77px;
+  line-height: 1.02;
+}
+.story-spine {
+  left: 88px;
+  top: 341px;
+  width: 5px;
+  height: 774px;
+  background: var(--coral);
+}
+.problem-stage {
+  left: 120px;
+  width: 887px;
+  min-height: 215px;
+  padding: 32px 38px;
+  border-top: 3px solid var(--line);
+  background: rgba(220, 239, 241, .42);
+}
+.problem-stage::before {
+  position: absolute;
+  left: -32px;
+  top: 50px;
+  width: 32px;
+  height: 5px;
+  background: var(--coral);
+  content: "";
+}
+.problem-stage small,
+.problem-stage strong,
+.problem-stage p { display: block; margin: 0; }
+.problem-stage small {
+  margin-bottom: 8px;
+  color: var(--coral);
+  font-size: 25px;
+  font-weight: 800;
+}
+.problem-stage strong {
+  color: var(--ink-deep);
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -.03em;
+}
+.problem-stage .stage-context {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 28px;
+  line-height: 1.3;
+}
+.problem-v151 [data-layout-id="stage-1"] { top: 341px; height: 215px; }
+.problem-v151 [data-layout-id="stage-2"] { top: 578px; height: 215px; }
+.problem-v151 [data-layout-id="stage-3"] { top: 816px; height: 299px; }
+.problem-stage--anchor {
+  padding-right: 270px;
+  border-top-color: var(--coral);
+  color: white;
+  background: var(--ink-deep);
+}
+.problem-stage--anchor strong { color: white; }
+.problem-stage--anchor .stage-context { color: rgba(255, 255, 255, .74); }
+.problem-v151 [data-layout-id="mascot"] {
+  left: 815px;
+  top: 1092px;
+  width: 260px;
+  height: 234px;
+}
+
+/* 第 4 頁：三段流程與獨立警示區，不讓連線穿過文字。 */
+.how-v151 { background: var(--paper); }
+.how-v151 .editorial-heading {
+  width: 878px;
+  height: 158px;
+  font-size: 77px;
+  line-height: 1.02;
+}
+.how-v151 .story-spine {
+  left: 87px;
+  top: 338px;
+  width: 4px;
+  height: 612px;
+}
+.how-step {
+  left: 126px;
+  width: 881px;
+  height: 186px;
+  padding: 30px 36px;
+  border-top: 3px solid var(--line);
+  background: rgba(220, 239, 241, .42);
+}
+.how-step::before {
+  position: absolute;
+  left: -39px;
+  top: 48px;
+  width: 39px;
+  height: 5px;
+  background: var(--coral);
+  content: "";
+}
+.how-step small,
+.how-step strong,
+.how-caution span,
+.how-caution strong { display: block; margin: 0; }
+.how-step small {
+  margin-bottom: 9px;
+  color: var(--coral);
+  font-size: 25px;
+  font-weight: 800;
+}
+.how-step strong {
+  color: var(--ink-deep);
+  font-size: 49px;
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -.035em;
+}
+.how-v151 [data-layout-id="step-1"] { top: 338px; }
+.how-v151 [data-layout-id="step-2"] { top: 535px; }
+.how-v151 [data-layout-id="step-3"] { top: 731px; }
+.how-step--ai { background: var(--cyan); }
+.how-step--output { color: white; background: var(--ink-deep); }
+.how-step--output strong { color: white; }
+.how-caution {
+  left: 73px;
+  top: 936px;
+  display: grid;
+  width: 934px;
+  height: 178px;
+  align-content: center;
+  padding: 26px 270px 26px 38px;
+  color: var(--ink-deep);
+  background: var(--coral);
+}
+.how-caution span {
+  margin-bottom: 8px;
+  font-size: 25px;
+  font-weight: 800;
+}
+.how-caution strong {
+  font-size: 35px;
+  font-weight: 800;
+  line-height: 1.16;
+}
+.how-v151 [data-layout-id="mascot"] {
+  left: 827px;
+  top: 1131px;
+  width: 244px;
+  height: 219px;
+}
+
+/* 第 5 頁：雙色各半，中央「到」是唯一轉折軸。 */
+.results-v151 { background: var(--paper); }
+.results-before,
+.results-after {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+.results-before { left: 0; background: var(--paper); }
+.results-after { right: 0; background: var(--ink-deep); }
+.results-v151 .editorial-header { z-index: 8; height: 44px; }
+.results-v151 .editorial-header .company { color: white; }
+.result-title {
+  top: 205px;
+  width: 368px;
+  height: 66px;
+  margin: 0;
+  font-size: 67px;
+  font-weight: 800;
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+.result-title--before {
+  left: 86px;
+  color: var(--ink-deep);
+  text-align: right;
+}
+.result-title--after { left: 626px; color: var(--coral); }
+.result-axis {
+  left: 538px;
+  top: 151px;
+  width: 5px;
+  height: 1124px;
+  background: var(--coral);
+}
+.result-to {
+  left: 483px;
+  top: 214px;
+  display: block;
+  width: 114px;
+  height: 96px;
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    var(--ink-deep) 0 50%,
+    var(--coral) 50% 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  font-size: 113px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: .84;
+  text-align: center;
+}
+.result-to small,
+.result-to em {
+  position: absolute;
+  left: 50%;
+  display: block;
+  width: 270px;
+  color: var(--cyan);
+  font-size: 21px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.2;
+  transform: translateX(-50%);
+}
+.result-to small { top: 108px; }
+.result-to em { top: 136px; font-weight: 400; }
+.result-copy {
+  top: 518px;
+  width: 415px;
+  padding: 0;
+}
+.result-copy--before { left: 63px; height: 270px; }
+.result-copy--after { left: 603px; height: 217px; color: white; }
+.result-copy strong,
+.result-copy p { display: block; margin: 0; }
+.result-copy strong {
+  font-size: 50px;
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -.045em;
+}
+.result-copy p {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 28px;
+  line-height: 1.36;
+}
+.result-copy--after p { color: rgba(255, 255, 255, .74); }
+.result-summary {
+  left: 603px;
+  top: 1191px;
+  width: 429px;
+  height: 73px;
+  margin: 0;
+  color: var(--cyan);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.result-summary strong,
+.result-summary span { display: block; }
+.result-summary strong { color: var(--coral); }
+.results-v151 [data-layout-id="mascot"] {
+  left: 130px;
+  top: 907px;
+  width: 204px;
+  height: 184px;
+}
+
+/* 第 6 頁：一個主訊號、兩個並列判斷，不使用小 hashtag 方格。 */
+.signals-v151 { background: var(--paper); }
+.signals-v151 .editorial-heading {
+  width: 934px;
+  height: 73px;
+  font-size: 72px;
+}
+.signal {
+  padding: 36px 42px;
+  color: var(--ink-deep);
+}
+.signal small,
+.signal strong,
+.signal p { display: block; margin: 0; }
+.signal small {
+  margin-bottom: 10px;
+  color: var(--coral);
+  font-size: 25px;
+  font-weight: 800;
+}
+.signal strong {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -.04em;
+}
+.signal p {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 30px;
+  line-height: 1.4;
+}
+.signal--primary {
+  left: 73px;
+  top: 260px;
+  width: 934px;
+  height: 290px;
+  padding-right: 330px;
+  color: white;
+  background: var(--ink-deep);
+}
+.signal--primary strong { color: white; }
+.signal--primary p { color: rgba(255, 255, 255, .78); }
+.signals-v151 [data-layout-id="signal-2"],
+.signals-v151 [data-layout-id="signal-3"] {
+  top: 575px;
+  width: 467px;
+  height: 516px;
+  padding: 38px 42px 38px 0;
+  border-top: 3px solid var(--line);
+  border-bottom: 3px solid var(--line);
+}
+.signals-v151 [data-layout-id="signal-2"] { left: 73px; }
+.signals-v151 [data-layout-id="signal-3"] {
+  left: 540px;
+  padding-right: 0;
+  padding-left: 42px;
+  border-left: 3px solid var(--line);
+}
+.signals-v151 [data-layout-id="mascot"] {
+  left: 805px;
+  top: 336px;
+  width: 252px;
+  height: 227px;
+}
+
+/* 第 7 頁：結論、提問、行動各自只做一件事。 */
+.closing-v151 { background: var(--paper); }
+.closing-v151 .editorial-heading {
+  width: 934px;
+  height: 73px;
+  font-size: 72px;
+}
+.closing-thesis {
+  left: 73px;
+  top: 257px;
+  width: 934px;
+  height: 204px;
+  padding: 34px 42px 38px;
+  border-left: 6px solid var(--coral);
+  background: var(--cyan-soft);
+}
+.closing-thesis small,
+.closing-thesis strong,
+.closing-question small,
+.closing-question strong { display: block; margin: 0; }
+.closing-thesis small,
+.closing-question small {
+  margin-bottom: 10px;
+  color: var(--coral);
+  font-size: 26px;
+  font-weight: 800;
+}
+.closing-thesis strong {
+  color: var(--ink-deep);
+  font-size: 41px;
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -.03em;
+}
+.closing-question {
+  left: 63px;
+  top: 565px;
+  display: grid;
+  width: 954px;
+  height: 655px;
+  align-content: center;
+  padding: 54px 300px 150px 54px;
+  color: white;
+  background: var(--ink-deep);
+}
+.closing-question strong {
+  max-width: 680px;
+  font-size: 74px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.055em;
+}
+.closing-invitation {
+  left: 0;
+  top: 1210px;
+  width: 1080px;
+  height: 140px;
+  padding: 46px 380px 0 73px;
+  color: var(--ink-deep);
+  background: var(--coral);
+  font-size: 31px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.closing-v151 [data-layout-id="mascot"] {
+  z-index: 6;
+  left: 810px;
+  top: 1088px;
+  width: 261px;
+  height: 234px;
+}

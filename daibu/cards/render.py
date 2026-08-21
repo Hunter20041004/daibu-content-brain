@@ -187,6 +187,252 @@ def _who(page: CarouselPage, company: str) -> str:
     )
 
 
+def _problem(page: CarouselPage, company: str) -> str:
+    if page.diagram is None:
+        raise ValueError("第 3 頁缺少問題流程圖解")
+    nodes = page.diagram.nodes
+    affected = _section_by_label(page, "誰受影響")
+    cost = _section_by_label(page, "原本的代價")
+    supplements: tuple[ContentSection | None, ...] = (affected, None, cost)
+    stages = []
+    for index, (node, supplement) in enumerate(
+        zip(nodes, supplements, strict=True),
+        start=1,
+    ):
+        supplement_html = (
+            f'<p class="stage-context">{html.escape(supplement.text)}</p>'
+            if supplement is not None
+            else ""
+        )
+        stages.append(
+            _layout_box(
+                f"stage-{index}",
+                f'<small>{html.escape(node.title)}</small>'
+                f'<strong>{html.escape(node.text)}</strong>'
+                f"{supplement_html}",
+                tag="section",
+                classes=(
+                    "problem-stage problem-stage--anchor"
+                    if index == 3
+                    else "problem-stage"
+                ),
+            )
+        )
+    return (
+        '<article class="card problem-v151" data-page-type="problem">'
+        + _editorial_header(company)
+        + _layout_box(
+            "heading",
+            html.escape(page.heading),
+            tag="h1",
+            classes="editorial-heading",
+        )
+        + _layout_box("spine", "", classes="story-spine")
+        + "".join(stages)
+        + _layout_box(
+            "mascot",
+            _mascot_html(page.page_type),
+            classes="mascot-box",
+        )
+        + "</article>"
+    )
+
+
+def _how_ai(page: CarouselPage, company: str) -> str:
+    if page.diagram is None:
+        raise ValueError("第 4 頁缺少 AI 流程圖解")
+    caution = _section_by_label(page, "人仍負責")
+    steps = []
+    for index, node in enumerate(page.diagram.nodes, start=1):
+        modifiers = {
+            2: " how-step--ai",
+            3: " how-step--output",
+        }.get(index, "")
+        steps.append(
+            _layout_box(
+                f"step-{index}",
+                f'<small>{html.escape(node.title)}</small>'
+                f'<strong>{html.escape(node.text)}</strong>',
+                tag="section",
+                classes=f"how-step{modifiers}",
+            )
+        )
+    return (
+        '<article class="card how-v151" data-page-type="how-ai">'
+        + _editorial_header(company)
+        + _layout_box(
+            "heading",
+            html.escape(page.heading),
+            tag="h1",
+            classes="editorial-heading",
+        )
+        + _layout_box("spine", "", classes="story-spine")
+        + "".join(steps)
+        + _layout_box(
+            "caution",
+            '<span>要注意的點</span>'
+            f'<strong>{html.escape(caution.text)}</strong>',
+            tag="section",
+            classes="how-caution",
+        )
+        + _layout_box(
+            "mascot",
+            _mascot_html(page.page_type),
+            classes="mascot-box",
+        )
+        + "</article>"
+    )
+
+
+def _results(page: CarouselPage, company: str) -> str:
+    if page.diagram is None or len(page.diagram.nodes) != 3:
+        raise ValueError("第 5 頁需要三段前後對照圖解")
+    before, transition, after = page.diagram.nodes
+    audience = _section_by_label(page, "代表使用者")
+    change = _section_by_label(page, "使用前後")
+    purchase = _section_by_label(page, "購買關係")
+    return (
+        '<article class="card results-v151" data-page-type="results">'
+        '<div class="results-before" aria-hidden="true"></div>'
+        '<div class="results-after" aria-hidden="true"></div>'
+        + _editorial_header(company)
+        + _layout_box(
+            "before-title",
+            html.escape(before.title),
+            tag="h1",
+            classes="result-title result-title--before",
+        )
+        + _layout_box(
+            "before-copy",
+            f'<strong>{html.escape(before.text)}</strong>'
+            f'<p>{html.escape(audience.text)}</p>',
+            tag="section",
+            classes="result-copy result-copy--before",
+        )
+        + _layout_box("axis", "", classes="result-axis")
+        + _layout_box(
+            "to",
+            "到"
+            f'<small>{html.escape(transition.title)}</small>'
+            f'<em>{html.escape(transition.text)}</em>',
+            tag="span",
+            classes="result-to",
+        )
+        + _layout_box(
+            "after-title",
+            html.escape(after.title),
+            tag="h1",
+            classes="result-title result-title--after",
+        )
+        + _layout_box(
+            "after-copy",
+            f'<strong>{html.escape(after.text)}</strong>'
+            f'<p>{html.escape(change.text)}</p>',
+            tag="section",
+            classes="result-copy result-copy--after",
+        )
+        + _layout_box(
+            "summary",
+            f'<strong>{html.escape(purchase.label)}</strong>'
+            f'<span>{html.escape(purchase.text)}</span>',
+            tag="p",
+            classes="result-summary",
+        )
+        + _layout_box(
+            "mascot",
+            _mascot_html(page.page_type),
+            classes="mascot-box",
+        )
+        + "</article>"
+    )
+
+
+def _why_care(page: CarouselPage, company: str) -> str:
+    if page.diagram is None or len(page.diagram.nodes) != 3:
+        raise ValueError("第 6 頁需要三個觀察訊號")
+    signal_sections = tuple(
+        _section_by_label(page, f"觀察訊號 {index}")
+        for index in range(1, 4)
+    )
+    signals = []
+    for index, (node, section) in enumerate(
+        zip(page.diagram.nodes, signal_sections, strict=True),
+        start=1,
+    ):
+        signals.append(
+            _layout_box(
+                f"signal-{index}",
+                f'<small>{html.escape(node.title)}</small>'
+                f'<strong>{html.escape(node.text)}</strong>'
+                f'<p>{html.escape(section.text)}</p>',
+                tag="section",
+                classes=(
+                    "signal signal--primary"
+                    if index == 1
+                    else "signal signal--secondary"
+                ),
+            )
+        )
+    return (
+        '<article class="card signals-v151" data-page-type="why-care">'
+        + _editorial_header(company)
+        + _layout_box(
+            "heading",
+            html.escape(page.heading),
+            tag="h1",
+            classes="editorial-heading",
+        )
+        + "".join(signals)
+        + _layout_box(
+            "mascot",
+            _mascot_html(page.page_type),
+            classes="mascot-box",
+        )
+        + "</article>"
+    )
+
+
+def _cta(page: CarouselPage, company: str) -> str:
+    thesis = _section_by_label(page, "收束結論")
+    question = _section_by_label(page, "給讀者的問題")
+    invitation = _section_by_label(page, "互動邀請")
+    return (
+        '<article class="card closing-v151" data-page-type="cta">'
+        + _editorial_header(company)
+        + _layout_box(
+            "heading",
+            html.escape(page.heading),
+            tag="h1",
+            classes="editorial-heading",
+        )
+        + _layout_box(
+            "thesis",
+            f'<small>{html.escape(thesis.label)}</small>'
+            f'<strong>{html.escape(thesis.text)}</strong>',
+            tag="section",
+            classes="closing-thesis",
+        )
+        + _layout_box(
+            "question",
+            '<small>留給你的問題</small>'
+            f'<strong>{html.escape(question.text)}</strong>',
+            tag="section",
+            classes="closing-question",
+        )
+        + _layout_box(
+            "invitation",
+            html.escape(invitation.text),
+            classes="closing-invitation",
+        )
+        + _layout_box(
+            "mascot",
+            _mascot_html(page.page_type),
+            classes="mascot-box",
+        )
+        + "</article>"
+    )
+
+
 def _inner(page: CarouselPage, company: str, logo_uri: str) -> str:
     sections = "".join(_section_html(section) for section in page.sections)
     diagram = diagrams.diagram_html(page.diagram) if page.diagram else ""
@@ -215,6 +461,16 @@ def page_html(
         return _editorial_document(page, _cover(page, company, logo_uri))
     if page.page_type == "who":
         return _editorial_document(page, _who(page, company))
+    if page.page_type == "problem":
+        return _editorial_document(page, _problem(page, company))
+    if page.page_type == "how-ai":
+        return _editorial_document(page, _how_ai(page, company))
+    if page.page_type == "results":
+        return _editorial_document(page, _results(page, company))
+    if page.page_type == "why-care":
+        return _editorial_document(page, _why_care(page, company))
+    if page.page_type == "cta":
+        return _editorial_document(page, _cta(page, company))
 
     css = (TEMPLATES / "ai-startup.css").read_text(encoding="utf-8")
     for token, filename in FONT_FILES.items():

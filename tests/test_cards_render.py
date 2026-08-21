@@ -1,9 +1,9 @@
 import html as html_lib
-import re
 from dataclasses import replace
 from pathlib import Path
 
 from PIL import Image
+import pytest
 
 from daibu.cards import pages, render
 from tests.card_fixtures import brand_asset, carousel_draft
@@ -62,21 +62,209 @@ def test_who_uses_only_positioning_and_facts_sections(tmp_path):
     assert "來源：" not in output
 
 
-def test_every_page_has_logo_and_inner_pages_keep_their_source(tmp_path):
+def test_problem_renders_three_diagram_nodes_as_story_stages(tmp_path):
+    page = carousel_draft().pages[2]
+    output = _render(tmp_path, page_index=2)
+    markup = output.split("</style>", 1)[1]
+
+    assert 'data-template="editorial-v15.1"' in output
+    assert 'data-page-type="problem"' in output
+    for element_id in (
+        "header",
+        "heading",
+        "spine",
+        "stage-1",
+        "stage-2",
+        "stage-3",
+        "mascot",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert page.diagram is not None
+    for node in page.diagram.nodes:
+        assert html_lib.escape(node.title) in markup
+        assert html_lib.escape(node.text) in markup
+    for section in page.sections:
+        assert html_lib.escape(section.text) in markup
+    assert "來源：" not in markup
+
+
+def test_problem_requires_its_problem_flow_diagram(tmp_path):
+    page = replace(carousel_draft().pages[2], diagram=None)
+
+    with pytest.raises(ValueError, match="第 3 頁缺少問題流程圖解"):
+        render.page_html(page, "ElevenLabs", brand_asset(_logo(tmp_path)))
+
+
+def test_how_ai_maps_diagram_steps_and_human_role_by_label(tmp_path):
+    original = carousel_draft().pages[3]
+    page = replace(original, sections=tuple(reversed(original.sections)))
+    output = render.page_html(
+        page,
+        "ElevenLabs",
+        brand_asset(_logo(tmp_path)),
+    )
+    markup = output.split("</style>", 1)[1]
+
+    assert 'data-page-type="how-ai"' in markup
+    for element_id in (
+        "header",
+        "heading",
+        "spine",
+        "step-1",
+        "step-2",
+        "step-3",
+        "caution",
+        "mascot",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert page.diagram is not None
+    for node in page.diagram.nodes:
+        assert html_lib.escape(node.title) in markup
+        assert html_lib.escape(node.text) in markup
+    human_role = next(
+        section for section in page.sections if section.label == "人仍負責"
+    )
+    caution = markup.split('data-layout-id="caution"', 1)[1]
+    assert html_lib.escape(human_role.text) in caution
+    assert "來源：" not in markup
+
+
+def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
+    page = carousel_draft().pages[4]
+    output = _render(tmp_path, page_index=4)
+    markup = output.split("</style>", 1)[1]
+
+    assert 'data-page-type="results"' in markup
+    for element_id in (
+        "header",
+        "before-title",
+        "before-copy",
+        "axis",
+        "to",
+        "after-title",
+        "after-copy",
+        "summary",
+        "mascot",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert ">到<" in markup
+    assert page.diagram is not None
+    for node in page.diagram.nodes:
+        assert html_lib.escape(node.title) in markup
+        assert html_lib.escape(node.text) in markup
+    for section in page.sections:
+        assert html_lib.escape(section.text) in markup
+    assert ".results-before {" in output
+    assert ".results-after {" in output
+    assert "width: 50%;" in output
+
+
+def test_why_care_renders_three_signals_without_evidence_footnote_grid(
+    tmp_path,
+):
+    page = carousel_draft().pages[5]
+    output = _render(tmp_path, page_index=5)
+    markup = output.split("</style>", 1)[1]
+
+    assert 'data-page-type="why-care"' in markup
+    for element_id in (
+        "header",
+        "heading",
+        "signal-1",
+        "signal-2",
+        "signal-3",
+        "mascot",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert page.diagram is not None
+    for node in page.diagram.nodes:
+        assert html_lib.escape(node.title) in markup
+        assert html_lib.escape(node.text) in markup
+    for section in page.sections[:3]:
+        assert html_lib.escape(section.text) in markup
+    limitation = next(
+        section for section in page.sections if section.label == "證據限制"
+    )
+    assert html_lib.escape(limitation.text) not in markup
+    assert "hashtag" not in markup.casefold()
+
+
+def test_cta_maps_conclusion_question_and_invitation_by_role(tmp_path):
+    original = carousel_draft().pages[6]
+    page = replace(original, sections=tuple(reversed(original.sections)))
+    output = render.page_html(
+        page,
+        "ElevenLabs",
+        brand_asset(_logo(tmp_path)),
+    )
+    markup = output.split("</style>", 1)[1]
+
+    assert 'data-page-type="cta"' in markup
+    for element_id in (
+        "header",
+        "heading",
+        "thesis",
+        "question",
+        "invitation",
+        "mascot",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    roles = {section.label: section.text for section in page.sections}
+    assert html_lib.escape(roles["收束結論"]) in markup
+    assert html_lib.escape(roles["給讀者的問題"]) in markup
+    assert html_lib.escape(roles["互動邀請"]) in markup
+    assert "來源：" not in markup
+
+
+def test_editorial_renderer_escapes_unsafe_text_on_all_pages(tmp_path):
+    unsafe = '<script>alert("unsafe")</script>'
+    asset = brand_asset(_logo(tmp_path))
+
+    for page in carousel_draft().pages:
+        sections = tuple(
+            replace(section, text=unsafe) for section in page.sections
+        )
+        diagram = page.diagram
+        if diagram is not None:
+            diagram = replace(
+                diagram,
+                nodes=tuple(
+                    replace(node, title=unsafe, text=unsafe)
+                    for node in diagram.nodes
+                ),
+            )
+        unsafe_page = replace(
+            page,
+            heading=unsafe,
+            sections=sections,
+            diagram=diagram,
+        )
+
+        output = render.page_html(unsafe_page, "ElevenLabs", asset)
+
+        assert unsafe not in output
+        assert html_lib.escape(unsafe) in output
+
+
+def test_only_cover_shows_official_logo_and_images_omit_source_metadata(
+    tmp_path,
+):
     asset = brand_asset(_logo(tmp_path))
     outputs = [
         render.page_html(page, "ElevenLabs", asset)
         for page in carousel_draft().pages
     ]
 
-    assert all('class="company-logo' in output for output in outputs)
-    assert 'company-logo company-logo--cover' in outputs[0]
-    assert all('company-logo company-logo--small' in output for output in outputs[1:])
-    assert "原本的代價" in outputs[2]
-    assert 'data-diagram-kind="ai-generate"' in outputs[3]
-    assert "來源：ElevenLabs" not in outputs[0]
-    assert "來源：ElevenLabs" in outputs[4]
-    assert "margin-top: auto" not in outputs[4]
+    assert 'data-layout-id="company-logo"' in outputs[0]
+    assert 'alt="ElevenLabs Logo"' in outputs[0]
+    assert all(
+        'data-layout-id="company-logo"'
+        not in output.split("</style>", 1)[1]
+        for output in outputs[1:]
+    )
+    assert carousel_draft().pages[2].sections[1].text in outputs[2]
+    assert all("來源：" not in output for output in outputs)
+    assert all('class="page-source' not in output for output in outputs)
     unsafe_company = "<script>alert(1)</script>"
     assert "<script" not in render.page_html(
         carousel_draft().pages[1],
@@ -117,8 +305,12 @@ def test_cover_leads_with_series_and_hook_without_industry_or_source(
 def test_html_escapes_heading_section_and_company_text(tmp_path):
     unsafe = '<script>alert("x")</script>'
     page = carousel_draft().pages[1]
-    unsafe_section = replace(page.sections[0], label=unsafe, text=unsafe)
-    unsafe_page = replace(page, heading=unsafe, sections=(unsafe_section,))
+    unsafe_section = replace(page.sections[0], text=unsafe)
+    unsafe_page = replace(
+        page,
+        heading=unsafe,
+        sections=(unsafe_section, page.sections[1]),
+    )
     asset = replace(brand_asset(_logo(tmp_path)), company=unsafe)
 
     output = render.page_html(unsafe_page, unsafe, asset)
@@ -137,13 +329,13 @@ def test_html_declares_exact_canvas_size(tmp_path):
         assert declaration in output
 
 
-def test_card_uses_approved_geometry(tmp_path):
+def test_card_uses_full_bleed_approved_geometry(tmp_path):
     output = _render(tmp_path)
 
     for declaration in (
-        "inset: 48px 48px 64px",
-        "border-radius: 40px",
-        "0 6px 36px rgba(38, 38, 65, .06)",
+        "width: 1080px",
+        "height: 1350px",
+        "overflow: hidden",
     ):
         assert declaration in output
 
@@ -161,9 +353,10 @@ def test_font_is_loaded_from_local_files(tmp_path):
 def test_colors_match_the_brand_palette(tmp_path):
     output = _render(tmp_path)
 
-    assert "#D5E6F4" in output
-    assert "#FBFCFE" in output
-    assert "#47819A" in output
+    assert "#102f3d" in output
+    assert "#86ccd4" in output
+    assert "#ec9870" in output
+    assert "#fafbf8" in output
     for retired in ("#2E5C9E", "#F6BCC8", "#E8912D", "#5B8FC9"):
         assert retired not in output, f"{retired} 是改版前的舊色，不該出現"
 
@@ -172,26 +365,26 @@ def test_type_hierarchy_uses_approved_sizes(tmp_path):
     output = _render(tmp_path)
 
     for declaration in (
-        "font-size: 21px",
-        "font-size: 29px",
-        "font-size: 56px",
-        "font-size: 96px",
+        "font-size: 27px",
+        "font-size: 40px",
+        "font-size: 72px",
+        "font-size: 113px",
     ):
         assert declaration in output
 
 
-def test_feed_microcopy_is_large_and_high_contrast(tmp_path):
-    from daibu import theme
+def test_feed_image_has_no_page_number_source_or_date_microcopy(tmp_path):
+    outputs = [
+        _render(tmp_path, page_index=index)
+        for index in range(7)
+    ]
 
-    output = _render(tmp_path)
-    page_tag_rule = re.search(r"\.page-tag \{(?P<body>.*?)\}", output, re.S)
-    source_rule = re.search(r"\.page-source \{(?P<body>.*?)\}", output, re.S)
-
-    assert "font-size: 24px" in page_tag_rule.group("body")
-    assert "font-size: 30px" in source_rule.group("body")
-    assert theme.contrast_ratio("#4F5362", "#FBFCFE") >= 4.5
-    assert "color: var(--muted)" in page_tag_rule.group("body")
-    assert "color: var(--muted)" in source_rule.group("body")
+    for output in outputs:
+        markup = output.split("</style>", 1)[1]
+        assert "page-tag" not in markup
+        assert "page-source" not in markup
+        assert "來源：" not in markup
+        assert "2026-" not in markup
 
 
 def test_type_hierarchy_uses_approved_weights(tmp_path):
@@ -208,33 +401,33 @@ def test_type_hierarchy_uses_approved_weights(tmp_path):
 def test_ai_role_diagram_keeps_readable_step_type(tmp_path):
     output = _render(tmp_path, page_index=3)
 
-    assert ".page--how-ai .diagram-copy strong { font-size: 36px; }" in output
-    assert "font-size: 30px;" in output.split(
-        ".page--how-ai .diagram-copy span", 1
-    )[1].split("}", 1)[0]
+    assert ".how-step strong" in output
+    assert "font-size: 49px" in output
+    assert ".how-caution strong" in output
+    assert "font-size: 35px" in output
 
 
-def test_html_replaces_generic_patterns_with_one_lab_signature(tmp_path):
+def test_html_replaces_generic_patterns_with_series_signature(tmp_path):
     output = _render(tmp_path)
 
-    assert "呆一布 AI 實驗室" in output
+    assert "一布懂 AI 新創" in output
     assert 'class="frame-pattern frame-pattern--stripes"' not in output
     assert 'class="frame-pattern frame-pattern--dots"' not in output
 
 
-def test_handle_sits_in_the_frame_below_the_card(tmp_path):
+def test_feed_image_omits_social_handle_footer(tmp_path):
     output = _render(tmp_path)
 
-    assert 'class="handle"' in output
-    assert "@呆一布" in output
-    assert "bottom: 16px" in output
+    markup = output.split("</style>", 1)[1]
+    assert 'class="handle"' not in markup
+    assert "@呆一布" not in markup
 
 
 def test_html_uses_local_tokens_without_theme_dependent_colors(tmp_path):
     output = _render(tmp_path)
 
     assert ":root" in output
-    assert "--paper: #FBFCFE" in output
+    assert "--paper: #fafbf8" in output
     assert "light-dark(" not in output
     assert "prefers-color-scheme" not in output
 
@@ -247,28 +440,35 @@ def test_html_has_no_unapproved_weights_or_italics(tmp_path):
     assert "font-style: italic" not in output
 
 
-def test_inner_page_has_page_type_class_and_label(tmp_path):
+def test_inner_page_has_template_and_page_type_hooks(tmp_path):
     output = _render(tmp_path, page_index=3)
 
-    assert 'class="canvas page--how-ai shot--evidence"' in output
-    assert "04｜AI 在裡面扮演什麼角色" in output
+    assert 'data-template="editorial-v15.1"' in output
+    assert 'data-page-type="how-ai"' in output
+    assert 'class="card how-v151"' in output
 
 
-def test_seven_pages_use_three_distinct_story_shots(tmp_path):
+def test_seven_pages_use_seven_semantic_compositions(tmp_path):
     asset = brand_asset(_logo(tmp_path))
     outputs = [
         render.page_html(page, "ElevenLabs", asset)
         for page in carousel_draft().pages
     ]
 
-    assert 'shot--hero' in outputs[0]
-    assert 'shot--hero' in outputs[6]
-    assert 'shot--editorial' in outputs[1]
-    assert 'shot--editorial' in outputs[2]
-    assert all('shot--evidence' in outputs[index] for index in (3, 4, 5))
+    classes = (
+        "cover-v151",
+        "profile-v151",
+        "problem-v151",
+        "how-v151",
+        "results-v151",
+        "signals-v151",
+        "closing-v151",
+    )
+    for output, class_name in zip(outputs, classes, strict=True):
+        assert f'class="card {class_name}"' in output
 
 
-def test_every_page_uses_its_storytelling_mascot_and_chinese_lab_signature(
+def test_every_page_uses_its_storytelling_mascot_and_series_signature(
     tmp_path,
 ):
     asset = brand_asset(_logo(tmp_path))
@@ -282,55 +482,32 @@ def test_every_page_uses_its_storytelling_mascot_and_chinese_lab_signature(
         pose = pages.MASCOT_FOR[page.page_type]
         assert f'class="story-mascot mascot--{pose}"' in output
         assert f"mascot/{pose}.svg" in output
-        assert "呆一布 AI 實驗室" in output
+        assert "一布懂 AI 新創" in output
     assert "DAIBU AI LAB" not in "".join(outputs)
     assert "CASE FILE" not in "".join(outputs)
 
 
-def test_story_css_prioritizes_series_source_readability_and_full_outline_blocks(
+def test_story_css_prioritizes_heading_readability_without_source_footer(
     tmp_path,
 ):
     output = _render(tmp_path)
 
-    assert ".series-lockup" in output
-    assert "font-size: 80px" in output
-    assert ".page-source" in output
-    assert "font-size: 30px" in output
+    assert ".editorial-heading" in output
+    assert "font-size: 72px" in output
+    assert ".page-source" not in output
     assert ".story-mascot" in output
-    assert "border-left:" not in output
-    assert "text-transform: uppercase" not in output
+    assert "word-break: keep-all" in output
+    assert "overflow-wrap: normal" in output
 
 
-def test_story_mascots_face_the_content_and_fill_deliberate_lower_zones(
+def test_story_mascots_use_approved_reduced_sizes_and_layout_hooks(
     tmp_path,
 ):
     output = _render(tmp_path)
 
-    point_rule = re.search(r"\.mascot--point \{(?P<body>.*?)\}", output, re.S)
-    cover_rule = re.search(
-        r"\.page--cover \.story-mascot \{(?P<body>.*?)\}",
-        output,
-        re.S,
-    )
-    who_rule = re.search(
-        r"\.page--who \.story-mascot \{(?P<body>.*?)\}",
-        output,
-        re.S,
-    )
-    results_rule = re.search(
-        r"\.page--results \.story-mascot \{(?P<body>.*?)\}",
-        output,
-        re.S,
-    )
-    why_care_rule = re.search(
-        r"\.page--why-care \.story-mascot \{(?P<body>.*?)\}",
-        output,
-        re.S,
-    )
-
-    assert "transform: scaleX(-1)" in point_rule.group("body")
-    assert "bottom: 80px" in cover_rule.group("body")
-    assert "inset: auto" in who_rule.group("body")
-    assert "top:" not in who_rule.group("body")
-    assert "inset: auto" in results_rule.group("body")
-    assert "inset: auto" in why_care_rule.group("body")
+    assert '.cover-v151 [data-layout-id="mascot"]' in output
+    assert "width: 282px" in output
+    assert '.problem-v151 [data-layout-id="mascot"]' in output
+    assert "width: 260px" in output
+    assert '.results-v151 [data-layout-id="mascot"]' in output
+    assert "width: 204px" in output
