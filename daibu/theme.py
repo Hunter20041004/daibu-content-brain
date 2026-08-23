@@ -980,37 +980,7 @@ def css(mode: str | None = None) -> str:
     [data-testid="stVerticalBlock"][class*="st-key-carousel-preview-grid-"] {{
         display: grid;
         gap: 1rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }}
-
-    .carousel-page-heading {{
-        align-items: center;
-        display: flex;
-        gap: 0.65rem;
-        margin-bottom: 0.85rem;
-    }}
-
-    .carousel-page-heading span {{
-        align-items: center;
-        background: var(--brand-primary);
-        border-radius: 999px;
-        color: var(--primary-button-ink) !important;
-        display: inline-flex;
-        font-size: 0.7rem;
-        font-variant-numeric: tabular-nums;
-        font-weight: 800;
-        justify-content: center;
-        min-height: 1.6rem;
-        min-width: 2rem;
-    }}
-
-    .carousel-page-heading strong {{
-        font-size: 1rem;
-        line-height: 1.35;
-    }}
-
-    [data-testid="stVerticalBlock"][class*="st-key-carousel-page-"] {{
-        background: var(--surface);
+        grid-template-columns: minmax(0, 1fr);
     }}
 
     @media (hover: hover) and (pointer: fine) {{

@@ -1,7 +1,6 @@
-# HANDOFF — 七頁內容與系列模板編輯器待實作
+# HANDOFF — 七頁內容與系列模板編輯器完成
 
-> 2026-08-21 更新。使用者已明確「規格確認」；完整產品設計已拆成三份可執行的 TDD 計畫並完成自審。
-> 本輪只寫計畫文件，尚未修改 Streamlit、SQLite schema、正式 Renderer 或產圖流程。
+> 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 
 ## 本輪目標與驗收
 
@@ -13,20 +12,25 @@
 
 ## 本輪狀態
 
-- **產品能力**：規格已核可；實作將依 A 版型與版本底層 → B 七頁內容編輯器 → C 受限制模板畫布三階段進行，每階段都可獨立驗收。
-- **使用者體驗**：日常編內容與偶爾改模板維持分流；完成後可先逐頁看欄位與預覽、修完再一次儲存，模板則在設定頁以視覺畫布統一調整。
-- **技術結構**：階段 A 建 `LayoutDocument`、不可變版本表、草稿 metadata、v15.1 正式 Renderer 與 Chromium validator；階段 B 建內容 payload／component／保存服務；階段 C 建模板 payload／component／版本與升級服務。
-- **資料流程**：未存工作副本 → 同源 Renderer 即時預覽 → 內容／schema 驗證 → Chromium 實際測量 → SQLite 原子保存；PNG 只讀已存內容與該草稿綁定版本。
-- **設計理由與備援**：主方案仍是 HTML 即時預覽＋保存時 Chromium 精準驗證；備援是關閉 component 時仍可以已存草稿＋已綁模板產圖，不會因編輯交互失效而破壞資料。
-- **安全與成本**：所有瀏覽器 payload 由 Python 重建，未知元素／屬性／表情全拒絕；不載 CDN、不加付費服務或 LLM 呼叫。模板儲存與草稿升級均先驗證再交易寫入。
-- **TDD 與驗收**：三份計畫皆以一次一個失敗測試拆 Red → Green → Refactor；含 migration 內容指紋、revision conflict、真實 Components v2 交互、真實 Chromium、三公司與長文／橫直 Logo 壓力案例、兩輪雙尺寸截圖 QA。
+- **產品能力**：日常工作區可逐頁修改七頁文字與 diagram；設定頁新增受限制的 PPT 式模板畫布，可選七頁與既有元素、拖曳、八向縮放、調整文字框位置／尺寸／字級／對齊、復原／重做／重設。每次儲存建立不可變新版，啟用與單篇舊草稿升級都是另外的明確操作。
+- **使用者體驗**：切頁不丟未存內容，模板拖曳會依 8px 網格、安全線、中心線與其他元素吸附，guide 即時顯示；碰撞前橘色、碰撞時紅色。Escape 取消本次拖曳，欄位依元素最小值與畫布邊界限制。手機只顯示版本、七頁 rail 與貼文預覽，隱藏精確控制及新版儲存按鈕並明示改用桌面。
+- **技術結構**：兩個 Streamlit Components v2 元件共用正式 Renderer。內容元件只回傳欄位白名單；模板元件只回傳登錄元素的 `x/y/w/h` 與文字的 `font_size/text_align`。Python 對全部輸入重跑 schema、三公司壓力案例與 Chromium，SQLite 只新增版本，不 update 舊 `layout_json`。
+- **資料流程**：模板版本＋單頁正式 HTML → sessionStorage working copy／overlay 控制 → 儲存 → Python schema＋SUN／Billow／Shiraz 七頁驗證 → 建 vN（未啟用）→ 使用者確認後切 active pointer。新草稿用 active；舊草稿保留原版，手動升級前先用該篇內容驗證七頁，再只更新 binding 與 revision。
+- **設計理由與備援**：工具介面延續核可的深藍／青／珊瑚橘科技編輯語言，控制框服務貼文而不另造卡片牆。受限制畫布避免任意 CSS、圖層與素材路徑破壞模板；備援是永遠可選回舊版本，舊貼文亦可維持原 binding。
+- **安全與成本**：沒有新增 CDN、付費服務、LLM 呼叫或任意 HTML／CSS／JavaScript／URL／檔案路徑入口。正式 `daibu.db` 只透過 SQLite `.backup` 副本檢查，正式檔未寫入；新增版本與驗證都只用本機 SQLite／Chromium。
+- **正式資料副本驗證**：正式庫基線為 ideas 23、carousel_pages 0、carousel_sources 0、brand_assets 0；逐欄 canonical JSON SHA-256 依序為 `006605efa926257747b74867050a0940257ecad8d3b89237ef7f358a1fe78484`、`0cc5ad572c159bc109ab2816840263977f82802842e5497b197fa341bccc0dad`、`5b50a1f3836660c4977c3aa409df13535cf0c3f8d36ab07cffc8d1b449dc29b6`、`10dd371a129ce285b87fc867f8c9c85b503a37ea7ad39d16e530f6b6515521ad`。backup、首次 migration 與第二次 migration 四組指紋完全相同，只新增三張預期資料表；正式庫沒有 carousel rows，因此 backfill 版本／設定／metadata 都為 0。
+- **TDD 與跨公司驗收**：依序看見快取版本未納入、SUN 第 5 頁文字框 overflow、Billow 長名第 7 頁 overflow、Shiraz 長結果標題 overflow、桌機預覽過小等紅燈，再做最小修正。SUN、Billow AI Labs、Shiraz AI 搭配橫式／直式／方形 Logo，共 21 張 HTML 與 PNG 全數為 1080×1350，無非法碰撞、頁碼、來源或日期。
+- **視覺 QA**：Phase C 第一輪 `.screenshots/template-editor-round1-desktop.png`、`.screenshots/template-editor-round1-mobile.png` 抓到 Renderer 色票變數在 Shadow DOM 缺失而導致封面發白，以及手機仍露出儲存按鈕；第二輪 `.screenshots/template-editor-round2-desktop.png`、`.screenshots/template-editor-round2-mobile.png` 已恢復正式貼文配色並切成真正唯讀。層次、留白節奏、LINE Seed 字體、三色限制、對齊、375px 響應式、focus／disabled／error／empty 狀態與 120–150ms 微動效全數合格；`scrollWidth=clientWidth=375`，從首頁正常導覽 console 0 errors／0 warnings。
+- **Phase B 測試證據**：真實瀏覽器三條流程通過：切頁保留 working copy 且 DB 未寫、hard limit 同時擋 save／產圖、合法 save 寫 DB 且留在原頁。AppTest 119 passed；全套首次為 `696 passed, 16 deselected`，只抓到移除舊表單後遺留的 `.carousel-page-heading` CSS，已刪除並以兩個聚焦測試轉綠；Phase C 收尾會再跑完整全套。
 - **設計規格**：`docs/superpowers/specs/2026-08-20-七頁內容與系列模板編輯器-design.md`。
 - **實作計畫 A**：`docs/superpowers/plans/2026-08-21-carousel-layout-foundation.md`。
 - **實作計畫 B**：`docs/superpowers/plans/2026-08-21-carousel-content-editor.md`。
 - **實作計畫 C**：`docs/superpowers/plans/2026-08-21-carousel-template-editor.md`。
-- **文件自審**：三份計畫 code fence 成對、`git diff --check` 規則通過，無 TODO／TBD／錯誤函式名，所有 `git add` 均為精確路徑。
-- **剩餘限制**：目前只是可執行計畫，正式工具功能與畫面尚未改變；實作必須依 A → B → C 順序進行。
-- **狀態**：書面規格已核可，三份 TDD 計畫已就緒，等待使用者選擇執行方式。
+- **Phase C 測試證據**：真實 Chromium 六條模板流程通過：拖曳不偷存、縮放＋undo／redo、Escape 取消、登錄最小尺寸限制、手機唯讀無 overflow、存 v2 維持 inactive 後明確啟用。v1／v2 × SUN／Billow AI Labs／Shiraz AI 共 42 張頁面無 overflow／非法碰撞，PNG 全為 1080×1350，無頁碼、來源列或日期列。
+- **完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `718 passed, 16 deselected, 1 warning in 192.54s`；接續 `compileall` 與 `git diff --check` 均為 exit 0。唯一 warning 是既有 Starlette／httpx 相依棄用提醒。
+- **資料副本證據**：以 `sqlite3 .backup` 複製正式庫；migration 前後 ideas 23 筆、其餘三個內容表 0 筆，四組 JSON SHA-256 完全相同。ideas 指紋為 `0fbb8c3d54f4b31920a22aa7f5cfe4591515017b2d276b2f60e72e1843b4b700`，空表為 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`；副本只新增預期模板表。
+- **剩餘限制**：模板畫布刻意不支援新增／刪除／旋轉元素、z-order、換字型、改色票或素材路徑；手機不提供精確拖曳。正式庫目前沒有 carousel rows，因此正式資料副本只能驗證 migration 不改內容；完整存版／啟用／升級生命週期由隔離 SQLite 真實瀏覽器測試覆蓋。
+- **狀態**：Phase A、B、C 完成；等待全套測試、合併 main、推送與既有正式站重啟驗證。
 
 ---
 

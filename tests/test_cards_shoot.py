@@ -5,11 +5,18 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
+from playwright.sync_api import Locator
 
 from daibu import db
 from daibu.cards import bundle, logo, render, shoot
+from daibu.cards.layout_schema import load_builtin_layout, replace_element
 from daibu.llm.base import Idea
-from tests.card_fixtures import brand_asset, carousel_draft
+from tests.card_fixtures import (
+    brand_asset,
+    carousel_draft,
+    company_stress_draft,
+    renderable_carousel_draft,
+)
 
 
 def _png_size(data: bytes) -> tuple[int, int]:
@@ -33,11 +40,12 @@ def _html(tmp_path: Path) -> str:
 def test_seven_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
 
-    outputs = shoot.carousel_pngs(carousel_draft(), "ElevenLabs", asset)
+    draft = renderable_carousel_draft()
+    outputs = shoot.carousel_pngs(draft, "ElevenLabs", asset)
 
     assert len(outputs) == 7
     assert all(_png_size(data) == (1080, 1350) for data in outputs)
-    for data in outputs:
+    for index, data in enumerate(outputs):
         image = Image.open(io.BytesIO(data)).convert("RGB")
         magenta = sum(
             1
@@ -53,17 +61,50 @@ def test_seven_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
                 (213, 230, 244),
             }
         )
-        assert magenta > 100
+        if index == 0:
+            assert magenta > 100
         assert lower_ink > 120
 
     reports = [
         shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
-        for page in carousel_draft().pages
+        for page in draft.pages
     ]
-    assert all(report.logo_visible for report in reports)
+    assert reports[0].logo_visible
+    assert all(not report.logo_visible for report in reports[1:])
     assert all(not report.canvas_overflow for report in reports)
     assert all(not report.content_overflow for report in reports)
-    assert all(report.source_bottom <= 1260 for report in reports[1:])
+
+
+@pytest.mark.parametrize(
+    ("company", "logo_size"),
+    (
+        ("SUN", (240, 80)),
+        ("Billow AI Labs", (80, 240)),
+        ("Shiraz AI", (180, 180)),
+    ),
+)
+def test_three_company_stress_drafts_render_all_twenty_one_pages(
+    tmp_path,
+    company,
+    logo_size,
+):
+    logo_path = tmp_path / f"{company.replace(' ', '-')}.png"
+    Image.new("RGBA", logo_size, (201, 50, 120, 255)).save(logo_path)
+    asset = brand_asset(logo_path, company=company)
+    draft = company_stress_draft(company)
+
+    html_pages = [
+        render.page_html(page, company, asset)
+        for page in draft.pages
+    ]
+    outputs = shoot.carousel_pngs(draft, company, asset)
+
+    assert len(outputs) == 7
+    assert all(_png_size(data) == (1080, 1350) for data in outputs)
+    assert all('class="page-tag"' not in html for html in html_pages)
+    assert all('class="page-source"' not in html for html in html_pages)
+    assert all("來源：" not in html for html in html_pages)
+    assert all("2026-" not in html for html in html_pages)
 
 
 def test_missing_logo_blocks_pngs_without_deleting_saved_draft(tmp_path):
@@ -83,30 +124,57 @@ def test_missing_logo_blocks_pngs_without_deleting_saved_draft(tmp_path):
     assert db.get_carousel_draft(conn, idea_id) == expected
 
 
-def test_who_page_uses_the_lower_part_of_the_canvas(tmp_path):
+def test_invalid_layout_blocks_every_screenshot(tmp_path, monkeypatch):
     asset = brand_asset(_test_logo(tmp_path))
-    page = carousel_draft().pages[1]
+    layout = replace_element(
+        load_builtin_layout(),
+        "cover",
+        "heading",
+        h=24,
+    )
+    screenshots = []
+    original_screenshot = Locator.screenshot
+
+    def recording_screenshot(locator, *args, **kwargs):
+        screenshots.append(locator)
+        return original_screenshot(locator, *args, **kwargs)
+
+    monkeypatch.setattr(Locator, "screenshot", recording_screenshot)
+
+    with pytest.raises(RuntimeError, match="第 1 頁.*封面標題"):
+        shoot.carousel_pngs(
+            carousel_draft(),
+            "ElevenLabs",
+            asset,
+            layout,
+        )
+
+    assert screenshots == []
+
+
+def test_who_page_keeps_mascot_visible_without_source_footer(tmp_path):
+    asset = brand_asset(_test_logo(tmp_path))
+    page = renderable_carousel_draft().pages[1]
 
     report = shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
 
-    assert 1000 <= report.source_bottom <= 1260
+    assert report.mascot_visible
+    assert report.source_bottom == 0
 
 
 def test_story_layout_keeps_mascot_and_bottom_source_visible_without_overlap(
     tmp_path,
 ):
     asset = brand_asset(_test_logo(tmp_path))
+    draft = renderable_carousel_draft()
     reports = [
         shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
-        for page in carousel_draft().pages
+        for page in draft.pages
     ]
 
     assert all(report.mascot_visible for report in reports)
-    assert all(not report.source_overlap for report in reports[1:])
-    assert all(
-        1180 <= report.source_bottom <= 1260
-        for report in reports[1:]
-    )
+    assert all(not report.source_overlap for report in reports)
+    assert all(report.source_bottom == 0 for report in reports)
 
 
 def test_png_bytes_has_exact_canvas_size(tmp_path):
@@ -120,8 +188,8 @@ def test_png_bytes_has_brand_pixels(tmp_path):
     data = shoot.png_bytes(_html(tmp_path))
     image = Image.open(io.BytesIO(data)).convert("RGB")
 
-    assert image.getpixel((20, 20)) == (0xD5, 0xE6, 0xF4)
-    assert image.getpixel((540, 300)) == (0xFB, 0xFC, 0xFE)
+    assert image.getpixel((20, 20)) == (0x10, 0x2F, 0x3D)
+    assert image.getpixel((20, 1340)) == (0xEC, 0x98, 0x70)
 
 
 def test_text_actually_rendered_with_the_bundled_font(tmp_path):
@@ -143,7 +211,11 @@ def test_missing_bundled_font_does_not_silently_use_fallback(tmp_path):
 
 def test_real_rendered_pngs_can_be_unpacked_from_the_bundle(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
-    pngs = shoot.carousel_pngs(carousel_draft(), "ElevenLabs", asset)
+    pngs = shoot.carousel_pngs(
+        renderable_carousel_draft(),
+        "ElevenLabs",
+        asset,
+    )
 
     archive = bundle.carousel_zip(pngs)
 

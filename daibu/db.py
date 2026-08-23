@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from daibu.cards.schema import (
@@ -52,6 +52,24 @@ STARTUP_DISCOVERY_SOURCES = (
         "rss",
     ),
 )
+
+
+@dataclass(frozen=True)
+class CarouselDraftMeta:
+    idea_id: int
+    template_version_id: int
+    content_revision: int
+    updated_at: str
+
+
+class RevisionConflict(RuntimeError):
+    def __init__(self, expected_revision: int, actual_revision: int) -> None:
+        self.expected_revision = expected_revision
+        self.actual_revision = actual_revision
+        super().__init__(
+            "草稿版本衝突："
+            f"預期 revision {expected_revision}，實際為 {actual_revision}"
+        )
 
 
 def connect(path: str) -> sqlite3.Connection:
@@ -256,6 +274,12 @@ def _cleanup_to_single_series(conn: sqlite3.Connection) -> bool:
     target_id = targets[0]["id"]
     conn.execute("SAVEPOINT single_series_cleanup")
     try:
+        conn.execute(
+            "DELETE FROM carousel_drafts WHERE idea_id IN "
+            "(SELECT id FROM ideas "
+            "WHERE theme_id IS NOT NULL AND theme_id != ?)",
+            (target_id,),
+        )
         for table in (
             "performance",
             "carousel_pages",
@@ -275,6 +299,14 @@ def _cleanup_to_single_series(conn: sqlite3.Connection) -> bool:
         )
         conn.execute(
             "DELETE FROM theme_sources WHERE theme_id != ?",
+            (target_id,),
+        )
+        conn.execute(
+            "DELETE FROM carousel_template_settings WHERE theme_id != ?",
+            (target_id,),
+        )
+        conn.execute(
+            "DELETE FROM carousel_template_versions WHERE theme_id != ?",
             (target_id,),
         )
         conn.execute("DELETE FROM themes WHERE id != ?", (target_id,))
@@ -345,6 +377,34 @@ def _migrate_startup_source_strategy(conn: sqlite3.Connection) -> bool:
         conn.execute("RELEASE SAVEPOINT startup_source_strategy")
         raise
     return True
+
+
+def _backfill_carousel_template_metadata(
+    conn: sqlite3.Connection,
+) -> None:
+    from daibu.cards import layout_repository
+
+    rows = conn.execute(
+        """
+        SELECT DISTINCT ideas.id, ideas.theme_id
+        FROM ideas
+        JOIN carousel_pages ON carousel_pages.idea_id = ideas.id
+        WHERE ideas.theme_id IS NOT NULL
+        """
+    ).fetchall()
+    for row in rows:
+        version = layout_repository.ensure_default_version(
+            conn,
+            int(row["theme_id"]),
+        )
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO carousel_drafts (
+                idea_id, template_version_id, content_revision, updated_at
+            ) VALUES (?, ?, 1, ?)
+            """,
+            (int(row["id"]), version.id, _now()),
+        )
 
 def init_schema(conn: sqlite3.Connection) -> None:
     if _table_exists(conn, "themes") and _needs_legacy_migration(conn):
@@ -439,6 +499,35 @@ def init_schema(conn: sqlite3.Connection) -> None:
             source_kind TEXT NOT NULL DEFAULT 'manual',
             PRIMARY KEY (idea_id, source_key),
             FOREIGN KEY (idea_id) REFERENCES ideas(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS carousel_template_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            theme_id INTEGER NOT NULL,
+            version_no INTEGER NOT NULL,
+            schema_version INTEGER NOT NULL,
+            layout_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (theme_id, version_no),
+            FOREIGN KEY (theme_id) REFERENCES themes(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS carousel_template_settings (
+            theme_id INTEGER PRIMARY KEY,
+            active_version_id INTEGER NOT NULL,
+            FOREIGN KEY (theme_id) REFERENCES themes(id),
+            FOREIGN KEY (active_version_id)
+                REFERENCES carousel_template_versions(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS carousel_drafts (
+            idea_id INTEGER PRIMARY KEY,
+            template_version_id INTEGER NOT NULL,
+            content_revision INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (idea_id) REFERENCES ideas(id),
+            FOREIGN KEY (template_version_id)
+                REFERENCES carousel_template_versions(id)
         );
 
         CREATE TABLE IF NOT EXISTS idea_sources (
@@ -621,6 +710,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
         WHERE EXISTS (SELECT 1 FROM themes)
         """
     )
+    _backfill_carousel_template_metadata(conn)
     conn.commit()
 
 
@@ -708,52 +798,73 @@ def update_theme(conn: sqlite3.Connection, theme: Theme) -> None:
 
 
 def delete_theme(conn: sqlite3.Connection, theme_id: int) -> None:
-    conn.execute(
-        """
-        DELETE FROM performance
-        WHERE idea_id IN (
-            SELECT id FROM ideas WHERE theme_id = ?
+    with conn:
+        conn.execute(
+            """
+            DELETE FROM carousel_drafts
+            WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
+            """,
+            (theme_id,),
         )
-        """,
-        (theme_id,),
-    )
-    conn.execute(
-        """
-        DELETE FROM carousel_pages
-        WHERE idea_id IN (
-            SELECT id FROM ideas WHERE theme_id = ?
+        conn.execute(
+            """
+            DELETE FROM performance
+            WHERE idea_id IN (
+                SELECT id FROM ideas WHERE theme_id = ?
+            )
+            """,
+            (theme_id,),
         )
-        """,
-        (theme_id,),
-    )
-    conn.execute(
-        """
-        DELETE FROM carousel_sources
-        WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
-        """,
-        (theme_id,),
-    )
-    conn.execute(
-        """
-        DELETE FROM idea_sources
-        WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
-        """,
-        (theme_id,),
-    )
-    conn.execute("DELETE FROM ideas WHERE theme_id = ?", (theme_id,))
-    conn.execute(
-        "DELETE FROM theme_sources WHERE theme_id = ?",
-        (theme_id,),
-    )
-    conn.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
-    conn.commit()
+        conn.execute(
+            """
+            DELETE FROM carousel_pages
+            WHERE idea_id IN (
+                SELECT id FROM ideas WHERE theme_id = ?
+            )
+            """,
+            (theme_id,),
+        )
+        conn.execute(
+            """
+            DELETE FROM carousel_sources
+            WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
+            """,
+            (theme_id,),
+        )
+        conn.execute(
+            """
+            DELETE FROM idea_sources
+            WHERE idea_id IN (SELECT id FROM ideas WHERE theme_id = ?)
+            """,
+            (theme_id,),
+        )
+        conn.execute("DELETE FROM ideas WHERE theme_id = ?", (theme_id,))
+        conn.execute(
+            "DELETE FROM carousel_template_settings WHERE theme_id = ?",
+            (theme_id,),
+        )
+        conn.execute(
+            "DELETE FROM carousel_template_versions WHERE theme_id = ?",
+            (theme_id,),
+        )
+        conn.execute(
+            "DELETE FROM theme_sources WHERE theme_id = ?",
+            (theme_id,),
+        )
+        conn.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
 
 
 def count_theme_content(
     conn: sqlite3.Connection,
     theme_id: int,
 ) -> dict[str, int]:
-    counts = {"候選": 0, "採用": 0, "已發": 0, "輪播草稿": 0}
+    counts = {
+        "候選": 0,
+        "採用": 0,
+        "已發": 0,
+        "輪播草稿": 0,
+        "模板版本": 0,
+    }
     rows = conn.execute(
         """
         SELECT status, COUNT(*) AS count
@@ -776,6 +887,15 @@ def count_theme_content(
         (theme_id,),
     ).fetchone()
     counts["輪播草稿"] = int(carousel_row["count"])
+    version_row = conn.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM carousel_template_versions
+        WHERE theme_id = ?
+        """,
+        (theme_id,),
+    ).fetchone()
+    counts["模板版本"] = int(version_row["count"])
     return counts
 
 
@@ -1127,11 +1247,24 @@ def set_idea_company(
 
 
 def delete_idea(conn: sqlite3.Connection, idea_id: int) -> None:
-    conn.execute("DELETE FROM carousel_pages WHERE idea_id = ?", (idea_id,))
-    conn.execute("DELETE FROM carousel_sources WHERE idea_id = ?", (idea_id,))
-    conn.execute("DELETE FROM idea_sources WHERE idea_id = ?", (idea_id,))
-    conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
-    conn.commit()
+    with conn:
+        conn.execute(
+            "DELETE FROM carousel_drafts WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.execute(
+            "DELETE FROM carousel_pages WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.execute(
+            "DELETE FROM carousel_sources WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.execute(
+            "DELETE FROM idea_sources WHERE idea_id = ?",
+            (idea_id,),
+        )
+        conn.execute("DELETE FROM ideas WHERE id = ?", (idea_id,))
 
 
 def save_idea_sources(
@@ -1312,10 +1445,118 @@ def save_carousel_draft(
     conn: sqlite3.Connection,
     idea_id: int,
     draft: CarouselDraft,
-) -> None:
+    expected_revision: int | None = None,
+) -> CarouselDraftMeta | None:
     validate_draft(draft)
+    existing = get_carousel_draft_meta(conn, idea_id)
+    if existing is not None:
+        with conn:
+            current = get_carousel_draft_meta(conn, idea_id)
+            assert current is not None
+            if (
+                expected_revision is not None
+                and expected_revision != current.content_revision
+            ):
+                raise RevisionConflict(
+                    expected_revision,
+                    current.content_revision,
+                )
+            _replace_carousel_draft(conn, idea_id, draft)
+            conn.execute(
+                """
+                UPDATE carousel_drafts
+                SET content_revision = ?, updated_at = ?
+                WHERE idea_id = ?
+                """,
+                (current.content_revision + 1, _now(), idea_id),
+            )
+        return get_carousel_draft_meta(conn, idea_id)
+
+    idea = conn.execute(
+        "SELECT theme_id FROM ideas WHERE id = ?",
+        (idea_id,),
+    ).fetchone()
+    if idea is None:
+        raise ValueError(f"找不到候選：{idea_id}")
+    if idea["theme_id"] is None:
+        with conn:
+            _replace_carousel_draft(conn, idea_id, draft)
+        return None
+
+    from daibu.cards import layout_repository
+
+    active = layout_repository.get_active_version(
+        conn,
+        int(idea["theme_id"]),
+    )
     with conn:
         _replace_carousel_draft(conn, idea_id, draft)
+        conn.execute(
+            """
+            INSERT INTO carousel_drafts (
+                idea_id, template_version_id, content_revision, updated_at
+            ) VALUES (?, ?, 1, ?)
+            """,
+            (idea_id, active.id, _now()),
+        )
+    return get_carousel_draft_meta(conn, idea_id)
+
+
+def get_carousel_draft_meta(
+    conn: sqlite3.Connection,
+    idea_id: int,
+) -> CarouselDraftMeta | None:
+    row = conn.execute(
+        "SELECT * FROM carousel_drafts WHERE idea_id = ?",
+        (idea_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return CarouselDraftMeta(
+        idea_id=int(row["idea_id"]),
+        template_version_id=int(row["template_version_id"]),
+        content_revision=int(row["content_revision"]),
+        updated_at=str(row["updated_at"]),
+    )
+
+
+def upgrade_carousel_template(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    template_version_id: int,
+) -> CarouselDraftMeta:
+    metadata = get_carousel_draft_meta(conn, idea_id)
+    if metadata is None:
+        raise ValueError("這份草稿尚未綁定模板版本")
+    idea = conn.execute(
+        "SELECT theme_id FROM ideas WHERE id = ?",
+        (idea_id,),
+    ).fetchone()
+    if idea is None or idea["theme_id"] is None:
+        raise ValueError("這份草稿不屬於任何內容系列")
+
+    from daibu.cards import layout_repository
+
+    version = layout_repository.get_version(conn, template_version_id)
+    if version.theme_id != int(idea["theme_id"]):
+        raise ValueError("模板版本不屬於這份草稿的內容系列")
+    with conn:
+        conn.execute(
+            """
+            UPDATE carousel_drafts
+            SET template_version_id = ?, content_revision = ?, updated_at = ?
+            WHERE idea_id = ?
+            """,
+            (
+                template_version_id,
+                metadata.content_revision + 1,
+                _now(),
+                idea_id,
+            ),
+        )
+    upgraded = get_carousel_draft_meta(conn, idea_id)
+    assert upgraded is not None
+    return upgraded
 
 
 def _replace_carousel_draft(
@@ -1388,14 +1629,50 @@ def save_researched_draft(
     conn: sqlite3.Connection,
     idea_id: int,
     draft: CarouselDraft,
-) -> None:
+) -> CarouselDraftMeta | None:
     """Replace research pack and immutable draft snapshot together."""
     from daibu.cards.schema import validate_grounded_draft
 
     validate_grounded_draft(draft)
+    existing = get_carousel_draft_meta(conn, idea_id)
+    active_version_id: int | None = None
+    if existing is None:
+        idea = conn.execute(
+            "SELECT theme_id FROM ideas WHERE id = ?",
+            (idea_id,),
+        ).fetchone()
+        if idea is None:
+            raise ValueError(f"找不到候選：{idea_id}")
+        if idea["theme_id"] is not None:
+            from daibu.cards import layout_repository
+
+            active_version_id = layout_repository.get_active_version(
+                conn,
+                int(idea["theme_id"]),
+            ).id
     with conn:
         _replace_idea_sources(conn, idea_id, draft.sources)
         _replace_carousel_draft(conn, idea_id, draft)
+        if existing is not None:
+            conn.execute(
+                """
+                UPDATE carousel_drafts
+                SET content_revision = ?, updated_at = ?
+                WHERE idea_id = ?
+                """,
+                (existing.content_revision + 1, _now(), idea_id),
+            )
+        elif active_version_id is not None:
+            conn.execute(
+                """
+                INSERT INTO carousel_drafts (
+                    idea_id, template_version_id,
+                    content_revision, updated_at
+                ) VALUES (?, ?, 1, ?)
+                """,
+                (idea_id, active_version_id, _now()),
+            )
+    return get_carousel_draft_meta(conn, idea_id)
 
 
 def get_carousel_draft(

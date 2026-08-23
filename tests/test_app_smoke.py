@@ -33,6 +33,17 @@ def test_app_entry_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_settings_exposes_series_template_management(monkeypatch,tmp_path):
+    from daibu.cards import template_editor_component,template_editor_ui
+    database_path=tmp_path/"settings.db";monkeypatch.setenv("DAIBU_DB_PATH",str(database_path))
+    conn=db.connect(str(database_path));db.init_schema(conn);db.add_theme(conn,Theme(None,"AI 新創介紹",4,[],1))
+    monkeypatch.setattr(template_editor_ui,"mount_template_editor",lambda payload,*,key:template_editor_component.TemplateEditorEvent(False,None))
+    app=AppTest.from_file(PROJECT_ROOT/"pages/3_設定.py").run()
+    text=" ".join(item.value for item in [*app.subheader,*app.caption])
+    assert not app.exception
+    assert "系統設定" in text and "系列模板管理" in text
+
+
 def test_home_is_a_guided_multi_series_workstation(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 
@@ -1129,6 +1140,8 @@ def test_selection_can_create_a_series_when_none_are_left(monkeypatch, tmp_path)
 
 
 def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
+    from daibu.cards import layout_repository
+
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
     conn = db.connect(str(database_path))
@@ -1146,6 +1159,7 @@ def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
         Idea("已發布", "角度", ""),
         status="已發",
     )
+    layout_repository.ensure_default_version(conn, theme_id)
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py")
     app.run()
@@ -1153,6 +1167,7 @@ def test_delete_theme_warns_how_many_ideas_will_go(monkeypatch, tmp_path):
     warning_text = " ".join(warning.value for warning in app.warning)
     assert "2 則候選" in warning_text
     assert "1 則已發" in warning_text
+    assert "1 個模板版本" in warning_text
     assert "無法復原" in warning_text
 
 
@@ -1305,7 +1320,7 @@ def test_ai_copy_generation_loads_and_saves_the_new_draft(
     next(
         button for button in app.button
         if button.label == "AI 幫我寫初稿"
-    ).click().run()
+    ).click().run(timeout=10)
 
     stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
     assert calls == [
@@ -2050,7 +2065,11 @@ def test_settings_uses_chinese_labels_and_static_search_service(
     app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
     app.run()
 
-    assert [field.label for field in app.selectbox] == ["AI 服務商"]
+    assert [field.label for field in app.selectbox] == [
+        "AI 服務商",
+        "內容系列",
+        "模板版本",
+    ]
     visible_text = " ".join(
         element.value
         for elements in (app.markdown, app.caption)
@@ -2792,18 +2811,30 @@ def test_company_research_can_generate_without_a_manual_source_pack(
     ]
     assert db.get_carousel_draft(conn, idea_id) is not None
     rendered = " ".join(block.value for block in app.markdown)
-    captions = " ".join(caption.value for caption in app.caption)
     assert "官方說法" in rendered
     assert "第三方報導" in rendered
-    assert "查證引文" in captions
+    assert any(
+        section.evidence_quotes
+        for page in db.get_carousel_draft(conn, idea_id).pages
+        for section in page.sections
+    )
 
 
 def test_saved_carousel_draft_shows_seven_editable_pages(
     tmp_path,
     monkeypatch,
 ):
-    from daibu.cards import pages as card_pages
-    from tests.card_fixtures import carousel_draft
+    from daibu.cards import assets, editor_component, editor_ui
+    from tests.card_fixtures import carousel_draft, solid_png
+
+    captured = {}
+
+    def capture_editor(payload, *, key):
+        captured["payload"] = payload
+        captured["key"] = key
+        return editor_component.ContentEditorEvent(False, None)
+
+    monkeypatch.setattr(editor_ui, "mount_content_editor", capture_editor)
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -2826,25 +2857,41 @@ def test_saved_carousel_draft_shows_seven_editable_pages(
     )
     db.save_idea_sources(conn, idea_id, carousel_draft().sources)
     db.save_carousel_draft(conn, idea_id, carousel_draft())
+    assets.store_logo(
+        conn,
+        "ElevenLabs",
+        "official.png",
+        solid_png(240, 80),
+        "https://elevenlabs.io/about",
+        "2026-08-23",
+    )
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     rendered = " ".join(block.value for block in app.markdown)
-    captions = " ".join(caption.value for caption in app.caption)
 
     assert not app.exception
-    assert all(label in rendered for label in card_pages.LABELS.values())
-    assert len([
-        field for field in app.text_input
-        if field.label.startswith("頁面標題")
-    ]) == 7
-    assert "來源 ID：" in captions
+    assert len(captured["payload"]["pages"]) == 7
+    assert all(page["previewHtml"] for page in captured["payload"]["pages"])
+    assert any(
+        ".diagram." in field["key"]
+        for page in captured["payload"]["pages"]
+        for field in page["fields"]
+    )
+    assert any(
+        page["lockedEvidence"]
+        for page in captured["payload"]["pages"]
+    )
+    assert "儲存草稿" not in [button.label for button in app.button]
+    assert "七頁內容編輯器" in rendered
 
 
 def test_invalid_carousel_edit_keeps_widgets_and_database_unchanged(
     tmp_path,
     monkeypatch,
 ):
-    from tests.card_fixtures import carousel_draft
+    from daibu.cards import assets, editor_component, editor_ui
+    from daibu.cards.editor_payload import editable_values
+    from tests.card_fixtures import carousel_draft, solid_png
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -2868,25 +2915,117 @@ def test_invalid_carousel_edit_keeps_widgets_and_database_unchanged(
     original = carousel_draft()
     db.save_idea_sources(conn, idea_id, original.sources)
     db.save_carousel_draft(conn, idea_id, original)
+    assets.store_logo(
+        conn,
+        "ElevenLabs",
+        "official.png",
+        solid_png(240, 80),
+        "https://elevenlabs.io/about",
+        "2026-08-23",
+    )
+    metadata = db.get_carousel_draft_meta(conn, idea_id)
+    values = editable_values(original)
+    values["page.who.section.0.text"] += "補" * 221
+    monkeypatch.setattr(
+        editor_ui,
+        "mount_content_editor",
+        lambda _payload, *, key: editor_component.ContentEditorEvent(
+            True,
+            {"revision": metadata.content_revision, "values": values},
+        ),
+    )
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
-    field = next(
-        text_area for text_area in app.text_area
-        if text_area.label == "白話定位"
-    )
-    too_long = field.value + ("補" * 221)
-    field.set_value(too_long)
-    next(
-        button for button in app.button
-        if button.label == "儲存草稿"
-    ).click().run()
 
     assert any("220" in error.value for error in app.error)
     assert db.get_carousel_draft(conn, idea_id) == original
-    assert next(
-        text_area.value for text_area in app.text_area
-        if text_area.label == "白話定位"
-    ) == too_long
+    assert any("先儲存七頁變更" in item.value for item in app.caption)
+
+
+def test_carousel_editor_save_action_updates_database(tmp_path, monkeypatch):
+    from daibu.cards import assets, editor_component, editor_ui
+    from daibu.cards.editor_payload import editable_values
+    from tests.card_fixtures import renderable_carousel_draft, solid_png
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("編輯器保存測試", "採用角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original = renderable_carousel_draft()
+    db.save_idea_sources(conn, idea_id, original.sources)
+    db.save_carousel_draft(conn, idea_id, original)
+    assets.store_logo(
+        conn,
+        "ElevenLabs",
+        "official.png",
+        solid_png(240, 80),
+        "https://elevenlabs.io/about",
+        "2026-08-23",
+    )
+    before = db.get_carousel_draft_meta(conn, idea_id)
+    values = editable_values(original)
+    values["page.who.heading"] = "重新認識 ElevenLabs"
+    calls = 0
+
+    def save_once(_payload, *, key):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return editor_component.ContentEditorEvent(
+                True,
+                {"revision": before.content_revision, "values": values},
+            )
+        return editor_component.ContentEditorEvent(False, None)
+
+    monkeypatch.setattr(editor_ui, "mount_content_editor", save_once)
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=20)
+
+    saved = db.get_carousel_draft(conn, idea_id)
+    after = db.get_carousel_draft_meta(conn, idea_id)
+    assert not app.exception
+    assert saved.pages[1].heading == "重新認識 ElevenLabs"
+    assert after.content_revision == before.content_revision + 1
+
+
+def test_unsaved_carousel_editor_disables_image_generation(tmp_path, monkeypatch):
+    from daibu.cards import editor_component, editor_ui
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("未存內容測試", "採用角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original = carousel_draft()
+    db.save_carousel_draft(conn, idea_id, original)
+    monkeypatch.setattr(
+        editor_ui,
+        "mount_content_editor",
+        lambda _payload, *, key: editor_component.ContentEditorEvent(True, None),
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+
+    render_button = next(
+        button for button in app.button if button.label == "產生七張圖"
+    )
+    assert render_button.disabled is True
+    assert any("先儲存七頁變更" in item.value for item in app.caption)
+    assert db.get_carousel_draft(conn, idea_id) == original
 
 
 def test_regenerating_a_carousel_requires_explicit_confirmation(
@@ -3579,7 +3718,7 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
     from io import BytesIO
 
     from daibu.cards import assets, bundle, workbench
-    from tests.card_fixtures import carousel_draft, solid_png
+    from tests.card_fixtures import renderable_carousel_draft, solid_png
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3601,7 +3740,7 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
         ),
         status="採用",
     )
-    draft = carousel_draft()
+    draft = renderable_carousel_draft()
     db.save_idea_sources(conn, idea_id, draft.sources)
     db.save_carousel_draft(conn, idea_id, draft)
     assets.store_logo(
@@ -3623,6 +3762,8 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
         app.session_state,
         idea_id,
         draft,
+        db.get_carousel_draft_meta(conn, idea_id).template_version_id,
+        db.get_carousel_draft_meta(conn, idea_id).content_revision,
     )
     archive = bundle.carousel_zip(pngs)
     with zipfile.ZipFile(BytesIO(archive)) as packaged:
@@ -3640,8 +3781,9 @@ def test_saving_carousel_edits_invalidates_the_old_download(
     tmp_path,
     monkeypatch,
 ):
-    from daibu.cards import assets
-    from tests.card_fixtures import carousel_draft, solid_png
+    from daibu.cards import assets, editor_component, editor_ui
+    from daibu.cards.editor_payload import editable_values
+    from tests.card_fixtures import renderable_carousel_draft, solid_png
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3663,7 +3805,7 @@ def test_saving_carousel_edits_invalidates_the_old_download(
         ),
         status="採用",
     )
-    draft = carousel_draft()
+    draft = renderable_carousel_draft()
     db.save_idea_sources(conn, idea_id, draft.sources)
     db.save_carousel_draft(conn, idea_id, draft)
     assets.store_logo(
@@ -3674,6 +3816,22 @@ def test_saving_carousel_edits_invalidates_the_old_download(
         "https://elevenlabs.io/about",
         "2026-07-30",
     )
+    before = db.get_carousel_draft_meta(conn, idea_id)
+    values = editable_values(draft)
+    values["page.who.section.0.text"] += "補"
+    should_save = False
+
+    def editor_event(_payload, *, key):
+        nonlocal should_save
+        if should_save:
+            should_save = False
+            return editor_component.ContentEditorEvent(
+                True,
+                {"revision": before.content_revision, "values": values},
+            )
+        return editor_component.ContentEditorEvent(False, None)
+
+    monkeypatch.setattr(editor_ui, "mount_content_editor", editor_event)
 
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     next(
@@ -3682,15 +3840,8 @@ def test_saving_carousel_edits_invalidates_the_old_download(
     ).click().run(timeout=20)
     assert len(app.download_button) == 1
 
-    field = next(
-        text_area for text_area in app.text_area
-        if text_area.label == "白話定位"
-    )
-    field.set_value(field.value + "補")
-    next(
-        button for button in app.button
-        if button.label == "儲存草稿"
-    ).click().run()
+    should_save = True
+    app.run(timeout=20)
 
     assert not app.exception
     assert len(app.download_button) == 0

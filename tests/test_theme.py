@@ -234,12 +234,14 @@ def test_context_column_sticky_applies_to_streamlit_layout_wrapper():
     )
 
 
-def test_carousel_preview_is_two_columns_on_desktop_and_one_on_mobile():
+def test_carousel_preview_is_one_readable_column_at_every_width():
     styles = theme.css()
     selector = '[class*="st-key-carousel-preview-grid-"]'
 
     assert selector in styles
-    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
+    desktop = styles.split(selector, maxsplit=1)[1].split("}", maxsplit=1)[0]
+    assert "grid-template-columns: minmax(0, 1fr)" in desktop
+    assert "repeat(2" not in desktop
     mobile = styles.split("@media (max-width: 700px)", maxsplit=1)[1]
     assert "grid-template-columns: minmax(0, 1fr)" in mobile
     assert "overflow-x: hidden" in mobile

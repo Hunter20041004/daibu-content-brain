@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Mapping
+
+from daibu.cards import pages
+from daibu.cards.layout_registry import ELEMENT_REGISTRY
+from daibu.cards.layout_schema import (
+    LayoutDocument,
+    layout_to_mapping,
+    parse_layout,
+)
+
+
+@dataclass(frozen=True)
+class TemplateField:
+    element_id: str
+    label: str
+    kind: str
+    editable_properties: tuple[str, ...]
+    min_values: Mapping[str, float]
+    max_values: Mapping[str, float]
+
+
+def apply_template_values(
+    base: LayoutDocument,
+    page_type: str,
+    values: Mapping[str, Mapping[str, object]],
+) -> LayoutDocument:
+    if page_type not in base.pages:
+        raise ValueError(f"未知頁型：{page_type}")
+    expected = set(base.pages[page_type].elements)
+    if set(values) != expected:
+        raise ValueError("模板元素不完整或包含未知元素")
+    raw = layout_to_mapping(base)
+    raw_elements = raw["pages"][page_type]["elements"]
+    for element_id, properties in values.items():
+        rule = ELEMENT_REGISTRY[page_type][element_id]
+        allowed = {"x", "y", "w", "h"}
+        if rule.text:
+            allowed |= {"font_size", "text_align"}
+        unknown = set(properties) - allowed
+        if unknown:
+            raise ValueError(f"{element_id} 含不允許的屬性：{sorted(unknown)[0]}")
+        if set(properties) != allowed:
+            raise ValueError(f"{element_id} 缺少必要屬性")
+        raw_elements[element_id] = dict(properties)
+    return parse_layout(raw)
+
+
+def reset_layout_page(
+    working: LayoutDocument,
+    base: LayoutDocument,
+    page_type: str,
+) -> LayoutDocument:
+    raw = layout_to_mapping(working)
+    raw["pages"][page_type] = layout_to_mapping(base)["pages"][page_type]
+    return parse_layout(raw)
+
+
+def summarize_layout_diff(
+    base: LayoutDocument,
+    working: LayoutDocument,
+) -> tuple[str, ...]:
+    summaries = []
+    for index, page_type in enumerate(pages.PAGE_TYPES, start=1):
+        moved = resized = 0
+        for element_id, original in base.pages[page_type].elements.items():
+            edited = working.pages[page_type].elements[element_id]
+            if (original.rect.x, original.rect.y) != (edited.rect.x, edited.rect.y):
+                moved += 1
+            if (
+                (original.rect.w, original.rect.h, original.text_style)
+                != (edited.rect.w, edited.rect.h, edited.text_style)
+            ):
+                resized += 1
+        if moved or resized:
+            summaries.append(
+                f"第 {index} 頁：移動 {moved} 個元素、調整 {resized} 個文字框"
+            )
+    return tuple(summaries)
+
+
+def template_editor_payload(
+    theme,
+    versions,
+    selected_version,
+    page_type: str,
+    preview_html: str,
+) -> dict[str, object]:
+    layout = layout_to_mapping(selected_version.layout)
+    elements = []
+    for element_id, rule in ELEMENT_REGISTRY[page_type].items():
+        properties = ("x", "y", "w", "h", "font_size", "text_align") if rule.text else ("x", "y", "w", "h")
+        elements.append({
+            "elementId": element_id,
+            "label": rule.label,
+            "kind": "text" if rule.text else "graphic",
+            "collision": rule.collision,
+            "editableProperties": list(properties),
+            "minValues": {"w": rule.min_w, "h": rule.min_h, "font_size": rule.min_font_size},
+            "maxValues": {"font_size": rule.max_font_size},
+        })
+    return {
+        "themeId": theme.id,
+        "themeName": theme.name,
+        "versionId": selected_version.id,
+        "versionNo": selected_version.version_no,
+        "pageType": page_type,
+        "pages": [{"pageType": value, "label": pages.label(value)} for value in pages.PAGE_TYPES],
+        "elements": elements,
+        "layout": layout,
+        "previewHtml": preview_html,
+        "canvas": {"width": selected_version.layout.canvas_width, "height": selected_version.layout.canvas_height},
+        "versions": [{"id": version.id, "versionNo": version.version_no, "createdAt": version.created_at} for version in versions],
+    }

@@ -678,7 +678,28 @@ def test_count_theme_content_reports_what_will_be_deleted(tmp_path):
         "採用": 0,
         "已發": 1,
         "輪播草稿": 2,
+        "模板版本": 0,
     }
+
+
+def test_count_theme_content_includes_template_versions(tmp_path):
+    from daibu.cards import layout_repository
+    from daibu.cards.layout_schema import replace_element
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "count-template-versions.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "系列", 4, [], 5))
+    idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+    active = layout_repository.get_active_version(conn, theme_id)
+    changed = replace_element(active.layout, "cover", "heading", x=120)
+    layout_repository.create_version(conn, theme_id, changed)
+
+    counts = db.count_theme_content(conn, theme_id)
+
+    assert counts["輪播草稿"] == 1
+    assert counts["模板版本"] == 2
 
 
 def test_update_source_replaces_editable_fields(tmp_path):
@@ -845,6 +866,174 @@ def test_structured_carousel_round_trip(tmp_path):
     conn.close()
 
 
+def test_new_carousel_draft_binds_current_active_template(tmp_path):
+    from daibu.cards import layout_repository
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "draft-meta.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "一布懂 AI 新創", 4, [], 5),
+    )
+    idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
+    active = layout_repository.ensure_default_version(conn, theme_id)
+
+    metadata = db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    assert metadata == db.get_carousel_draft_meta(conn, idea_id)
+    assert metadata.template_version_id == active.id
+    assert metadata.content_revision == 1
+
+
+def test_saving_existing_carousel_preserves_template_and_increments_revision(
+    tmp_path,
+):
+    from daibu.cards import layout_repository
+    from daibu.cards.layout_schema import replace_element
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "draft-revision.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "系列", 4, [], 5))
+    idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
+    first = db.save_carousel_draft(conn, idea_id, carousel_draft())
+    current = layout_repository.get_active_version(conn, theme_id)
+    next_layout = replace_element(
+        current.layout,
+        "cover",
+        "heading",
+        x=120,
+    )
+    next_version = layout_repository.create_version(
+        conn,
+        theme_id,
+        next_layout,
+    )
+    layout_repository.set_active_version(conn, theme_id, next_version.id)
+
+    second = db.save_carousel_draft(conn, idea_id, carousel_draft())
+
+    assert second.template_version_id == first.template_version_id
+    assert second.content_revision == 2
+
+
+def test_stale_carousel_revision_rolls_back_without_changing_content(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "draft-conflict.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "系列", 4, [], 5))
+    idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+    before = {
+        "pages": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_pages WHERE idea_id = ? "
+                "ORDER BY page_no",
+                (idea_id,),
+            )
+        ],
+        "sources": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_sources WHERE idea_id = ? "
+                "ORDER BY position, source_key",
+                (idea_id,),
+            )
+        ],
+        "meta": tuple(
+            conn.execute(
+                "SELECT * FROM carousel_drafts WHERE idea_id = ?",
+                (idea_id,),
+            ).fetchone()
+        ),
+    }
+
+    with pytest.raises(db.RevisionConflict) as conflict:
+        db.save_carousel_draft(
+            conn,
+            idea_id,
+            carousel_draft(),
+            expected_revision=1,
+        )
+
+    assert conflict.value.expected_revision == 1
+    assert conflict.value.actual_revision == 2
+    after = {
+        "pages": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_pages WHERE idea_id = ? "
+                "ORDER BY page_no",
+                (idea_id,),
+            )
+        ],
+        "sources": [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT * FROM carousel_sources WHERE idea_id = ? "
+                "ORDER BY position, source_key",
+                (idea_id,),
+            )
+        ],
+        "meta": tuple(
+            conn.execute(
+                "SELECT * FROM carousel_drafts WHERE idea_id = ?",
+                (idea_id,),
+            ).fetchone()
+        ),
+    }
+    assert after == before
+
+
+def test_upgrade_carousel_template_changes_only_version_binding(tmp_path):
+    from daibu.cards import layout_repository
+    from daibu.cards.layout_schema import replace_element
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "draft-upgrade.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "系列", 4, [], 5))
+    idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
+    first = db.save_carousel_draft(conn, idea_id, carousel_draft())
+    active = layout_repository.get_active_version(conn, theme_id)
+    changed = replace_element(active.layout, "cover", "heading", x=120)
+    second_version = layout_repository.create_version(
+        conn,
+        theme_id,
+        changed,
+    )
+    content_before = db.get_carousel_draft(conn, idea_id)
+
+    upgraded = db.upgrade_carousel_template(
+        conn,
+        idea_id,
+        second_version.id,
+    )
+
+    assert upgraded.template_version_id == second_version.id
+    assert upgraded.content_revision == first.content_revision + 1
+    assert db.get_carousel_draft(conn, idea_id) == content_before
+
+
+def test_researched_draft_binds_current_active_template(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "researched-draft-meta.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "系列", 4, [], 5))
+    idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
+
+    db.save_researched_draft(conn, idea_id, carousel_draft())
+
+    metadata = db.get_carousel_draft_meta(conn, idea_id)
+    assert metadata is not None
+    assert metadata.content_revision == 1
+
+
 def test_structured_carousel_preserves_verified_source_order(tmp_path):
     from dataclasses import replace
 
@@ -876,6 +1065,38 @@ def test_deleting_idea_removes_its_structured_carousel_sources(tmp_path):
         "SELECT COUNT(*) FROM carousel_sources"
     ).fetchone()[0] == 0
     conn.close()
+
+
+def test_deleting_idea_removes_only_its_carousel_metadata(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "delete-draft-meta.db"))
+    db.init_schema(conn)
+    first_theme = db.add_theme(conn, Theme(None, "系列 A", 1, [], 5))
+    second_theme = db.add_theme(conn, Theme(None, "系列 B", 2, [], 5))
+    first_idea = db.add_idea(conn, first_theme, Idea("a", "a", ""))
+    second_idea = db.add_idea(conn, second_theme, Idea("b", "b", ""))
+    db.save_carousel_draft(conn, first_idea, carousel_draft())
+    db.save_carousel_draft(conn, second_idea, carousel_draft())
+
+    db.delete_idea(conn, first_idea)
+
+    for table in (
+        "ideas",
+        "carousel_pages",
+        "carousel_sources",
+        "carousel_drafts",
+    ):
+        assert conn.execute(
+            f"SELECT COUNT(*) FROM {table} WHERE "
+            + ("id = ?" if table == "ideas" else "idea_id = ?"),
+            (first_idea,),
+        ).fetchone()[0] == 0
+    assert db.get_carousel_draft(conn, second_idea) == carousel_draft()
+    assert db.get_carousel_draft_meta(conn, second_idea) is not None
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_versions"
+    ).fetchone()[0] == 2
 
 
 def test_update_single_carousel_page(tmp_path):
@@ -975,6 +1196,50 @@ def test_deleting_theme_removes_structured_carousel_sources(tmp_path):
         "SELECT COUNT(*) FROM carousel_sources"
     ).fetchone()[0] == 0
     conn.close()
+
+
+def test_deleting_theme_removes_its_template_graph_and_keeps_other_theme(
+    tmp_path,
+):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "delete-template-graph.db"))
+    db.init_schema(conn)
+    first_theme = db.add_theme(conn, Theme(None, "系列 A", 1, [], 5))
+    second_theme = db.add_theme(conn, Theme(None, "系列 B", 2, [], 5))
+    first_idea = db.add_idea(conn, first_theme, Idea("a", "a", ""))
+    second_idea = db.add_idea(conn, second_theme, Idea("b", "b", ""))
+    db.save_carousel_draft(conn, first_idea, carousel_draft())
+    db.save_carousel_draft(conn, second_idea, carousel_draft())
+
+    db.delete_theme(conn, first_theme)
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_drafts WHERE idea_id = ?",
+        (first_idea,),
+    ).fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_settings WHERE theme_id = ?",
+        (first_theme,),
+    ).fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_versions WHERE theme_id = ?",
+        (first_theme,),
+    ).fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT COUNT(*) FROM themes WHERE id = ?",
+        (first_theme,),
+    ).fetchone()[0] == 0
+    assert db.get_carousel_draft(conn, second_idea) == carousel_draft()
+    assert db.get_carousel_draft_meta(conn, second_idea) is not None
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_settings WHERE theme_id = ?",
+        (second_theme,),
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_versions WHERE theme_id = ?",
+        (second_theme,),
+    ).fetchone()[0] == 1
 
 
 def test_add_ideas_atomic_rolls_back_all_rows_when_one_insert_fails(tmp_path):

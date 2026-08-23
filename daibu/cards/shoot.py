@@ -4,7 +4,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
-from daibu.cards import render
+from daibu.cards import layout_validation, render
+from daibu.cards.layout_schema import LayoutDocument, load_builtin_layout
 from daibu.cards.schema import BrandAsset, CarouselDraft, validate_draft
 
 WIDTH = 1080
@@ -23,7 +24,23 @@ class LayoutReport:
 
 def _open_html(page: Page, path: Path) -> None:
     page.goto(path.as_uri(), wait_until="load")
-    page.evaluate("() => document.fonts.ready")
+    try:
+        page.evaluate(
+            """async () => {
+              await Promise.all(
+                [400, 700, 800].map(
+                  weight => document.fonts.load(
+                    `${weight} 32px "LINE Seed TW"`
+                  )
+                )
+              );
+              await document.fonts.ready;
+            }"""
+        )
+    except Exception as error:
+        raise RuntimeError(
+            "LINE Seed TW bundled fonts failed to load"
+        ) from error
     fonts_loaded = page.evaluate(
         """() => [400, 700, 800].every(
             weight => document.fonts.check(`${weight} 32px "LINE Seed TW"`)
@@ -36,13 +53,15 @@ def _open_html(page: Page, path: Path) -> None:
 def _report(page: Page) -> LayoutReport:
     raw = page.evaluate(
         """() => {
-          const canvas = document.querySelector(".canvas");
+          const canvas = document.querySelector(".carousel-canvas");
           const card = document.querySelector(".card");
           const source = document.querySelector(".source-label");
-          const logo = document.querySelector(".company-logo");
+          const logo = document.querySelector(
+            '[data-layout-id="company-logo"] img'
+          );
           const mascot = document.querySelector(".story-mascot");
-          const children = [...card.querySelectorAll("*")];
-          const cardRect = card.getBoundingClientRect();
+          const children = [...card.querySelectorAll("[data-layout-id]")];
+          const canvasRect = canvas.getBoundingClientRect();
           const intersects = (left, right) => Boolean(
             left && right &&
             left.left < right.right && left.right > right.left &&
@@ -50,20 +69,16 @@ def _report(page: Page) -> LayoutReport:
           );
           const sourceRect = source?.getBoundingClientRect();
           const mascotRect = mascot?.getBoundingClientRect();
-          const contentRects = [
-            ...card.querySelectorAll(
-              ".content-stack > h1, .section-list, .diagram"
-            )
-          ].map(element => element.getBoundingClientRect());
           return {
             canvasOverflow:
               canvas.scrollWidth > canvas.clientWidth ||
               canvas.scrollHeight > canvas.clientHeight,
             contentOverflow: children.some((element) => {
               const rect = element.getBoundingClientRect();
-              return rect.right > cardRect.right + 1 ||
-                     rect.bottom > cardRect.bottom + 1 ||
-                     rect.left < cardRect.left - 1;
+              return rect.right > canvasRect.right + 1 ||
+                     rect.bottom > canvasRect.bottom + 1 ||
+                     rect.left < canvasRect.left - 1 ||
+                     rect.top < canvasRect.top - 1;
             }),
             sourceBottom: source ? source.getBoundingClientRect().bottom : 0,
             logoVisible: Boolean(
@@ -72,14 +87,9 @@ def _report(page: Page) -> LayoutReport:
             ),
             mascotVisible: Boolean(
               mascotRect && mascotRect.width > 120 && mascotRect.height > 120 &&
-              intersects(mascotRect, cardRect)
+              intersects(mascotRect, canvasRect)
             ),
-            sourceOverlap: Boolean(
-              sourceRect && (
-                intersects(sourceRect, mascotRect) ||
-                contentRects.some(rect => intersects(sourceRect, rect))
-              )
-            ),
+            sourceOverlap: Boolean(sourceRect && intersects(sourceRect, mascotRect)),
           };
         }"""
     )
@@ -97,11 +107,20 @@ def carousel_pngs(
     draft: CarouselDraft,
     company: str,
     brand_asset: BrandAsset | None,
+    layout: LayoutDocument | None = None,
 ) -> list[bytes]:
     validate_draft(draft)
+    document = layout or load_builtin_layout()
     html_pages = [
-        render.page_html(page, company, brand_asset) for page in draft.pages
+        render.page_html(page, company, brand_asset, document)
+        for page in draft.pages
     ]
+    layout_validation.validate_rendered_pages(
+        {
+            page.page_type: html_text
+            for page, html_text in zip(draft.pages, html_pages, strict=True)
+        }
+    )
     outputs = []
     with tempfile.TemporaryDirectory() as directory:
         paths = []
@@ -122,7 +141,7 @@ def carousel_pngs(
                     if report.canvas_overflow or report.content_overflow:
                         raise RuntimeError(f"輪播內容超出版面：{path.name}")
                     outputs.append(
-                        page.locator(".canvas").screenshot(type="png")
+                        page.locator(".carousel-canvas").screenshot(type="png")
                     )
             finally:
                 browser.close()
@@ -156,6 +175,6 @@ def png_bytes(html_text: str) -> bytes:
                     viewport={"width": WIDTH, "height": HEIGHT}
                 )
                 _open_html(page, path)
-                return page.locator(".canvas").screenshot(type="png")
+                return page.locator(".carousel-canvas").screenshot(type="png")
             finally:
                 browser.close()
