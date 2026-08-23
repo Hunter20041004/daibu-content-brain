@@ -45,6 +45,7 @@ def render_content_workbench(
         brand_asset,
         version.layout,
         allow_logo_placeholder=True,
+        browser_preview=True,
     )
     payload = draft_to_editor_payload(
         draft,

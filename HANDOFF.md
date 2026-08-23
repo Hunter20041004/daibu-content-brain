@@ -1,6 +1,6 @@
 # HANDOFF — 七頁內容與系列模板編輯器實作中
 
-> 2026-08-23 更新。使用者選擇完整執行 A→B→C；Phase A 版本與共用排版基礎已完成並全套驗證，下一步依序接 Phase B 七頁內容編輯器與 Phase C 系列模板畫布。
+> 2026-08-23 更新。使用者選擇完整執行 A→B→C；Phase A 共用排版基礎與 Phase B 七頁內容編輯器已完成，下一步進入 Phase C 系列模板畫布。
 
 ## 本輪目標與驗收
 
@@ -12,22 +12,22 @@
 
 ## 本輪狀態
 
-- **產品能力**：Phase A 已建立安全版面 schema、內建 v15.1、系列不可變模板版本、草稿版本綁定、正式七頁 Renderer、Chromium 跑版攔截與版本感知 PNG 快取；內容編輯器與模板畫布尚未接入。
-- **使用者體驗**：現有「產生七張圖」已固定讀取草稿綁定的模板版本；內容或模板版本改變會讓舊下載立即失效。預覽改為桌機／手機皆單欄大圖，避免兩欄縮圖難以閱讀。
-- **技術結構**：`LayoutDocument` 只接受白名單元素、幾何與文字屬性；三張 SQLite 表保存模板版本、active 設定與草稿 metadata；`render.page_html()`、即時預覽與 PNG 共用同一份 layout；`layout_validation` 以真實 Chromium 量文字、邊界與碰撞。
-- **資料流程**：已存草稿＋`template_version_id`＋`content_revision` → 共用 Renderer → 七頁 Chromium validator → 全數通過後才截 PNG → 三者共同 fingerprint 控制下載快取。任一頁失敗不留下半套圖片。
+- **產品能力**：Phase A 的安全版面／版本基礎之上，Phase B 已加入 1–7 頁導覽、目前頁完整文字與 diagram 欄位、鎖定證據、同頁即時預覽、瀏覽器 working copy、七頁 Chromium 儲存閘門與 revision 衝突保護；模板畫布尚未接入。
+- **使用者體驗**：原本七份長表單已由單一逐頁編輯器取代。切頁不丟未存內容，超限會標到頁籤與欄位，未存內容不能產圖；成功保存後停在原頁。沒有 Logo 時仍可用「LOGO 待確認」預覽與改內容，但正式產圖仍維持 Logo 閘門。
+- **技術結構**：Components v2 只接收 Python Renderer 已 escape 的 HTML 與欄位白名單；使用者文字一律走 `textContent`。`editor_service` 重建 frozen draft、保留來源／引文／節點結構、共用 Renderer 與 Chromium validator，再以 expected revision 原子保存。LINE Seed 由 Streamlit 靜態資源提供，機器人改成 data URI，預覽不再讀本機 file URL。
+- **資料流程**：已存草稿＋模板版本＋revision → 安全 editor payload → sessionStorage working copy／DOM hook 即時預覽 → 儲存七頁 → Python 內容驗證＋七頁 Chromium → 單一 SQLite transaction＋revision +1 → 舊 PNG fingerprint 失效。任一頁失敗時 DB 與既有下載完全不變。
 - **設計理由與備援**：核可的成熟科技編輯視覺正式搬入，不用自動縮字掩蓋跑版；三行封面是系列例外，其他標題仍最多兩行。若日後編輯器元件不可用，既有已存草稿仍能依綁定版本產圖。
 - **安全與成本**：沒有新增 CDN、付費服務、LLM 呼叫或任意 CSS 入口；Logo 與文字仍逃逸後輸出。正式 `daibu.db` 僅用 SQLite read-only 與 `.backup` 副本驗證，沒有被寫入。
 - **正式資料副本驗證**：正式庫基線為 ideas 23、carousel_pages 0、carousel_sources 0、brand_assets 0；逐欄 canonical JSON SHA-256 依序為 `006605efa926257747b74867050a0940257ecad8d3b89237ef7f358a1fe78484`、`0cc5ad572c159bc109ab2816840263977f82802842e5497b197fa341bccc0dad`、`5b50a1f3836660c4977c3aa409df13535cf0c3f8d36ab07cffc8d1b449dc29b6`、`10dd371a129ce285b87fc867f8c9c85b503a37ea7ad39d16e530f6b6515521ad`。backup、首次 migration 與第二次 migration 四組指紋完全相同，只新增三張預期資料表；正式庫沒有 carousel rows，因此 backfill 版本／設定／metadata 都為 0。
 - **TDD 與跨公司驗收**：依序看見快取版本未納入、SUN 第 5 頁文字框 overflow、Billow 長名第 7 頁 overflow、Shiraz 長結果標題 overflow、桌機預覽過小等紅燈，再做最小修正。SUN、Billow AI Labs、Shiraz AI 搭配橫式／直式／方形 Logo，共 21 張 HTML 與 PNG 全數為 1080×1350，無非法碰撞、頁碼、來源或日期。
-- **視覺 QA**：第一輪 `.screenshots/layout-foundation-round1-desktop.png`、`.screenshots/layout-foundation-round1-mobile.png` 抓到桌機兩欄縮圖過小與手機捲動位置看不到預覽；修成全尺寸單欄後，第二輪 `.screenshots/layout-foundation-round2-desktop.png`、`.screenshots/layout-foundation-round2-mobile.png` 八項清單全數合格。375px 實測 `scrollWidth=clientWidth=375`、7 張圖片都在 DOM、console 0 errors／0 warnings。
-- **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `677 passed, 16 deselected, 1 warning in 100.09s`；唯一 warning 是既有 Starlette/httpx 相依提醒。`.venv/bin/python -m compileall -q daibu pages` 與 `git diff --check` 均通過。
+- **視覺 QA**：Phase B 第一輪 `.screenshots/carousel-editor-round1-desktop.png`、`.screenshots/carousel-editor-round1-mobile.png` 抓到元件欄寬溢出、已存內容誤警告、預覽 font／mascot file URL 失效；第二輪 `.screenshots/carousel-editor-round2-desktop.png`、`.screenshots/carousel-editor-round2-mobile.png` 已改成 container responsive、正確狀態與可載入資源。375px 實測 `scrollWidth=clientWidth=375`，正常首頁導覽進內容製作後 console 0 errors／0 warnings。
+- **Phase B 測試證據**：真實瀏覽器三條流程通過：切頁保留 working copy 且 DB 未寫、hard limit 同時擋 save／產圖、合法 save 寫 DB 且留在原頁。AppTest 119 passed；全套首次為 `696 passed, 16 deselected`，只抓到移除舊表單後遺留的 `.carousel-page-heading` CSS，已刪除並以兩個聚焦測試轉綠；Phase C 收尾會再跑完整全套。
 - **設計規格**：`docs/superpowers/specs/2026-08-20-七頁內容與系列模板編輯器-design.md`。
 - **實作計畫 A**：`docs/superpowers/plans/2026-08-21-carousel-layout-foundation.md`。
 - **實作計畫 B**：`docs/superpowers/plans/2026-08-21-carousel-content-editor.md`。
 - **實作計畫 C**：`docs/superpowers/plans/2026-08-21-carousel-template-editor.md`。
-- **剩餘限制**：Phase B 的逐頁即時內容預覽／一次儲存與 Phase C 的 PPT 式模板畫布尚未實作；目前仍是既有七頁長表單。接下來嚴格依 B → C，不回頭改內容策略。
-- **狀態**：Phase A 完成並全綠；正在進入 Phase B。
+- **剩餘限制**：Phase C 的 PPT 式系列模板畫布尚未實作；窄欄桌機會以水平頁籤＋內容／預覽兩欄呈現，手機則依序顯示表單與預覽，不會水平溢位。
+- **狀態**：Phase A、B 完成；正在進入 Phase C。
 
 ---
 

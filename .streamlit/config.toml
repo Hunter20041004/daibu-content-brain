@@ -1,6 +1,9 @@
 [client]
 toolbarMode = "minimal"
 
+[server]
+enableStaticServing = true
+
 [theme]
 font = "Figtree:https://fonts.googleapis.com/css2?family=Figtree:wght@400..900&display=swap"
 headingFont = "Figtree"

@@ -532,10 +532,24 @@ def test_every_page_uses_its_storytelling_mascot_and_series_signature(
     for page, output in zip(draft.pages, outputs, strict=True):
         pose = pages.MASCOT_FOR[page.page_type]
         assert f'class="story-mascot mascot--{pose}"' in output
-        assert f"mascot/{pose}.svg" in output
+        assert 'src="data:image/svg+xml;base64,' in output
+        assert f"mascot/{pose}.svg" not in output
         assert "一布懂 AI 新創" in output
     assert "DAIBU AI LAB" not in "".join(outputs)
     assert "CASE FILE" not in "".join(outputs)
+
+
+def test_browser_preview_uses_streamlit_static_fonts(tmp_path):
+    asset = brand_asset(_logo(tmp_path))
+    output = render.page_html(
+        carousel_draft().pages[0],
+        "ElevenLabs",
+        asset,
+        browser_preview=True,
+    )
+
+    assert "/app/static/fonts/LINESeedTW_OTF_Rg.otf" in output
+    assert "file://" not in output
 
 
 def test_story_css_prioritizes_heading_readability_without_source_footer(

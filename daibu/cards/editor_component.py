@@ -25,6 +25,8 @@ CONTENT_CSS = """
   --muted: #61747d;
   color: var(--ink);
   font-family: "LINE Seed TW", "PingFang TC", sans-serif;
+  container-type: inline-size;
+  display: block;
 }
 * { box-sizing: border-box; }
 .carousel-editor {
@@ -134,13 +136,34 @@ CONTENT_CSS = """
 [data-role="action-bar"] button:disabled { cursor: not-allowed; opacity: .4; }
 .action-buttons { display: flex; align-items: center; gap: 8px; }
 [data-role="action-bar"] .secondary-action { padding: 0 12px; border-color: var(--line); color: var(--teal); background: transparent; font-size: 12px; }
+@container (max-width: 880px) {
+  .carousel-editor {
+    grid-template-columns: minmax(250px,1fr) minmax(250px,1fr);
+    grid-template-rows: auto minmax(620px,auto) auto;
+  }
+  [data-role="page-rail"] {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 8px;
+    scrollbar-width: thin;
+  }
+  [data-role="page-rail"] button { flex: 0 0 116px; min-height: 48px; }
+  [data-role="field-panel"] { padding: 24px 20px 92px; }
+  [data-role="preview"] { padding: 24px 18px; }
+  [data-role="action-bar"] { grid-column: 1 / -1; }
+}
 @media (max-width: 700px) {
   :host { overflow-x: hidden; }
   .carousel-editor { display: block; width: 100%; min-width: 0; overflow-x: hidden; }
   [data-role="page-rail"] { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px; scrollbar-width: none; }
   [data-role="page-rail"] button { flex: 0 0 104px; min-height: 48px; }
   [data-role="field-panel"], [data-role="preview"] { width: 100%; padding: 20px 16px; border-right: 0; }
-  [data-role="action-bar"] { position: sticky; display: flex; width: 100%; padding: 12px 16px; }
+  [data-role="action-bar"] { position: sticky; display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; padding: 12px 16px; }
+  .action-buttons { display: grid; grid-template-columns: 1fr 1fr; }
+  .action-buttons button:last-child { grid-column: 1 / -1; }
 }
 """
 
@@ -152,7 +175,7 @@ function pageStatus(page, state, fieldsByKey, savedValues, serverIssues) {
     const field = fieldsByKey[item.key];
     const value = state.values[item.key] || "";
     if (field.inputKind === "text" && value.length > field.hardChars) return "error";
-    if (field.inputKind === "text" && value.length > field.recommendedChars) status = "warning";
+    if (value !== savedValues[item.key] && field.inputKind === "text" && value.length > field.recommendedChars) status = "warning";
     else if (value !== savedValues[item.key] && status === "saved") status = "dirty";
   }
   return status;

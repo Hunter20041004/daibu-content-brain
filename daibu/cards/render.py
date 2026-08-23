@@ -50,7 +50,8 @@ def _mascot_uri(page_type: str) -> str:
     path = ASSETS / "mascot" / f"{pose}.svg"
     if not path.is_file():
         raise RuntimeError(f"找不到呆一布角色素材：{pose}")
-    return path.as_uri()
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def _mascot_html(page_type: str) -> str:
@@ -209,10 +210,17 @@ def _editorial_document(
     page: CarouselPage,
     content: str,
     layout: LayoutDocument,
+    *,
+    browser_preview: bool = False,
 ) -> str:
     css = (TEMPLATES / "editorial-v15-1.css").read_text(encoding="utf-8")
     for token, filename in FONT_FILES.items():
-        css = css.replace(token, (ASSETS / "fonts" / filename).as_uri())
+        font_uri = (
+            f"/app/static/fonts/{filename}"
+            if browser_preview
+            else (ASSETS / "fonts" / filename).as_uri()
+        )
+        css = css.replace(token, font_uri)
     return (
         (TEMPLATES / "editorial-v15-1.html")
         .read_text(encoding="utf-8")
@@ -656,6 +664,7 @@ def page_html(
     layout: LayoutDocument | None = None,
     *,
     allow_logo_placeholder: bool = False,
+    browser_preview: bool = False,
 ) -> str:
     document = layout or load_builtin_layout()
     if brand_asset is None and allow_logo_placeholder:
@@ -675,23 +684,47 @@ def page_html(
             page,
             _cover(page, company, logo_uri),
             document,
+            browser_preview=browser_preview,
         )
     if page.page_type == "who":
-        return _editorial_document(page, _who(page, company), document)
+        return _editorial_document(
+            page, _who(page, company), document,
+            browser_preview=browser_preview,
+        )
     if page.page_type == "problem":
-        return _editorial_document(page, _problem(page, company), document)
+        return _editorial_document(
+            page, _problem(page, company), document,
+            browser_preview=browser_preview,
+        )
     if page.page_type == "how-ai":
-        return _editorial_document(page, _how_ai(page, company), document)
+        return _editorial_document(
+            page, _how_ai(page, company), document,
+            browser_preview=browser_preview,
+        )
     if page.page_type == "results":
-        return _editorial_document(page, _results(page, company), document)
+        return _editorial_document(
+            page, _results(page, company), document,
+            browser_preview=browser_preview,
+        )
     if page.page_type == "why-care":
-        return _editorial_document(page, _why_care(page, company), document)
+        return _editorial_document(
+            page, _why_care(page, company), document,
+            browser_preview=browser_preview,
+        )
     if page.page_type == "cta":
-        return _editorial_document(page, _cta(page, company), document)
+        return _editorial_document(
+            page, _cta(page, company), document,
+            browser_preview=browser_preview,
+        )
 
     css = (TEMPLATES / "ai-startup.css").read_text(encoding="utf-8")
     for token, filename in FONT_FILES.items():
-        css = css.replace(token, (ASSETS / "fonts" / filename).as_uri())
+        font_uri = (
+            f"/app/static/fonts/{filename}"
+            if browser_preview
+            else (ASSETS / "fonts" / filename).as_uri()
+        )
+        css = css.replace(token, font_uri)
     content = (
         _cover(page, company, logo_uri)
         if page.page_type == "cover"
@@ -715,6 +748,7 @@ def draft_html_pages(
     layout: LayoutDocument | None = None,
     *,
     allow_logo_placeholder: bool = False,
+    browser_preview: bool = False,
 ) -> dict[str, str]:
     """Render every page through the same path used by preview and export."""
     return {
@@ -724,6 +758,7 @@ def draft_html_pages(
             brand_asset,
             layout,
             allow_logo_placeholder=allow_logo_placeholder,
+            browser_preview=browser_preview,
         )
         for page in draft.pages
     }

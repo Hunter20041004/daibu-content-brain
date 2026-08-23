@@ -101,12 +101,12 @@ def test_apply_styles_injects_brand_theme(monkeypatch):
     assert "color: var(--ink)" in styles
 
 
-def test_carousel_workbench_uses_branded_hierarchy_styles():
+def test_carousel_workbench_uses_branded_status_styles():
     styles = theme.css("light")
 
     assert ".carousel-status" in styles
     assert ".verified-source" in styles
-    assert ".carousel-page-heading" in styles
+    assert "st-key-carousel-preview-grid-" in styles
     assert "background: var(--surface)" in styles
     assert "border: 1px solid var(--border)" in styles
 

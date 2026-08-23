@@ -21,6 +21,8 @@ def test_component_css_uses_editorial_tokens_and_responsive_three_columns():
     assert "132px minmax(320px,1fr) minmax(360px,.9fr)" in css
     assert "--ink:#102f3d" in css.replace(" ", "")
     assert "@media (max-width: 700px)" in css
+    assert "@container (max-width: 880px)" in css
+    assert "grid-template-columns: minmax(250px,1fr) minmax(250px,1fr)" in css
     assert "overflow-x: hidden" in css
 
 
