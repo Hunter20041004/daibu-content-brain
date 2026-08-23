@@ -7,7 +7,12 @@ from daibu.cards.layout_schema import (
     LayoutElement,
     load_builtin_layout,
 )
-from daibu.cards.schema import BrandAsset, CarouselPage, ContentSection
+from daibu.cards.schema import (
+    BrandAsset,
+    CarouselDraft,
+    CarouselPage,
+    ContentSection,
+)
 
 ASSETS = Path(__file__).resolve().parent.parent.parent / "assets"
 TEMPLATES = Path(__file__).resolve().parent / "templates"
@@ -687,3 +692,16 @@ def page_html(
         .replace("__PAGE_NO__", f"{page.page_no:02d}")
         .replace("__CONTENT__", content)
     )
+
+
+def draft_html_pages(
+    draft: CarouselDraft,
+    company: str,
+    brand_asset: BrandAsset | None,
+    layout: LayoutDocument | None = None,
+) -> dict[str, str]:
+    """Render every page through the same path used by preview and export."""
+    return {
+        page.page_type: page_html(page, company, brand_asset, layout)
+        for page in draft.pages
+    }

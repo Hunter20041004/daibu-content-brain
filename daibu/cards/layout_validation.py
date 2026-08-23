@@ -238,3 +238,14 @@ def validate_rendered_pages(pages_html: Mapping[str, str]) -> None:
         issues = inspect_layout(html_text, page_type)
         if issues:
             raise RuntimeError(issues[0].message)
+
+
+def inspect_pages(
+    pages_html: Mapping[str, str],
+) -> tuple[LayoutIssue, ...]:
+    """Return every layout issue so the editor can point to each bad page."""
+    return tuple(
+        issue
+        for page_type, html_text in pages_html.items()
+        for issue in inspect_layout(html_text, page_type)
+    )
