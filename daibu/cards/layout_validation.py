@@ -200,8 +200,10 @@ def inspect_layout(
             float(item["clientHeight"])
             + max(2, float(item["fontSize"]) * 0.4)
         )
+        max_title_lines = 3 if page_type == "cover" else 2
         too_many_title_lines = (
-            "標題" in rule.label and int(item["visualLines"]) > 2
+            "標題" in rule.label
+            and int(item["visualLines"]) > max_title_lines
         )
         if horizontal_overflow or vertical_overflow or too_many_title_lines:
             issues.append(_overflow_issue(page_type, element_id, rule))

@@ -1309,7 +1309,7 @@ def test_ai_copy_generation_loads_and_saves_the_new_draft(
     next(
         button for button in app.button
         if button.label == "AI 幫我寫初稿"
-    ).click().run()
+    ).click().run(timeout=10)
 
     stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
     assert calls == [
@@ -3583,7 +3583,7 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
     from io import BytesIO
 
     from daibu.cards import assets, bundle, workbench
-    from tests.card_fixtures import carousel_draft, solid_png
+    from tests.card_fixtures import renderable_carousel_draft, solid_png
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3605,7 +3605,7 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
         ),
         status="採用",
     )
-    draft = carousel_draft()
+    draft = renderable_carousel_draft()
     db.save_idea_sources(conn, idea_id, draft.sources)
     db.save_carousel_draft(conn, idea_id, draft)
     assets.store_logo(
@@ -3627,6 +3627,8 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
         app.session_state,
         idea_id,
         draft,
+        db.get_carousel_draft_meta(conn, idea_id).template_version_id,
+        db.get_carousel_draft_meta(conn, idea_id).content_revision,
     )
     archive = bundle.carousel_zip(pngs)
     with zipfile.ZipFile(BytesIO(archive)) as packaged:
@@ -3645,7 +3647,7 @@ def test_saving_carousel_edits_invalidates_the_old_download(
     monkeypatch,
 ):
     from daibu.cards import assets
-    from tests.card_fixtures import carousel_draft, solid_png
+    from tests.card_fixtures import renderable_carousel_draft, solid_png
 
     path = tmp_path / "t.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(path))
@@ -3667,7 +3669,7 @@ def test_saving_carousel_edits_invalidates_the_old_download(
         ),
         status="採用",
     )
-    draft = carousel_draft()
+    draft = renderable_carousel_draft()
     db.save_idea_sources(conn, idea_id, draft.sources)
     db.save_carousel_draft(conn, idea_id, draft)
     assets.store_logo(

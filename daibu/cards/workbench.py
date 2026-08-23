@@ -36,8 +36,20 @@ def can_render(
 
 
 def draft_fingerprint(draft: CarouselDraft) -> str:
+    return render_fingerprint(draft, 0, 0)
+
+
+def render_fingerprint(
+    draft: CarouselDraft,
+    template_version_id: int,
+    content_revision: int,
+) -> str:
     serialized = json.dumps(
-        asdict(draft),
+        {
+            "content": asdict(draft),
+            "template_version_id": template_version_id,
+            "content_revision": content_revision,
+        },
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
@@ -49,6 +61,8 @@ def cached_pngs(
     state: Mapping[str, object],
     idea_id: int,
     draft: CarouselDraft,
+    template_version_id: int,
+    content_revision: int,
 ) -> list[bytes] | None:
     try:
         cached = state[f"carousel-png-{idea_id}"]
@@ -57,6 +71,14 @@ def cached_pngs(
     if not isinstance(cached, tuple) or len(cached) != 2:
         return None
     fingerprint, pngs = cached
-    if fingerprint != draft_fingerprint(draft) or not isinstance(pngs, list):
+    if (
+        fingerprint
+        != render_fingerprint(
+            draft,
+            template_version_id,
+            content_revision,
+        )
+        or not isinstance(pngs, list)
+    ):
         return None
     return pngs

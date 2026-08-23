@@ -7,6 +7,16 @@ from daibu.cards.schema import BrandAsset
 from tests.card_fixtures import carousel_draft, verified_sources
 
 
+def test_render_fingerprint_changes_with_template_version_and_revision():
+    draft = carousel_draft()
+
+    first = workbench.render_fingerprint(draft, 11, 3)
+
+    assert first == workbench.render_fingerprint(draft, 11, 3)
+    assert first != workbench.render_fingerprint(draft, 12, 3)
+    assert first != workbench.render_fingerprint(draft, 11, 4)
+
+
 def test_missing_requirements_reports_company_and_source_gaps():
     unnamed = SimpleNamespace(company="")
     named = SimpleNamespace(company="ElevenLabs")
@@ -64,9 +74,11 @@ def test_cached_pngs_are_invalidated_when_draft_content_changes():
 
     state = {
         "carousel-png-42": (
-            workbench.draft_fingerprint(draft),
+            workbench.render_fingerprint(draft, 11, 3),
             [b"png"] * 7,
         )
     }
-    assert workbench.cached_pngs(state, 42, draft) == [b"png"] * 7
-    assert workbench.cached_pngs(state, 42, changed) is None
+    assert workbench.cached_pngs(state, 42, draft, 11, 3) == [b"png"] * 7
+    assert workbench.cached_pngs(state, 42, changed, 11, 3) is None
+    assert workbench.cached_pngs(state, 42, draft, 12, 3) is None
+    assert workbench.cached_pngs(state, 42, draft, 11, 4) is None

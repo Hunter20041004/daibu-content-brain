@@ -175,9 +175,12 @@ def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
     assert ">到<" in markup
     assert page.diagram is not None
-    for node in page.diagram.nodes:
+    before, transition, after = page.diagram.nodes
+    for node in (before, after):
         assert html_lib.escape(node.title) in markup
         assert html_lib.escape(node.text) in markup
+    assert f"改變之後｜{html_lib.escape(transition.title)}" in markup
+    assert html_lib.escape(transition.text) not in markup
     for section in page.sections:
         assert html_lib.escape(section.text) in markup
     assert ".results-before {" in output

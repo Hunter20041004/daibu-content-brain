@@ -1,7 +1,6 @@
-# HANDOFF — 七頁內容與系列模板編輯器待實作
+# HANDOFF — 七頁內容與系列模板編輯器實作中
 
-> 2026-08-21 更新。使用者已明確「規格確認」；完整產品設計已拆成三份可執行的 TDD 計畫並完成自審。
-> 本輪只寫計畫文件，尚未修改 Streamlit、SQLite schema、正式 Renderer 或產圖流程。
+> 2026-08-23 更新。使用者選擇完整執行 A→B→C；Phase A 版本與共用排版基礎已完成並全套驗證，下一步依序接 Phase B 七頁內容編輯器與 Phase C 系列模板畫布。
 
 ## 本輪目標與驗收
 
@@ -13,20 +12,22 @@
 
 ## 本輪狀態
 
-- **產品能力**：規格已核可；實作將依 A 版型與版本底層 → B 七頁內容編輯器 → C 受限制模板畫布三階段進行，每階段都可獨立驗收。
-- **使用者體驗**：日常編內容與偶爾改模板維持分流；完成後可先逐頁看欄位與預覽、修完再一次儲存，模板則在設定頁以視覺畫布統一調整。
-- **技術結構**：階段 A 建 `LayoutDocument`、不可變版本表、草稿 metadata、v15.1 正式 Renderer 與 Chromium validator；階段 B 建內容 payload／component／保存服務；階段 C 建模板 payload／component／版本與升級服務。
-- **資料流程**：未存工作副本 → 同源 Renderer 即時預覽 → 內容／schema 驗證 → Chromium 實際測量 → SQLite 原子保存；PNG 只讀已存內容與該草稿綁定版本。
-- **設計理由與備援**：主方案仍是 HTML 即時預覽＋保存時 Chromium 精準驗證；備援是關閉 component 時仍可以已存草稿＋已綁模板產圖，不會因編輯交互失效而破壞資料。
-- **安全與成本**：所有瀏覽器 payload 由 Python 重建，未知元素／屬性／表情全拒絕；不載 CDN、不加付費服務或 LLM 呼叫。模板儲存與草稿升級均先驗證再交易寫入。
-- **TDD 與驗收**：三份計畫皆以一次一個失敗測試拆 Red → Green → Refactor；含 migration 內容指紋、revision conflict、真實 Components v2 交互、真實 Chromium、三公司與長文／橫直 Logo 壓力案例、兩輪雙尺寸截圖 QA。
+- **產品能力**：Phase A 已建立安全版面 schema、內建 v15.1、系列不可變模板版本、草稿版本綁定、正式七頁 Renderer、Chromium 跑版攔截與版本感知 PNG 快取；內容編輯器與模板畫布尚未接入。
+- **使用者體驗**：現有「產生七張圖」已固定讀取草稿綁定的模板版本；內容或模板版本改變會讓舊下載立即失效。預覽改為桌機／手機皆單欄大圖，避免兩欄縮圖難以閱讀。
+- **技術結構**：`LayoutDocument` 只接受白名單元素、幾何與文字屬性；三張 SQLite 表保存模板版本、active 設定與草稿 metadata；`render.page_html()`、即時預覽與 PNG 共用同一份 layout；`layout_validation` 以真實 Chromium 量文字、邊界與碰撞。
+- **資料流程**：已存草稿＋`template_version_id`＋`content_revision` → 共用 Renderer → 七頁 Chromium validator → 全數通過後才截 PNG → 三者共同 fingerprint 控制下載快取。任一頁失敗不留下半套圖片。
+- **設計理由與備援**：核可的成熟科技編輯視覺正式搬入，不用自動縮字掩蓋跑版；三行封面是系列例外，其他標題仍最多兩行。若日後編輯器元件不可用，既有已存草稿仍能依綁定版本產圖。
+- **安全與成本**：沒有新增 CDN、付費服務、LLM 呼叫或任意 CSS 入口；Logo 與文字仍逃逸後輸出。正式 `daibu.db` 僅用 SQLite read-only 與 `.backup` 副本驗證，沒有被寫入。
+- **正式資料副本驗證**：正式庫基線為 ideas 23、carousel_pages 0、carousel_sources 0、brand_assets 0；逐欄 canonical JSON SHA-256 依序為 `006605efa926257747b74867050a0940257ecad8d3b89237ef7f358a1fe78484`、`0cc5ad572c159bc109ab2816840263977f82802842e5497b197fa341bccc0dad`、`5b50a1f3836660c4977c3aa409df13535cf0c3f8d36ab07cffc8d1b449dc29b6`、`10dd371a129ce285b87fc867f8c9c85b503a37ea7ad39d16e530f6b6515521ad`。backup、首次 migration 與第二次 migration 四組指紋完全相同，只新增三張預期資料表；正式庫沒有 carousel rows，因此 backfill 版本／設定／metadata 都為 0。
+- **TDD 與跨公司驗收**：依序看見快取版本未納入、SUN 第 5 頁文字框 overflow、Billow 長名第 7 頁 overflow、Shiraz 長結果標題 overflow、桌機預覽過小等紅燈，再做最小修正。SUN、Billow AI Labs、Shiraz AI 搭配橫式／直式／方形 Logo，共 21 張 HTML 與 PNG 全數為 1080×1350，無非法碰撞、頁碼、來源或日期。
+- **視覺 QA**：第一輪 `.screenshots/layout-foundation-round1-desktop.png`、`.screenshots/layout-foundation-round1-mobile.png` 抓到桌機兩欄縮圖過小與手機捲動位置看不到預覽；修成全尺寸單欄後，第二輪 `.screenshots/layout-foundation-round2-desktop.png`、`.screenshots/layout-foundation-round2-mobile.png` 八項清單全數合格。375px 實測 `scrollWidth=clientWidth=375`、7 張圖片都在 DOM、console 0 errors／0 warnings。
+- **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `677 passed, 16 deselected, 1 warning in 100.09s`；唯一 warning 是既有 Starlette/httpx 相依提醒。`.venv/bin/python -m compileall -q daibu pages` 與 `git diff --check` 均通過。
 - **設計規格**：`docs/superpowers/specs/2026-08-20-七頁內容與系列模板編輯器-design.md`。
 - **實作計畫 A**：`docs/superpowers/plans/2026-08-21-carousel-layout-foundation.md`。
 - **實作計畫 B**：`docs/superpowers/plans/2026-08-21-carousel-content-editor.md`。
 - **實作計畫 C**：`docs/superpowers/plans/2026-08-21-carousel-template-editor.md`。
-- **文件自審**：三份計畫 code fence 成對、`git diff --check` 規則通過，無 TODO／TBD／錯誤函式名，所有 `git add` 均為精確路徑。
-- **剩餘限制**：目前只是可執行計畫，正式工具功能與畫面尚未改變；實作必須依 A → B → C 順序進行。
-- **狀態**：書面規格已核可，三份 TDD 計畫已就緒，等待使用者選擇執行方式。
+- **剩餘限制**：Phase B 的逐頁即時內容預覽／一次儲存與 Phase C 的 PPT 式模板畫布尚未實作；目前仍是既有七頁長表單。接下來嚴格依 B → C，不回頭改內容策略。
+- **狀態**：Phase A 完成並全綠；正在進入 Phase B。
 
 ---
 

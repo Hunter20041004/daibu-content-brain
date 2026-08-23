@@ -180,10 +180,10 @@ def test_explicit_heading_newline_preserves_phrase_boundary(tmp_path):
     assert layout_validation.visual_line_count(html_text, "heading") == 2
 
 
-def test_heading_third_line_is_reported_as_text_overflow(tmp_path):
+def test_cover_heading_fourth_line_is_reported_as_text_overflow(tmp_path):
     page = replace(
         carousel_draft().pages[0],
-        heading="讓每段文字\n保留原本的\n說話方式",
+        heading="讓每段\n文字保留\n原本的\n說話方式",
     )
     layout = replace_element(
         load_builtin_layout(),

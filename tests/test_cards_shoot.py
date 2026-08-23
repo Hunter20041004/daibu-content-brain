@@ -1,7 +1,6 @@
 import io
 import struct
 import zipfile
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -12,7 +11,12 @@ from daibu import db
 from daibu.cards import bundle, logo, render, shoot
 from daibu.cards.layout_schema import load_builtin_layout, replace_element
 from daibu.llm.base import Idea
-from tests.card_fixtures import brand_asset, carousel_draft
+from tests.card_fixtures import (
+    brand_asset,
+    carousel_draft,
+    company_stress_draft,
+    renderable_carousel_draft,
+)
 
 
 def _png_size(data: bytes) -> tuple[int, int]:
@@ -33,43 +37,10 @@ def _html(tmp_path: Path) -> str:
     )
 
 
-def _renderable_draft():
-    draft = carousel_draft()
-    compact_text = {
-        "who": {
-            "基本資料": "服務有聲書、遊戲、影音與多語在地化等內容團隊。",
-        },
-        "problem": {
-            "誰受影響": "內容改字時，團隊可能要重排配音、錄音與後製。",
-            "原本的代價": "等待檔期、反覆重錄與版本管理會持續累積。",
-        },
-        "how-ai": {
-            "人仍負責": "人要確認內容、聲音授權與最後品質。",
-        },
-        "results": {
-            "代表使用者": "有聲書、遊戲與影音團隊會先做可調整版本。",
-            "使用前後": "改字後先生成，人再確認品質。",
-            "購買關係": "購買的是可整合的語音能力。",
-        },
-        "cta": {
-            "收束結論": "語氣與節奏可以反覆調整，但內容、授權與品質仍由人負責。",
-        },
-    }
-    pages = []
-    for page in draft.pages:
-        replacements = compact_text.get(page.page_type, {})
-        sections = tuple(
-            replace(section, text=replacements.get(section.label, section.text))
-            for section in page.sections
-        )
-        pages.append(replace(page, sections=sections))
-    return replace(draft, pages=tuple(pages))
-
-
 def test_seven_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
 
-    draft = _renderable_draft()
+    draft = renderable_carousel_draft()
     outputs = shoot.carousel_pngs(draft, "ElevenLabs", asset)
 
     assert len(outputs) == 7
@@ -102,6 +73,38 @@ def test_seven_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
     assert all(not report.logo_visible for report in reports[1:])
     assert all(not report.canvas_overflow for report in reports)
     assert all(not report.content_overflow for report in reports)
+
+
+@pytest.mark.parametrize(
+    ("company", "logo_size"),
+    (
+        ("SUN", (240, 80)),
+        ("Billow AI Labs", (80, 240)),
+        ("Shiraz AI", (180, 180)),
+    ),
+)
+def test_three_company_stress_drafts_render_all_twenty_one_pages(
+    tmp_path,
+    company,
+    logo_size,
+):
+    logo_path = tmp_path / f"{company.replace(' ', '-')}.png"
+    Image.new("RGBA", logo_size, (201, 50, 120, 255)).save(logo_path)
+    asset = brand_asset(logo_path, company=company)
+    draft = company_stress_draft(company)
+
+    html_pages = [
+        render.page_html(page, company, asset)
+        for page in draft.pages
+    ]
+    outputs = shoot.carousel_pngs(draft, company, asset)
+
+    assert len(outputs) == 7
+    assert all(_png_size(data) == (1080, 1350) for data in outputs)
+    assert all('class="page-tag"' not in html for html in html_pages)
+    assert all('class="page-source"' not in html for html in html_pages)
+    assert all("來源：" not in html for html in html_pages)
+    assert all("2026-" not in html for html in html_pages)
 
 
 def test_missing_logo_blocks_pngs_without_deleting_saved_draft(tmp_path):
@@ -151,7 +154,7 @@ def test_invalid_layout_blocks_every_screenshot(tmp_path, monkeypatch):
 
 def test_who_page_keeps_mascot_visible_without_source_footer(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
-    page = _renderable_draft().pages[1]
+    page = renderable_carousel_draft().pages[1]
 
     report = shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
 
@@ -163,7 +166,7 @@ def test_story_layout_keeps_mascot_and_bottom_source_visible_without_overlap(
     tmp_path,
 ):
     asset = brand_asset(_test_logo(tmp_path))
-    draft = _renderable_draft()
+    draft = renderable_carousel_draft()
     reports = [
         shoot.inspect_html(render.page_html(page, "ElevenLabs", asset))
         for page in draft.pages
@@ -208,7 +211,11 @@ def test_missing_bundled_font_does_not_silently_use_fallback(tmp_path):
 
 def test_real_rendered_pngs_can_be_unpacked_from_the_bundle(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
-    pngs = shoot.carousel_pngs(_renderable_draft(), "ElevenLabs", asset)
+    pngs = shoot.carousel_pngs(
+        renderable_carousel_draft(),
+        "ElevenLabs",
+        asset,
+    )
 
     archive = bundle.carousel_zip(pngs)
 

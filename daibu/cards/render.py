@@ -371,8 +371,7 @@ def _results(page: CarouselPage, company: str) -> str:
         )
         + _layout_box(
             "after-copy",
-            f'<small>{html.escape(transition.title)}｜'
-            f'{html.escape(transition.text)}</small>'
+            f'<small>改變之後｜{html.escape(transition.title)}</small>'
             f'<strong>{html.escape(after.text)}</strong>'
             f'<p>{html.escape(change.text)}</p>',
             tag="section",

@@ -24,6 +24,7 @@ from daibu.cards import draft as carousel_draft_service
 from daibu.cards import logo as carousel_logo
 from daibu.cards import logo_discovery
 from daibu.cards import logo_search
+from daibu.cards import layout_repository as carousel_layout_repository
 from daibu.cards import pages as carousel_pages
 from daibu.cards import research_draft as carousel_research_draft
 from daibu.cards import shoot as carousel_shoot
@@ -1415,13 +1416,17 @@ with candidate_column:
                     else None
                 )
                 checklist_draft = db.get_carousel_draft(conn, idea.id)
+                checklist_meta = db.get_carousel_draft_meta(conn, idea.id)
                 checklist_pngs = (
                     carousel_workbench.cached_pngs(
                         st.session_state,
                         idea.id,
                         checklist_draft,
+                        checklist_meta.template_version_id,
+                        checklist_meta.content_revision,
                     )
                     if checklist_draft is not None
+                    and checklist_meta is not None
                     else None
                 )
                 checklist_items = workspace.carousel_checklist(
@@ -1684,6 +1689,7 @@ with candidate_column:
                                 "replace",
                             )
                 stored_draft = db.get_carousel_draft(conn, idea.id)
+                stored_meta = db.get_carousel_draft_meta(conn, idea.id)
                 if stored_draft is None:
                     st.caption("會先查證公司資料，再呼叫一次 AI，約 10–40 秒。")
                     if st.button(
@@ -1946,6 +1952,7 @@ with candidate_column:
                                 )
                 render_disabled = (
                     stored_draft is None
+                    or stored_meta is None
                     or not carousel_workbench.can_render(
                         idea,
                         source_pack,
@@ -1970,6 +1977,10 @@ with candidate_column:
                                 stored_draft,
                                 idea.company,
                                 brand_asset,
+                                carousel_layout_repository.get_version(
+                                    conn,
+                                    stored_meta.template_version_id,
+                                ).layout,
                             )
                     except (
                         RuntimeError,
@@ -1984,16 +1995,20 @@ with candidate_column:
                         st.session_state[
                             f"carousel-png-{idea.id}"
                         ] = (
-                            carousel_workbench.draft_fingerprint(
-                                stored_draft
+                            carousel_workbench.render_fingerprint(
+                                stored_draft,
+                                stored_meta.template_version_id,
+                                stored_meta.content_revision,
                             ),
                             rendered_pngs,
                         )
-                if stored_draft is not None:
+                if stored_draft is not None and stored_meta is not None:
                     cached_pngs = carousel_workbench.cached_pngs(
                         st.session_state,
                         idea.id,
                         stored_draft,
+                        stored_meta.template_version_id,
+                        stored_meta.content_revision,
                     )
                 else:
                     cached_pngs = None
