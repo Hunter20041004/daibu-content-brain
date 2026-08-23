@@ -762,3 +762,25 @@ def draft_html_pages(
         )
         for page in draft.pages
     }
+
+
+def template_editor_page_html(
+    page: CarouselPage,
+    company: str,
+    brand_asset: BrandAsset | None,
+    layout: LayoutDocument,
+) -> str:
+    """Reuse the production renderer with browser-safe assets for editing."""
+    output = page_html(
+        page,
+        company,
+        brand_asset,
+        layout,
+        allow_logo_placeholder=True,
+        browser_preview=True,
+    )
+    return output.replace(
+        'data-template="editorial-v15.1"',
+        'data-template="editorial-v15.1" data-template-editor="true"',
+        1,
+    )
