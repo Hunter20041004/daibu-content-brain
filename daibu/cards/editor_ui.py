@@ -6,7 +6,12 @@ import sqlite3
 import streamlit as st
 
 from daibu import db
-from daibu.cards import editor_service, layout_repository, render
+from daibu.cards import (
+    editor_service,
+    layout_repository,
+    render,
+    template_editor_service,
+)
 from daibu.cards.editor_component import mount_content_editor
 from daibu.cards.editor_payload import draft_to_editor_payload
 from daibu.cards.schema import BrandAsset, CarouselDraft
@@ -89,6 +94,46 @@ def render_content_workbench(
             st.session_state.pop(issue_key, None)
             queue_toast(st.session_state, "七頁變更已全部儲存。")
             st.rerun()
+
+    active = layout_repository.get_active_version(conn, int(idea.theme_id))
+    if active.id != metadata.template_version_id:
+        current = layout_repository.get_version(
+            conn,
+            metadata.template_version_id,
+        )
+        st.info(
+            f"這篇使用 v{current.version_no}；目前啟用 v{active.version_no}。"
+        )
+        confirmed = st.checkbox(
+            "我了解只會升級這一篇，內容與查證資料不會改變",
+            key=f"confirm-template-upgrade-{idea.id}-{active.id}",
+        )
+        if event.dirty:
+            st.caption("請先儲存七頁內容，再升級模板。")
+        if st.button(
+            f"檢查並改用 v{active.version_no}",
+            disabled=event.dirty or not confirmed,
+            key=f"upgrade-template-{idea.id}-{active.id}",
+        ):
+            with st.spinner("正在用這篇內容檢查新版面…"):
+                upgraded = template_editor_service.upgrade_draft_template(
+                    conn,
+                    idea.id,
+                    int(idea.theme_id),
+                    draft,
+                    idea.company,
+                    brand_asset,
+                    active.id,
+                )
+            if upgraded.issues:
+                for issue in upgraded.issues:
+                    st.error(issue.message)
+            else:
+                queue_toast(
+                    st.session_state,
+                    f"這篇已改用模板 v{active.version_no}。",
+                )
+                st.rerun()
 
     return ContentWorkbenchState(
         event.dirty or bool(issues),

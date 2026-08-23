@@ -4,6 +4,7 @@ import streamlit as st
 
 from daibu import db
 from daibu.llm import base
+from daibu.cards import template_editor_ui
 from daibu.ui import apply_styles, connect_app_db, page_header
 
 st.set_page_config(page_title="設定｜呆一布", page_icon="◉", layout="wide")
@@ -111,3 +112,6 @@ with settings_panel.form("system-config"):
         if tavily_key:
             os.environ["TAVILY_API_KEY"] = tavily_key
         st.success("設定已儲存；新輸入的 key 只在本次 App 執行期間有效。")
+
+st.divider()
+template_editor_ui.render_template_management(conn)

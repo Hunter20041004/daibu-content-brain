@@ -33,6 +33,17 @@ def test_app_entry_loads_without_errors(monkeypatch, tmp_path):
     assert not app.exception
 
 
+def test_settings_exposes_series_template_management(monkeypatch,tmp_path):
+    from daibu.cards import template_editor_component,template_editor_ui
+    database_path=tmp_path/"settings.db";monkeypatch.setenv("DAIBU_DB_PATH",str(database_path))
+    conn=db.connect(str(database_path));db.init_schema(conn);db.add_theme(conn,Theme(None,"AI 新創介紹",4,[],1))
+    monkeypatch.setattr(template_editor_ui,"mount_template_editor",lambda payload,*,key:template_editor_component.TemplateEditorEvent(False,None))
+    app=AppTest.from_file(PROJECT_ROOT/"pages/3_設定.py").run()
+    text=" ".join(item.value for item in [*app.subheader,*app.caption])
+    assert not app.exception
+    assert "系統設定" in text and "系列模板管理" in text
+
+
 def test_home_is_a_guided_multi_series_workstation(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
 
@@ -2054,7 +2065,11 @@ def test_settings_uses_chinese_labels_and_static_search_service(
     app = AppTest.from_file(PROJECT_ROOT / "pages/3_設定.py")
     app.run()
 
-    assert [field.label for field in app.selectbox] == ["AI 服務商"]
+    assert [field.label for field in app.selectbox] == [
+        "AI 服務商",
+        "內容系列",
+        "模板版本",
+    ]
     visible_text = " ".join(
         element.value
         for elements in (app.markdown, app.caption)
