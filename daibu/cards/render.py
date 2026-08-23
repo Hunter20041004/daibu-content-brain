@@ -1,7 +1,7 @@
 import html
 from pathlib import Path
 
-from daibu.cards import diagrams, logo, pages
+from daibu.cards import diagrams, logo, mascot, pages
 from daibu.cards.layout_schema import (
     LayoutDocument,
     LayoutElement,
@@ -78,7 +78,6 @@ def _header(page: CarouselPage, company: str, logo_uri: str) -> str:
 
 
 def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
-    by_label = {section.label: section for section in page.sections}
     return (
         '<article class="card cover-v151" data-page-type="cover">'
         + _layout_box("series", html.escape(SERIES_NAME), classes="series")
@@ -94,14 +93,17 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
         )
         + _layout_box(
             "heading",
-            html.escape(page.heading),
+            _editable_text("page.cover.heading", page.heading),
             tag="h1",
             classes="cover-heading",
         )
         + _layout_box("rule", "", classes="cover-rule")
         + _layout_box(
             "positioning",
-            html.escape(by_label["一句話定位"].text),
+            _editable_text(
+                "page.cover.section.0.text",
+                page.sections[0].text,
+            ),
             tag="p",
             classes="cover-copy",
         )
@@ -109,6 +111,10 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
             "mascot",
             _mascot_html(page.page_type),
             classes="mascot-box",
+        )
+        + _hidden_edit_hook(
+            "page.cover.section.1.text",
+            page.sections[1].text,
         )
         + "</article>"
     )
@@ -129,6 +135,34 @@ def _layout_box(
         f"{aria_attribute}>"
         f"{content}</{tag}>"
     )
+
+
+def _editable_text(
+    key: str,
+    value: str,
+    *,
+    tag: str = "span",
+    classes: str = "",
+) -> str:
+    class_attribute = f' class="{classes}"' if classes else ""
+    return (
+        f'<{tag}{class_attribute} data-edit-key="{html.escape(key)}">'
+        f"{html.escape(value)}</{tag}>"
+    )
+
+
+def _editable_expression(key: str, value: str) -> str:
+    if value not in mascot.EXPRESSIONS:
+        raise ValueError("圖解表情不存在")
+    return (
+        f'<span class="expression-hook" data-edit-key="{html.escape(key)}">'
+        f"{mascot.q_head_svg(value)}</span>"
+    )
+
+
+def _hidden_edit_hook(key: str, value: str) -> str:
+    del value
+    return f'<span class="editor-metadata-hook" data-edit-key="{html.escape(key)}"></span>'
 
 
 def _element_css(element_id: str, element: LayoutElement) -> str:
@@ -207,21 +241,29 @@ def _who(page: CarouselPage, company: str) -> str:
         + _editorial_header(company)
         + _layout_box(
             "heading",
-            html.escape(page.heading),
+            _editable_text("page.who.heading", page.heading),
             tag="h1",
             classes="editorial-heading",
         )
         + _layout_box(
             "positioning",
             f'<small>{html.escape(positioning.label)}</small>'
-            f'<p>{html.escape(positioning.text)}</p>',
+            + _editable_text(
+                "page.who.section.0.text",
+                positioning.text,
+                tag="p",
+            ),
             tag="section",
             classes="profile-positioning",
         )
         + _layout_box(
             "facts",
             f'<small>{html.escape(facts.label)}</small>'
-            f'<p>{html.escape(facts.text)}</p>',
+            + _editable_text(
+                "page.who.section.1.text",
+                facts.text,
+                tag="p",
+            ),
             tag="section",
             classes="profile-facts",
         )
@@ -246,17 +288,34 @@ def _problem(page: CarouselPage, company: str) -> str:
         zip(nodes, supplements, strict=True),
         start=1,
     ):
-        supplement_html = (
-            f'<p class="stage-context">{html.escape(supplement.text)}</p>'
-            if supplement is not None
-            else ""
-        )
+        section_index = {1: 0, 3: 1}.get(index)
+        supplement_html = ""
+        if supplement is not None and section_index is not None:
+            supplement_html = _editable_text(
+                f"page.problem.section.{section_index}.text",
+                supplement.text,
+                tag="p",
+                classes="stage-context",
+            )
+        node_prefix = f"page.problem.diagram.{index - 1}"
         stages.append(
             _layout_box(
                 f"stage-{index}",
-                f'<small>{html.escape(node.title)}</small>'
-                f'<strong>{html.escape(node.text)}</strong>'
-                f"{supplement_html}",
+                _editable_expression(
+                    f"{node_prefix}.expression",
+                    node.expression,
+                )
+                + _editable_text(
+                    f"{node_prefix}.title",
+                    node.title,
+                    tag="small",
+                )
+                + _editable_text(
+                    f"{node_prefix}.text",
+                    node.text,
+                    tag="strong",
+                )
+                + supplement_html,
                 tag="section",
                 classes=(
                     "problem-stage problem-stage--anchor"
@@ -270,7 +329,7 @@ def _problem(page: CarouselPage, company: str) -> str:
         + _editorial_header(company)
         + _layout_box(
             "heading",
-            html.escape(page.heading),
+            _editable_text("page.problem.heading", page.heading),
             tag="h1",
             classes="editorial-heading",
         )
@@ -289,8 +348,12 @@ def _how_ai(page: CarouselPage, company: str) -> str:
     if page.diagram is None:
         raise ValueError("第 4 頁缺少 AI 流程圖解")
     caution = _section_by_label(page, "人仍負責")
+    step_sections = (page.sections[0], page.sections[1], page.sections[3])
     steps = []
-    for index, node in enumerate(page.diagram.nodes, start=1):
+    for index, (node, section) in enumerate(
+        zip(page.diagram.nodes, step_sections, strict=True),
+        start=1,
+    ):
         modifiers = {
             2: " how-step--ai",
             3: " how-step--output",
@@ -298,8 +361,24 @@ def _how_ai(page: CarouselPage, company: str) -> str:
         steps.append(
             _layout_box(
                 f"step-{index}",
-                f'<small>{html.escape(node.title)}</small>'
-                f'<strong>{html.escape(node.text)}</strong>',
+                _editable_expression(
+                    f"page.how-ai.diagram.{index - 1}.expression",
+                    node.expression,
+                )
+                + _editable_text(
+                    f"page.how-ai.diagram.{index - 1}.title",
+                    node.title,
+                    tag="small",
+                )
+                + _editable_text(
+                    f"page.how-ai.diagram.{index - 1}.text",
+                    node.text,
+                    tag="strong",
+                )
+                + _hidden_edit_hook(
+                    f"page.how-ai.section.{(0, 1, 3)[index - 1]}.text",
+                    section.text,
+                ),
                 tag="section",
                 classes=f"how-step{modifiers}",
             )
@@ -309,7 +388,7 @@ def _how_ai(page: CarouselPage, company: str) -> str:
         + _editorial_header(company)
         + _layout_box(
             "heading",
-            html.escape(page.heading),
+            _editable_text("page.how-ai.heading", page.heading),
             tag="h1",
             classes="editorial-heading",
         )
@@ -318,7 +397,11 @@ def _how_ai(page: CarouselPage, company: str) -> str:
         + _layout_box(
             "caution",
             '<span>要注意的點</span>'
-            f'<strong>{html.escape(caution.text)}</strong>',
+            + _editable_text(
+                "page.how-ai.section.2.text",
+                caution.text,
+                tag="strong",
+            ),
             tag="section",
             classes="how-caution",
         )
@@ -345,14 +428,26 @@ def _results(page: CarouselPage, company: str) -> str:
         + _editorial_header(company)
         + _layout_box(
             "before-title",
-            html.escape(before.title),
+            _editable_text("page.results.diagram.0.title", before.title),
             tag="h1",
             classes="result-title result-title--before",
         )
         + _layout_box(
             "before-copy",
-            f'<strong>{html.escape(before.text)}</strong>'
-            f'<p>{html.escape(audience.text)}</p>',
+            _editable_expression(
+                "page.results.diagram.0.expression",
+                before.expression,
+            )
+            + _editable_text(
+                "page.results.diagram.0.text",
+                before.text,
+                tag="strong",
+            )
+            + _editable_text(
+                "page.results.section.0.text",
+                audience.text,
+                tag="p",
+            ),
             tag="section",
             classes="result-copy result-copy--before",
         )
@@ -365,21 +460,46 @@ def _results(page: CarouselPage, company: str) -> str:
         )
         + _layout_box(
             "after-title",
-            html.escape(after.title),
+            _editable_text("page.results.diagram.2.title", after.title),
             tag="h1",
             classes="result-title result-title--after",
         )
         + _layout_box(
             "after-copy",
-            f'<small>改變之後｜{html.escape(transition.title)}</small>'
-            f'<strong>{html.escape(after.text)}</strong>'
-            f'<p>{html.escape(change.text)}</p>',
+            '<small>改變之後｜'
+            + _editable_text(
+                "page.results.diagram.1.title",
+                transition.title,
+            )
+            + "</small>"
+            + _editable_expression(
+                "page.results.diagram.1.expression",
+                transition.expression,
+            )
+            + _hidden_edit_hook(
+                "page.results.diagram.1.text",
+                transition.text,
+            )
+            + _editable_expression(
+                "page.results.diagram.2.expression",
+                after.expression,
+            )
+            + _editable_text(
+                "page.results.diagram.2.text",
+                after.text,
+                tag="strong",
+            )
+            + _editable_text(
+                "page.results.section.1.text",
+                change.text,
+                tag="p",
+            ),
             tag="section",
             classes="result-copy result-copy--after",
         )
         + _layout_box(
             "summary",
-            html.escape(purchase.text),
+            _editable_text("page.results.section.2.text", purchase.text),
             tag="p",
             classes="result-summary",
         )
@@ -388,6 +508,7 @@ def _results(page: CarouselPage, company: str) -> str:
             _mascot_html(page.page_type),
             classes="mascot-box",
         )
+        + _hidden_edit_hook("page.results.heading", page.heading)
         + "</article>"
     )
 
@@ -407,9 +528,25 @@ def _why_care(page: CarouselPage, company: str) -> str:
         signals.append(
             _layout_box(
                 f"signal-{index}",
-                f'<small>{html.escape(node.title)}</small>'
-                f'<strong>{html.escape(node.text)}</strong>'
-                f'<p>{html.escape(section.text)}</p>',
+                _editable_expression(
+                    f"page.why-care.diagram.{index - 1}.expression",
+                    node.expression,
+                )
+                + _editable_text(
+                    f"page.why-care.diagram.{index - 1}.title",
+                    node.title,
+                    tag="small",
+                )
+                + _editable_text(
+                    f"page.why-care.diagram.{index - 1}.text",
+                    node.text,
+                    tag="strong",
+                )
+                + _editable_text(
+                    f"page.why-care.section.{index - 1}.text",
+                    section.text,
+                    tag="p",
+                ),
                 tag="section",
                 classes=(
                     "signal signal--primary"
@@ -423,7 +560,7 @@ def _why_care(page: CarouselPage, company: str) -> str:
         + _editorial_header(company)
         + _layout_box(
             "heading",
-            html.escape(page.heading),
+            _editable_text("page.why-care.heading", page.heading),
             tag="h1",
             classes="editorial-heading",
         )
@@ -432,6 +569,10 @@ def _why_care(page: CarouselPage, company: str) -> str:
             "mascot",
             _mascot_html(page.page_type),
             classes="mascot-box",
+        )
+        + _hidden_edit_hook(
+            "page.why-care.section.3.text",
+            page.sections[3].text,
         )
         + "</article>"
     )
@@ -446,27 +587,35 @@ def _cta(page: CarouselPage, company: str) -> str:
         + _editorial_header(company)
         + _layout_box(
             "heading",
-            html.escape(page.heading),
+            _editable_text("page.cta.heading", page.heading),
             tag="h1",
             classes="editorial-heading",
         )
         + _layout_box(
             "thesis",
             f'<small>{html.escape(thesis.label)}</small>'
-            f'<strong>{html.escape(thesis.text)}</strong>',
+            + _editable_text(
+                "page.cta.section.0.text",
+                thesis.text,
+                tag="strong",
+            ),
             tag="section",
             classes="closing-thesis",
         )
         + _layout_box(
             "question",
             '<small>留給你的問題</small>'
-            f'<strong>{html.escape(question.text)}</strong>',
+            + _editable_text(
+                "page.cta.section.1.text",
+                question.text,
+                tag="strong",
+            ),
             tag="section",
             classes="closing-question",
         )
         + _layout_box(
             "invitation",
-            html.escape(invitation.text),
+            _editable_text("page.cta.section.2.text", invitation.text),
             classes="closing-invitation",
         )
         + _layout_box(

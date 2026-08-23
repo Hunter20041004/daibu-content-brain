@@ -1,4 +1,5 @@
 import html as html_lib
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from PIL import Image
 import pytest
 
 from daibu.cards import pages, render
+from daibu.cards.editor_payload import editable_values
 from daibu.cards.layout_schema import load_builtin_layout, replace_element
 from tests.card_fixtures import brand_asset, carousel_draft
 
@@ -22,6 +24,20 @@ def _render(tmp_path: Path, page_index: int = 0) -> str:
         "ElevenLabs",
         brand_asset(_logo(tmp_path)),
     )
+
+
+def test_renderer_exposes_every_editable_value_once(tmp_path):
+    draft = carousel_draft()
+    expected = set(editable_values(draft))
+    asset = brand_asset(_logo(tmp_path))
+    outputs = [
+        render.page_html(page, "ElevenLabs", asset)
+        for page in draft.pages
+    ]
+    found = re.findall(r'data-edit-key="([^"]+)"', "".join(outputs))
+
+    assert set(found) == expected
+    assert len(found) == len(expected)
 
 
 def test_cover_uses_editorial_v15_1_without_page_number_or_source(tmp_path):
@@ -179,7 +195,12 @@ def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
     for node in (before, after):
         assert html_lib.escape(node.title) in markup
         assert html_lib.escape(node.text) in markup
-    assert f"改變之後｜{html_lib.escape(transition.title)}" in markup
+    assert "改變之後｜" in markup
+    assert (
+        f'data-edit-key="page.results.diagram.1.title">'
+        f"{html_lib.escape(transition.title)}"
+        in markup
+    )
     assert html_lib.escape(transition.text) not in markup
     for section in page.sections:
         assert html_lib.escape(section.text) in markup
@@ -322,7 +343,8 @@ def test_cover_leads_with_series_and_hook_without_industry_or_source(
     )
     assert (
         '<h1 class="cover-heading" data-layout-id="heading">'
-        "讓每段文字保留說話方式</h1>"
+        '<span data-edit-key="page.cover.heading">'
+        "讓每段文字保留說話方式</span></h1>"
         in output
     )
     assert 'class="cover-copy" data-layout-id="positioning"' in output

@@ -46,6 +46,8 @@ body {
   background: var(--paper);
 }
 [data-layout-id] { position: absolute; z-index: 2; }
+.editor-metadata-hook,
+.expression-hook { display: none !important; }
 h1,
 [data-layout-id="heading"] {
   white-space: pre-wrap;
