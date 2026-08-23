@@ -312,12 +312,16 @@ function renderEditor(root, data, state, actions) {
 
 export default function(component) {
   const {data, parentElement, setStateValue, setTriggerValue} = component;
+  const editorRoot = parentElement.querySelector('[data-role="editor-shell"]');
   const storageKey = `daibu-carousel-${data.ideaId}`;
   const saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+  const preservedPageType = saved && data.pages.some(
+    page => page.pageType === saved.pageType
+  ) ? saved.pageType : data.pages[0].pageType;
   if (saved && saved.revision !== data.revision) sessionStorage.removeItem(storageKey);
   const state = saved && saved.revision === data.revision
     ? saved
-    : {revision: data.revision, pageType: data.pages[0].pageType, values: {...data.values}, dirty: false};
+    : {revision: data.revision, pageType: preservedPageType, values: {...data.values}, dirty: false};
   const persist = () => sessionStorage.setItem(storageKey, JSON.stringify(state));
   const beforeUnload = event => { if (state.dirty) { event.preventDefault(); event.returnValue = ""; } };
   const syncBeforeUnload = () => {
@@ -335,7 +339,7 @@ export default function(component) {
   };
   const updatePreview = (key, value) => {
     const field = data.fieldsByKey[key];
-    parentElement.querySelectorAll(`[data-edit-key="${CSS.escape(key)}"]`).forEach(node => {
+    editorRoot.querySelectorAll(`[data-edit-key="${CSS.escape(key)}"]`).forEach(node => {
       if (field.inputKind === "expression") {
         const template = document.createElement("template");
         template.innerHTML = data.expressionPreviews[value];
@@ -347,10 +351,10 @@ export default function(component) {
   const requestRegenerate = () => setTriggerValue("requestRegenerate", true);
   const requestResearch = () => setTriggerValue("requestResearch", true);
   syncBeforeUnload();
-  renderEditor(parentElement, data, state, {
+  renderEditor(editorRoot, data, state, {
     persist, markDirty, updatePreview, saveAll, requestRegenerate, requestResearch
   });
-  new ResizeObserver(() => fitPreview(parentElement)).observe(parentElement);
+  new ResizeObserver(() => fitPreview(editorRoot)).observe(editorRoot);
 }
 """
 
