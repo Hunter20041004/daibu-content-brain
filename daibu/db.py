@@ -1544,10 +1544,15 @@ def upgrade_carousel_template(
         conn.execute(
             """
             UPDATE carousel_drafts
-            SET template_version_id = ?, updated_at = ?
+            SET template_version_id = ?, content_revision = ?, updated_at = ?
             WHERE idea_id = ?
             """,
-            (template_version_id, _now(), idea_id),
+            (
+                template_version_id,
+                metadata.content_revision + 1,
+                _now(),
+                idea_id,
+            ),
         )
     upgraded = get_carousel_draft_meta(conn, idea_id)
     assert upgraded is not None

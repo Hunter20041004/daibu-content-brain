@@ -51,6 +51,14 @@ def get_version(conn: sqlite3.Connection, version_id: int) -> TemplateVersion:
     return _row_to_version(row)
 
 
+def list_versions(conn: sqlite3.Connection, theme_id: int) -> tuple[TemplateVersion, ...]:
+    rows = conn.execute(
+        "SELECT * FROM carousel_template_versions WHERE theme_id = ? ORDER BY version_no DESC",
+        (theme_id,),
+    ).fetchall()
+    return tuple(_row_to_version(row) for row in rows)
+
+
 def ensure_default_version(
     conn: sqlite3.Connection,
     theme_id: int,

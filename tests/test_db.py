@@ -1015,7 +1015,7 @@ def test_upgrade_carousel_template_changes_only_version_binding(tmp_path):
     )
 
     assert upgraded.template_version_id == second_version.id
-    assert upgraded.content_revision == first.content_revision
+    assert upgraded.content_revision == first.content_revision + 1
     assert db.get_carousel_draft(conn, idea_id) == content_before
 
 
