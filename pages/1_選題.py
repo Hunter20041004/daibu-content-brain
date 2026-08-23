@@ -21,6 +21,7 @@ from daibu import (
 from daibu.cards import assets as carousel_assets
 from daibu.cards import bundle as carousel_bundle
 from daibu.cards import draft as carousel_draft_service
+from daibu.cards import editor_ui as carousel_editor_ui
 from daibu.cards import logo as carousel_logo
 from daibu.cards import logo_discovery
 from daibu.cards import logo_search
@@ -30,7 +31,6 @@ from daibu.cards import research_draft as carousel_research_draft
 from daibu.cards import shoot as carousel_shoot
 from daibu.cards import sources as card_sources
 from daibu.cards import workbench as carousel_workbench
-from daibu.cards.schema import validate_company_headings, validate_draft
 from daibu.fetch import page as page_fetch
 from daibu.llm import base
 from daibu.models import Source, StoredIdea, Theme
@@ -1744,115 +1744,22 @@ with candidate_column:
                                 "輪播草稿產生失敗，既有內容沒有被刪除。"
                                 f"請稍後重試；原因：{error}"
                             )
+                editor_state = None
                 if stored_draft is not None:
-                    st.markdown("#### 七頁草稿")
-                    st.caption(
-                        "可修改標題與文字；段落標籤和來源 ID 會保持不變。"
+                    editor_state = carousel_editor_ui.render_content_workbench(
+                        conn,
+                        idea,
+                        stored_draft,
+                        brand_asset,
                     )
-                    for carousel_page in stored_draft.pages:
-                        page_label = carousel_pages.label(
-                            carousel_page.page_type
+                    if editor_state.request_regenerate:
+                        st.info(
+                            "要覆蓋七頁內容，請再按下方「重新產生」裡的確認按鈕。"
                         )
-                        with st.container(
-                            border=True,
-                            key=(
-                                f"carousel-page-{idea.id}-"
-                                f"{carousel_page.page_type}"
-                            ),
-                        ):
-                            st.markdown(
-                                '<div class="carousel-page-heading">'
-                                f"<span>{carousel_page.page_no:02d}</span>"
-                                f"<strong>{html.escape(page_label)}</strong>"
-                                "</div>",
-                                unsafe_allow_html=True,
-                            )
-                            st.text_input(
-                                f"頁面標題｜{page_label}",
-                                value=carousel_page.heading,
-                                key=(
-                                    f"carousel-heading-{idea.id}-"
-                                    f"{carousel_page.page_type}"
-                                ),
-                            )
-                            for section_index, section in enumerate(
-                                carousel_page.sections
-                            ):
-                                st.text_area(
-                                    section.label,
-                                    value=section.text,
-                                    key=(
-                                        f"carousel-section-{idea.id}-"
-                                        f"{carousel_page.page_type}-"
-                                        f"{section_index}"
-                                    ),
-                                    height=120,
-                                )
-                                if section.source_ids:
-                                    st.caption(
-                                        "來源 ID："
-                                        + "、".join(section.source_ids)
-                                    )
-                                else:
-                                    st.caption("這段不是事實陳述，不需來源。")
-                                for evidence in section.evidence_quotes:
-                                    st.caption(
-                                        f"查證引文 {evidence.source_id}："
-                                        f"「{evidence.quote}」"
-                                    )
-                            st.caption(carousel_page.source_label)
-                    if st.button(
-                        "儲存草稿",
-                        key=f"save-carousel-draft-{idea.id}",
-                        type="secondary",
-                    ):
-                        edited_pages = tuple(
-                            replace(
-                                carousel_page,
-                                heading=st.session_state[
-                                    f"carousel-heading-{idea.id}-"
-                                    f"{carousel_page.page_type}"
-                                ],
-                                sections=tuple(
-                                    replace(
-                                        section,
-                                        text=st.session_state[
-                                            f"carousel-section-{idea.id}-"
-                                            f"{carousel_page.page_type}-"
-                                            f"{section_index}"
-                                        ],
-                                    )
-                                    for section_index, section in enumerate(
-                                        carousel_page.sections
-                                    )
-                                ),
-                            )
-                            for carousel_page in stored_draft.pages
+                    if editor_state.request_research:
+                        st.info(
+                            "要換掉查證資料與七頁內容，請再按下方「重新搜尋公司資料」裡的確認按鈕。"
                         )
-                        edited_draft = replace(
-                            stored_draft,
-                            pages=edited_pages,
-                        )
-                        try:
-                            validate_draft(edited_draft)
-                            validate_company_headings(
-                                edited_draft,
-                                idea.company,
-                            )
-                            db.save_carousel_draft(
-                                conn,
-                                idea.id,
-                                edited_draft,
-                            )
-                        except ValueError as error:
-                            for message in str(error).splitlines():
-                                st.error(message.removeprefix("- "))
-                        else:
-                            queue_toast(
-                                st.session_state,
-                                "輪播草稿已儲存。",
-                            )
-                            st.rerun()
                     with st.popover("重新產生"):
                         st.caption(
                             "會覆蓋目前的七頁內容，且無法復原；"
@@ -1953,12 +1860,15 @@ with candidate_column:
                 render_disabled = (
                     stored_draft is None
                     or stored_meta is None
+                    or (editor_state is not None and editor_state.dirty)
                     or not carousel_workbench.can_render(
                         idea,
                         source_pack,
                         brand_asset,
                     )
                 )
+                if editor_state is not None and editor_state.dirty:
+                    st.caption("先儲存七頁變更，再產生圖片。")
                 if st.button(
                     "產生七張圖",
                     key=f"render-carousel-{idea.id}",

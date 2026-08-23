@@ -1,3 +1,4 @@
+import base64
 import html
 from pathlib import Path
 
@@ -653,9 +654,22 @@ def page_html(
     company: str,
     brand_asset: BrandAsset | None,
     layout: LayoutDocument | None = None,
+    *,
+    allow_logo_placeholder: bool = False,
 ) -> str:
     document = layout or load_builtin_layout()
-    logo_uri = logo.logo_data_uri(brand_asset, company)
+    if brand_asset is None and allow_logo_placeholder:
+        placeholder = (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="96" '
+            'viewBox="0 0 320 96"><rect width="320" height="96" fill="none"/>'
+            '<text x="160" y="56" text-anchor="middle" fill="#2f7c87" '
+            'font-family="sans-serif" font-size="22">LOGO 待確認</text></svg>'
+        )
+        logo_uri = "data:image/svg+xml;base64," + base64.b64encode(
+            placeholder.encode("utf-8")
+        ).decode("ascii")
+    else:
+        logo_uri = logo.logo_data_uri(brand_asset, company)
     if page.page_type == "cover":
         return _editorial_document(
             page,
@@ -699,9 +713,17 @@ def draft_html_pages(
     company: str,
     brand_asset: BrandAsset | None,
     layout: LayoutDocument | None = None,
+    *,
+    allow_logo_placeholder: bool = False,
 ) -> dict[str, str]:
     """Render every page through the same path used by preview and export."""
     return {
-        page.page_type: page_html(page, company, brand_asset, layout)
+        page.page_type: page_html(
+            page,
+            company,
+            brand_asset,
+            layout,
+            allow_logo_placeholder=allow_logo_placeholder,
+        )
         for page in draft.pages
     }

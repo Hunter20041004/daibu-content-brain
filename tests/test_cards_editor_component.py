@@ -10,6 +10,11 @@ def test_content_component_has_navigation_working_copy_and_save_trigger():
     assert "textContent" in editor_component.CONTENT_JS
 
 
+def test_content_component_routes_destructive_requests_through_python():
+    assert 'setTriggerValue("requestRegenerate"' in editor_component.CONTENT_JS
+    assert 'setTriggerValue("requestResearch"' in editor_component.CONTENT_JS
+
+
 def test_component_css_uses_editorial_tokens_and_responsive_three_columns():
     css = editor_component.CONTENT_CSS
 
@@ -27,3 +32,16 @@ def test_normalize_event_returns_dirty_and_optional_save_payload():
     assert event.dirty is True
     assert event.save_payload == {"revision": 3, "values": {}}
     assert editor_component.normalize_event(None).save_payload is None
+
+
+def test_normalize_event_exposes_destructive_requests():
+    event = editor_component.normalize_event(
+        type(
+            "Result",
+            (),
+            {"requestRegenerate": True, "requestResearch": True},
+        )()
+    )
+
+    assert event.request_regenerate is True
+    assert event.request_research is True

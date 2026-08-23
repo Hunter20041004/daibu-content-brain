@@ -96,3 +96,22 @@ def test_stale_revision_preserves_database(tmp_path):
 
     assert "其他畫面更新" in result.issues[0].message
     assert db.get_carousel_draft(conn, idea_id) == draft
+
+
+def test_save_preserves_required_company_subject(tmp_path):
+    conn, _theme_id, idea_id, draft, asset = _saved_editor(tmp_path)
+    metadata = db.get_carousel_draft_meta(conn, idea_id)
+    values = editable_values(draft)
+    values["page.how-ai.heading"] = "如何處理內容"
+
+    result = editor_service.save_editor_payload(
+        conn,
+        idea_id,
+        draft,
+        {"revision": metadata.content_revision, "values": values},
+        "ElevenLabs",
+        asset,
+    )
+
+    assert "必須寫出 ElevenLabs" in result.issues[0].message
+    assert db.get_carousel_draft(conn, idea_id) == draft

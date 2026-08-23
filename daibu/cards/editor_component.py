@@ -132,6 +132,8 @@ CONTENT_CSS = """
 [data-role="action-bar"] button { min-height: 44px; padding: 0 22px; border: 1px solid var(--ink); border-radius: 0; color: white; background: var(--ink); font: inherit; font-weight: 800; transition: transform 140ms ease, background-color 140ms ease; }
 [data-role="action-bar"] button:hover:not(:disabled) { transform: translateY(-1px); background: var(--teal); }
 [data-role="action-bar"] button:disabled { cursor: not-allowed; opacity: .4; }
+.action-buttons { display: flex; align-items: center; gap: 8px; }
+[data-role="action-bar"] .secondary-action { padding: 0 12px; border-color: var(--line); color: var(--teal); background: transparent; font-size: 12px; }
 @media (max-width: 700px) {
   :host { overflow-x: hidden; }
   .carousel-editor { display: block; width: 100%; min-width: 0; overflow-x: hidden; }
@@ -279,7 +281,20 @@ function renderEditor(root, data, state, actions) {
   save.type = "button";
   save.textContent = "儲存全部變更";
   save.addEventListener("click", actions.saveAll);
-  actionBar.append(statusText, save);
+  const actionsGroup = document.createElement("div");
+  actionsGroup.className = "action-buttons";
+  const regenerate = document.createElement("button");
+  regenerate.type = "button";
+  regenerate.className = "secondary-action";
+  regenerate.textContent = "重新產生";
+  regenerate.addEventListener("click", actions.requestRegenerate);
+  const research = document.createElement("button");
+  research.type = "button";
+  research.className = "secondary-action";
+  research.textContent = "重新查證";
+  research.addEventListener("click", actions.requestResearch);
+  actionsGroup.append(regenerate, research, save);
+  actionBar.append(statusText, actionsGroup);
   function renderActionBar() {
     const hardIssue = Object.entries(state.values).some(([key, value]) => {
       const field = data.fieldsByKey[key];
@@ -299,14 +314,22 @@ export default function(component) {
   const {data, parentElement, setStateValue, setTriggerValue} = component;
   const storageKey = `daibu-carousel-${data.ideaId}`;
   const saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+  if (saved && saved.revision !== data.revision) sessionStorage.removeItem(storageKey);
   const state = saved && saved.revision === data.revision
     ? saved
     : {revision: data.revision, pageType: data.pages[0].pageType, values: {...data.values}, dirty: false};
   const persist = () => sessionStorage.setItem(storageKey, JSON.stringify(state));
+  const beforeUnload = event => { if (state.dirty) { event.preventDefault(); event.returnValue = ""; } };
+  const syncBeforeUnload = () => {
+    window.removeEventListener("beforeunload", window.__daibuCarouselBeforeUnload);
+    window.__daibuCarouselBeforeUnload = beforeUnload;
+    if (state.dirty) window.addEventListener("beforeunload", beforeUnload);
+  };
   const markDirty = () => {
     if (!state.dirty) {
       state.dirty = true;
       setStateValue("dirty", true);
+      syncBeforeUnload();
     }
     persist();
   };
@@ -321,29 +344,23 @@ export default function(component) {
     });
   };
   const saveAll = () => setTriggerValue("save", {revision: data.revision, values: state.values});
-  const beforeUnload = event => { if (state.dirty) { event.preventDefault(); event.returnValue = ""; } };
-  window.removeEventListener("beforeunload", window.__daibuCarouselBeforeUnload);
-  window.__daibuCarouselBeforeUnload = beforeUnload;
-  window.addEventListener("beforeunload", beforeUnload);
-  renderEditor(parentElement, data, state, {persist, markDirty, updatePreview, saveAll});
+  const requestRegenerate = () => setTriggerValue("requestRegenerate", true);
+  const requestResearch = () => setTriggerValue("requestResearch", true);
+  syncBeforeUnload();
+  renderEditor(parentElement, data, state, {
+    persist, markDirty, updatePreview, saveAll, requestRegenerate, requestResearch
+  });
   new ResizeObserver(() => fitPreview(parentElement)).observe(parentElement);
 }
 """
-
-
-_content_component = st.components.v2.component(
-    "daibu_carousel_content_editor",
-    html=CONTENT_HTML,
-    css=CONTENT_CSS,
-    js=CONTENT_JS,
-    isolate_styles=True,
-)
 
 
 @dataclass(frozen=True)
 class ContentEditorEvent:
     dirty: bool
     save_payload: Mapping[str, object] | None
+    request_regenerate: bool = False
+    request_research: bool = False
 
 
 def normalize_event(result) -> ContentEditorEvent:
@@ -352,7 +369,12 @@ def normalize_event(result) -> ContentEditorEvent:
     dirty = bool(getattr(result, "dirty", False))
     save = getattr(result, "save", None)
     save_payload = dict(save) if isinstance(save, Mapping) else None
-    return ContentEditorEvent(dirty, save_payload)
+    return ContentEditorEvent(
+        dirty,
+        save_payload,
+        bool(getattr(result, "requestRegenerate", False)),
+        bool(getattr(result, "requestResearch", False)),
+    )
 
 
 def mount_content_editor(
@@ -360,12 +382,21 @@ def mount_content_editor(
     *,
     key: str,
 ) -> ContentEditorEvent:
-    result = _content_component(
+    content_component = st.components.v2.component(
+        "daibu_carousel_content_editor",
+        html=CONTENT_HTML,
+        css=CONTENT_CSS,
+        js=CONTENT_JS,
+        isolate_styles=True,
+    )
+    result = content_component(
         key=key,
         data=dict(payload),
         default={"dirty": False},
         height="content",
         on_dirty_change=lambda: None,
         on_save_change=lambda: None,
+        on_requestRegenerate_change=lambda: None,
+        on_requestResearch_change=lambda: None,
     )
     return normalize_event(result)

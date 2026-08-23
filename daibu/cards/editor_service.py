@@ -11,6 +11,7 @@ from daibu.cards.schema import (
     BrandAsset,
     CarouselDraft,
     DraftValidationError,
+    validate_company_headings,
     validate_draft,
 )
 
@@ -103,6 +104,7 @@ def save_editor_payload(
     try:
         edited = apply_editor_values(saved_draft, values)
         validate_draft(edited)
+        validate_company_headings(edited, company)
     except DraftValidationError as error:
         return SaveResult(
             error.draft,
@@ -129,6 +131,7 @@ def save_editor_payload(
         company,
         brand_asset,
         version.layout,
+        allow_logo_placeholder=True,
     )
     layout_issues = layout_validation.inspect_pages(rendered)
     if layout_issues:
