@@ -20,7 +20,7 @@
 - **安全與成本**：沒有新增 CDN、付費服務、LLM 呼叫或任意 HTML／CSS／JavaScript／URL／檔案路徑入口。正式 `daibu.db` 只透過 SQLite `.backup` 副本檢查，正式檔未寫入；新增版本與驗證都只用本機 SQLite／Chromium。
 - **正式資料副本驗證**：正式庫基線為 ideas 23、carousel_pages 0、carousel_sources 0、brand_assets 0；逐欄 canonical JSON SHA-256 依序為 `006605efa926257747b74867050a0940257ecad8d3b89237ef7f358a1fe78484`、`0cc5ad572c159bc109ab2816840263977f82802842e5497b197fa341bccc0dad`、`5b50a1f3836660c4977c3aa409df13535cf0c3f8d36ab07cffc8d1b449dc29b6`、`10dd371a129ce285b87fc867f8c9c85b503a37ea7ad39d16e530f6b6515521ad`。backup、首次 migration 與第二次 migration 四組指紋完全相同，只新增三張預期資料表；正式庫沒有 carousel rows，因此 backfill 版本／設定／metadata 都為 0。
 - **TDD 與跨公司驗收**：依序看見快取版本未納入、SUN 第 5 頁文字框 overflow、Billow 長名第 7 頁 overflow、Shiraz 長結果標題 overflow、桌機預覽過小等紅燈，再做最小修正。SUN、Billow AI Labs、Shiraz AI 搭配橫式／直式／方形 Logo，共 21 張 HTML 與 PNG 全數為 1080×1350，無非法碰撞、頁碼、來源或日期。
-- **視覺 QA**：Phase C 第一輪 `.screenshots/template-editor-round1-desktop.png`、`.screenshots/template-editor-round1-mobile.png` 抓到 Renderer 色票變數在 Shadow DOM 缺失而導致封面發白，以及手機仍露出儲存按鈕；第二輪 `.screenshots/template-editor-round2-desktop.png`、`.screenshots/template-editor-round2-mobile.png` 已恢復正式貼文配色並切成真正唯讀。層次、留白節奏、LINE Seed 字體、三色限制、對齊、375px 響應式、focus／disabled／error／empty 狀態與 120–150ms 微動效全數合格；`scrollWidth=clientWidth=375`，從首頁正常導覽 console 0 errors／0 warnings。
+- **視覺 QA**：Phase C 第一輪抓到 Renderer 色票變數在 Shadow DOM 缺失而導致封面發白，以及手機仍露出儲存按鈕；第二輪已恢復正式貼文配色並切成真正唯讀。正式站最終證據為 `.screenshots/template-editor-production-desktop.png`、`.screenshots/template-editor-production-mobile.png`。層次、留白節奏、LINE Seed 字體、三色限制、對齊、375px 響應式、focus／disabled／error／empty 狀態與 120–150ms 微動效全數合格；`scrollWidth=clientWidth=375`，從首頁正常導覽 console 0 errors／0 warnings。
 - **Phase B 測試證據**：真實瀏覽器三條流程通過：切頁保留 working copy 且 DB 未寫、hard limit 同時擋 save／產圖、合法 save 寫 DB 且留在原頁。AppTest 119 passed；全套首次為 `696 passed, 16 deselected`，只抓到移除舊表單後遺留的 `.carousel-page-heading` CSS，已刪除並以兩個聚焦測試轉綠；Phase C 收尾會再跑完整全套。
 - **設計規格**：`docs/superpowers/specs/2026-08-20-七頁內容與系列模板編輯器-design.md`。
 - **實作計畫 A**：`docs/superpowers/plans/2026-08-21-carousel-layout-foundation.md`。
@@ -30,7 +30,7 @@
 - **完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `718 passed, 16 deselected, 1 warning in 192.54s`；接續 `compileall` 與 `git diff --check` 均為 exit 0。唯一 warning 是既有 Starlette／httpx 相依棄用提醒。
 - **資料副本證據**：以 `sqlite3 .backup` 複製正式庫；migration 前後 ideas 23 筆、其餘三個內容表 0 筆，四組 JSON SHA-256 完全相同。ideas 指紋為 `0fbb8c3d54f4b31920a22aa7f5cfe4591515017b2d276b2f60e72e1843b4b700`，空表為 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`；副本只新增預期模板表。
 - **剩餘限制**：模板畫布刻意不支援新增／刪除／旋轉元素、z-order、換字型、改色票或素材路徑；手機不提供精確拖曳。正式庫目前沒有 carousel rows，因此正式資料副本只能驗證 migration 不改內容；完整存版／啟用／升級生命週期由隔離 SQLite 真實瀏覽器測試覆蓋。
-- **狀態**：Phase A、B、C 完成；等待全套測試、合併 main、推送與既有正式站重啟驗證。
+- **部署與狀態**：Phase A、B、C 已合併 `main` 並推送至 `origin/main`，既有 LaunchAgent 已重啟，正式網址仍為 `http://127.0.0.1:8501`。健康檢查為 `ok`；正式設定頁顯示模板 v1、桌機畫布可見，375px 顯示唯讀說明且儲存按鈕隱藏，console 0 errors／0 warnings。
 
 ---
 
