@@ -73,6 +73,23 @@ export default function(component) {
   const mark = next => { if (equal(state.present,next)) return; state.past.push(clone(state.present)); if(state.past.length>HISTORY_LIMIT)state.past.shift(); state.present=next; state.future=[]; state.dirty=!equal(state.present,data.layout); setStateValue("dirty",state.dirty); persist(); render(); };
   const undo = () => { if(!state.past.length)return; state.future.unshift(clone(state.present)); state.present=state.past.pop(); state.dirty=!equal(state.present,data.layout); setStateValue("dirty",state.dirty); persist(); render(); };
   const redo = () => { if(!state.future.length)return; state.past.push(clone(state.present)); state.present=state.future.shift(); state.dirty=!equal(state.present,data.layout); setStateValue("dirty",state.dirty); persist(); render(); };
+  function applyWorkingLayout() {
+    const missing=[];
+    const items=elementMap(state,data.pageType);
+    const doc=root.querySelector('.template-document');
+    Object.entries(items).forEach(([elementId,item])=>{
+      const element=doc.querySelector(`[data-layout-id="${elementId}"]`);
+      if(!element){missing.push(elementId);return;}
+      const descriptor=data.elements.find(entry=>entry.elementId===elementId);
+      const values={left:`${item.x}px`,top:`${item.y}px`,width:`${item.w}px`,height:`${item.h}px`};
+      if(descriptor?.kind==='text'){
+        values['font-size']=`${item.font_size}px`;
+        values['text-align']=item.text_align;
+      }
+      Object.entries(values).forEach(([property,value])=>element.style.setProperty(property,value,"important"));
+    });
+    return missing;
+  }
   function render() {
     const versionBar=root.querySelector('[data-role="version-bar"]'); versionBar.replaceChildren();
     const title=document.createElement('strong'); title.textContent=`${data.themeName}｜v${data.versionNo}${state.dirty?' · 未儲存':''}`;
@@ -82,6 +99,7 @@ export default function(component) {
     [['復原',undo],['重做',redo]].forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.setAttribute('aria-label',label);b.onclick=fn;toolbar.append(b);});
     const reset=document.createElement('button');reset.textContent='重設本頁';reset.setAttribute('aria-label','重設本頁');reset.onclick=()=>{const next=clone(state.present);next.pages[data.pageType]=clone(data.layout.pages[data.pageType]);mark(next);};toolbar.append(reset);
     const doc=root.querySelector('.template-document'); doc.innerHTML=data.previewHtml;
+    const missing = applyWorkingLayout();
     const stage=root.querySelector('.template-stage'); const scale=stage.clientWidth/1080; doc.style.transform=`scale(${scale})`;
     doc.querySelectorAll('[data-layout-id]').forEach(el=>{el.tabIndex=0;el.onclick=e=>{e.preventDefault();e.stopPropagation();state.selected=el.dataset.layoutId;persist();renderSelection();renderProperties();};el.onkeydown=e=>{if(e.key==='Enter'){state.selected=el.dataset.layoutId;renderSelection();renderProperties();} if(state.selected===el.dataset.layoutId&&e.key.startsWith('Arrow')){e.preventDefault();const amount=e.shiftKey?10:1;const next=clone(state.present);const item=next.pages[data.pageType].elements[state.selected];if(e.key==='ArrowLeft')item.x-=amount;if(e.key==='ArrowRight')item.x+=amount;if(e.key==='ArrowUp')item.y-=amount;if(e.key==='ArrowDown')item.y+=amount;mark(next);}};});
     renderSelection(); renderProperties();

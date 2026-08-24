@@ -28,6 +28,37 @@ def test_template_canvas_drag_syncs_property_without_saving(tmp_path):
             browser.close()
 
 
+def test_template_property_x_moves_actual_element_and_selection_together(
+    tmp_path,
+):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            actual = editor.locator(
+                '.template-document [data-layout-id="heading"]'
+            )
+            actual.click(position={"x": 20, "y": 20})
+            box = editor.locator(".selection-box")
+            actual_before = actual.bounding_box()
+            box_before = box.bounding_box()
+            x_input = editor.locator(
+                '[data-role="property-panel"] input[name="x"]'
+            )
+            x_input.fill(str(float(x_input.input_value()) + 40))
+            x_input.press("Tab")
+            actual_after = actual.bounding_box()
+            box_after = box.bounding_box()
+            actual_dx = actual_after["x"] - actual_before["x"]
+            box_dx = box_after["x"] - box_before["x"]
+            assert actual_dx > 0
+            assert abs(actual_dx - box_dx) <= 1
+            browser.close()
+
+
 def test_template_canvas_resize_undo_and_redo_keep_opposite_anchor(tmp_path):
     with running_streamlit(tmp_path, _seed) as base_url:
         with sync_playwright() as driver:

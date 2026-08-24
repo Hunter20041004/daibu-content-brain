@@ -30,3 +30,10 @@ def test_mobile_read_only_mode_hides_template_save_action():
     css = template_editor_component.TEMPLATE_CSS
     mobile_css = css.split("@media (max-width: 767px)", 1)[1]
     assert '[data-role="version-bar"] button { display:none; }' in mobile_css
+
+
+def test_template_component_applies_working_geometry_to_renderer_dom():
+    script = template_editor_component.TEMPLATE_JS
+    assert "function applyWorkingLayout()" in script
+    assert 'style.setProperty(property,value,"important")' in script
+    assert "const missing = applyWorkingLayout();" in script
