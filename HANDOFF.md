@@ -24,7 +24,22 @@
 - 模板每次保存建立不可變新版本；新草稿綁 active version，舊草稿維持原版本，只有手動升級才換版。
 - v15.1 作為初始版面 v1 的視覺基準；正式搬遷必須保留既有七頁內容、來源、Logo、正文與狀態。
 
-## 本輪狀態
+## 本輪狀態（2026-08-23：模板文字獨立層）
+
+- **產品能力**：七頁每個可見的邏輯文字角色都成為可單獨選取的版面層，可獨立調整 X／Y、寬高、字級與對齊；背景色塊與文字分離。
+- **根因修正**：字級直接套在承載文字的 `data-layout-id` 節點，不再依賴會被子層 CSS 覆蓋的父層繼承。
+- **舊版相容**：schema v1 版面讀取時以純記憶體正規化為 schema v2；資料庫舊 `layout_json` 維持原樣，只有使用者儲存才建立新的 schema v2 版本。
+- **快取安全**：模板編輯器 sessionStorage 加入 layout schema 與 registry 指紋，不會把舊 composite working copy 套到新獨立層。
+- **真實互動 QA**：11 個 Playwright 瀏覽器流程全過，涵蓋拖曳、欄位移動、字級同步、兄弟層互不影響、復原／重做、Escape、上下限、儲存／啟用、schema v2 儲存重開、七頁每個文字層的實際計算字級，以及手機唯讀。
+- **版面壓力 QA**：三家公司、三種 Logo 比例、共 21 頁的 Chromium 輸出驗證通過；QA 額外抓到並修正第 3、6 頁長補充文字框高度不足，沒有降低 overflow 驗證標準。
+- **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `738 passed, 16 deselected, 1 warning in 220.43s`；唯一 warning 是既有 Starlette/httpx deprecation。
+- **視覺 QA**：第一輪截圖未包含模板畫布，判定不合格並重做；最終桌機／手機畫布截圖為 `.screenshots/text-layers-round3-desktop.png`、`.screenshots/text-layers-round3-mobile.png`。手機 `scrollWidth=clientWidth=375`，儲存、選取層與屬性面板皆隱藏，維持唯讀。
+- **安全與成本**：無新依賴、外部服務、任意 CSS／HTML／URL 輸入或資料表；所有元素與屬性仍由 registry 白名單控制。
+- **剩餘步驟**：合併 main 後重跑全套、push、重啟既有 `io.daibu.content-brain`，再以正式 `http://127.0.0.1:8501` 驗證設定頁與七頁模板核心流程。
+
+---
+
+## 前一輪狀態
 
 - **產品能力**：日常工作區可逐頁修改七頁文字與 diagram；設定頁新增受限制的 PPT 式模板畫布，可選七頁與既有元素、拖曳、八向縮放、調整文字框位置／尺寸／字級／對齊、復原／重做／重設。每次儲存建立不可變新版，啟用與單篇舊草稿升級都是另外的明確操作。
 - **使用者體驗**：切頁不丟未存內容，模板拖曳會依 8px 網格、安全線、中心線與其他元素吸附，guide 即時顯示；碰撞前橘色、碰撞時紅色。Escape 取消本次拖曳，欄位依元素最小值與畫布邊界限制。手機只顯示版本、七頁 rail 與貼文預覽，隱藏精確控制及新版儲存按鈕並明示改用桌面。
