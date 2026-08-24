@@ -19,10 +19,10 @@ _DIAGRAM_KIND = {
     "why-care": "signals",
 }
 _DIAGRAM_ELEMENT_IDS = {
-    "problem": ("stage-1", "stage-2", "stage-3"),
-    "how-ai": ("step-1", "step-2", "step-3"),
+    "problem": ("stage-1-label", "stage-2-label", "stage-3-label"),
+    "how-ai": ("step-1-label", "step-2-label", "step-3-label"),
     "results": ("before-title", "to", "after-title"),
-    "why-care": ("signal-1", "signal-2", "signal-3"),
+    "why-care": ("signal-1-label", "signal-2-label", "signal-3-label"),
 }
 
 

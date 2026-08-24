@@ -44,3 +44,11 @@ def test_template_component_blocks_save_when_preview_hooks_are_missing():
     assert "data.previewSyncError" in script
     assert "save.disabled=!state.dirty||Boolean(syncError)" in script
     assert "preview-sync-error" in script
+
+
+def test_template_component_cache_is_scoped_to_schema_and_registry():
+    script = template_editor_component.TEMPLATE_JS
+
+    assert "data.layoutSchemaVersion" in script
+    assert "data.registryFingerprint" in script
+    assert "stored?.schemaIdentity === schemaIdentity" in script
