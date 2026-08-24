@@ -13,3 +13,7 @@ def test_template_management_builds_seven_page_payload(tmp_path,monkeypatch):
     assert len(captured["pages"])==7
     assert captured["previewHtml"]
     assert "layout" in captured
+    assert "公司名稱" in captured["previewHtml"]
+    assert "系列名稱" in captured["previewHtml"]
+    for test_company in ("SUN", "Billow AI Labs", "Shiraz AI"):
+        assert test_company not in captured["previewHtml"]

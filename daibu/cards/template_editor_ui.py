@@ -7,6 +7,11 @@ from daibu import db
 from daibu.cards import layout_repository, render, template_editor_service
 from daibu.cards.template_editor_component import mount_template_editor
 from daibu.cards.template_editor_payload import template_editor_payload
+from daibu.cards.template_placeholders import (
+    COMPANY_PLACEHOLDER,
+    SERIES_PLACEHOLDER,
+    build_template_placeholder_draft,
+)
 from daibu.cards.template_stress import build_template_stress_cases
 
 
@@ -40,9 +45,20 @@ def render_template_management(conn: sqlite3.Connection) -> TemplateManagementSt
     chosen_id=st.selectbox("模板版本",list(version_by_id),index=list(version_by_id).index(selected_id),format_func=lambda value:f"v{version_by_id[value].version_no}"+(" · 目前啟用" if value==active.id else " · 尚未啟用"),key=select_key)
     selected=version_by_id[chosen_id]
     page_type=st.session_state.get(f"template-page-{theme.id}","cover")
-    stress_cases=build_template_stress_cases(); demo=stress_cases[0]
-    page=next(item for item in demo.draft.pages if item.page_type==page_type)
-    preview=render.template_editor_page_html(page,demo.company,demo.asset,selected.layout)
+    stress_cases=build_template_stress_cases()
+    placeholder_draft=build_template_placeholder_draft()
+    page=next(
+        item for item in placeholder_draft.pages
+        if item.page_type==page_type
+    )
+    preview=render.template_editor_page_html(
+        page,
+        COMPANY_PLACEHOLDER,
+        None,
+        selected.layout,
+        series_name=SERIES_PLACEHOLDER,
+        logo_placeholder_text="企業 Logo",
+    )
     payload=template_editor_payload(theme,versions,selected,page_type,preview)
     event=mount_template_editor(payload,key=f"template-editor-{theme.id}-{selected.id}")
     if event.request_page and event.request_page!=page_type:
