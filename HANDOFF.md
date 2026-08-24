@@ -36,7 +36,10 @@
 - **main 合併後全套**：同一指令重跑為 `738 passed, 16 deselected, 1 warning in 242.49s`。
 - **視覺 QA**：第一輪截圖未包含模板畫布，判定不合格並重做；最終桌機／手機畫布截圖為 `.screenshots/text-layers-round3-desktop.png`、`.screenshots/text-layers-round3-mobile.png`。手機 `scrollWidth=clientWidth=375`，儲存、選取層與屬性面板皆隱藏，維持唯讀。
 - **安全與成本**：無新依賴、外部服務、任意 CSS／HTML／URL 輸入或資料表；所有元素與屬性仍由 registry 白名單控制。
-- **剩餘步驟**：合併 main 後重跑全套、push、重啟既有 `io.daibu.content-brain`，再以正式 `http://127.0.0.1:8501` 驗證設定頁與七頁模板核心流程。
+- **狀態**：功能、全套測試、兩輪視覺 QA、main 合併、推送與正式站核心流程皆已驗收。
+- **推送與正式服務**：`origin/main` 已更新；既有 `io.daibu.content-brain` 重啟後為 `state=running`、PID `77430`，只監聽 `127.0.0.1:8501`，health 回應 `ok`。
+- **正式核心流程**：由首頁點進系統設定，模板編輯器無同步錯誤；第二頁 `facts-body` 字級由 `27.692` 改為 `30.692`，真實 DOM 精確增加 `3px`，重設後回到 `27.692` 且儲存鈕停用，未建立 QA 版本。手機 375px 無整頁橫向溢位，維持唯讀。
+- **正式資料與錯誤**：`daibu.db` 為 `integrity_check=ok`、模板版本仍為 2；正式瀏覽器 console 0 errors／0 warnings，stderr 在本次重啟與操作後沒有新增內容。
 
 ---
 
