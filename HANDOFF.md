@@ -12,6 +12,7 @@
 - **TDD 與瀏覽器證據**：先重現「選取框移動但實際元素 `actual_dx == 0`」、拖曳中內容不動、Escape 後內容未復原、缺 hook 仍可儲存，再逐片轉綠。真實 Chromium 驗證實際元素與選取框位移差 `<= 1 CSS px`，七頁均顯示語意 placeholder，沒有 SUN／Billow／Shiraz 殘留。
 - **視覺 QA**：兩輪 1280×800 與 375×812 通過層次、留白、LINE Seed 字體、深藍／青／珊瑚三色、對齊、響應式、狀態與微動效；手機維持唯讀且 `scrollWidth=clientWidth=375`。最終截圖：`.screenshots/template-live-preview-round2-desktop.png`、`.screenshots/template-live-preview-round2-mobile.png`。
 - **測試穩定化**：完整套件曾兩次抓到既有 build-story 靜態頁的 `file://` 載入會被遠端字型拖到 30 秒 timeout；改為等待本機 DOM，圖片案例另等內嵌圖片完成解碼。該檔 16 項通過，完整套件為 `724 passed, 16 deselected, 1 warning in 245.09s`；warning 仍是既有 Starlette／httpx 相依提醒。
+- **主分支與正式站**：合併後主分支全套為 `724 passed, 16 deselected, 1 warning in 254.78s`，`origin/main` 與本機提交同為 `49a2247599c1a330e9109553865e9f9c8e4a7e3f`。既有 LaunchAgent 重啟後為 running、health `ok`、PID 66176，只監聽 `127.0.0.1:8501`。正式設定頁調整 X 後，實際標題位移 16.444px、選取框位移 16.453px，差 0.009px；操作前後模板版本數皆為 2，未寫正式資料。375px 為 `scrollWidth=clientWidth=375`，唯讀提示可見、儲存按鈕數為 0，console 0 errors／0 warnings。正式截圖：`.screenshots/template-live-preview-production-moved.png`、`.screenshots/template-live-preview-production-mobile.png`。
 - **剩餘限制**：手機刻意只讀；模板仍不支援新增／刪除／旋轉、z-order、換品牌字型／色票或素材路徑。這些是既有產品邊界，不是本輪缺漏。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-23-template-editor-live-preview-placeholders-design.md`、`docs/superpowers/plans/2026-08-23-template-editor-live-preview-placeholders.md`。
 
