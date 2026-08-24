@@ -143,11 +143,12 @@ def normalize_layout_mapping(
             "text_align": "left",
         }
         if index in {1, 3}:
+            context_offset = 132 if index == 1 else 142
             problem_elements[f"stage-{index}-context"] = {
                 "x": sx + 38,
-                "y": sy + 142,
+                "y": sy + context_offset,
                 "w": text_width,
-                "h": max(30, sh - 174),
+                "h": max(30, sh - context_offset),
                 "font_size": 28,
                 "text_align": "left",
             }
