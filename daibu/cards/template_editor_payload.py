@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Mapping
 
 from daibu.cards import pages
@@ -20,6 +21,17 @@ class TemplateField:
     editable_properties: tuple[str, ...]
     min_values: Mapping[str, float]
     max_values: Mapping[str, float]
+
+
+_LAYOUT_ID = re.compile(r'data-layout-id=["\u0027]([^"\u0027]+)["\u0027]')
+
+
+def missing_preview_element_ids(
+    preview_html: str,
+    page_type: str,
+) -> tuple[str, ...]:
+    found = set(_LAYOUT_ID.findall(preview_html))
+    return tuple(sorted(set(ELEMENT_REGISTRY[page_type]) - found))
 
 
 def apply_template_values(
@@ -89,6 +101,12 @@ def template_editor_payload(
     preview_html: str,
 ) -> dict[str, object]:
     layout = layout_to_mapping(selected_version.layout)
+    missing = missing_preview_element_ids(preview_html, page_type)
+    sync_error = (
+        "預覽缺少版面元素：" + "、".join(missing)
+        if missing
+        else ""
+    )
     elements = []
     for element_id, rule in ELEMENT_REGISTRY[page_type].items():
         properties = ("x", "y", "w", "h", "font_size", "text_align") if rule.text else ("x", "y", "w", "h")
@@ -111,6 +129,7 @@ def template_editor_payload(
         "elements": elements,
         "layout": layout,
         "previewHtml": preview_html,
+        "previewSyncError": sync_error,
         "canvas": {"width": selected_version.layout.canvas_width, "height": selected_version.layout.canvas_height},
         "versions": [{"id": version.id, "versionNo": version.version_no, "createdAt": version.created_at} for version in versions],
     }

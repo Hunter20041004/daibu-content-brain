@@ -24,6 +24,7 @@ TEMPLATE_CSS = """
 * { box-sizing:border-box; }
 .template-editor { display:grid; grid-template-columns:120px minmax(480px,1fr) 220px; grid-template-rows:auto minmax(680px,auto); border:1px solid var(--line); background:var(--paper); overflow:hidden; }
 [data-role="version-bar"] { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; min-height:64px; padding:12px 18px; border-bottom:1px solid var(--line); background:var(--ink); color:white; }
+.preview-sync-error { margin:0 0 0 12px; color:var(--peach); font-size:12px; font-weight:800; }
 [data-role="page-rail"] { display:flex; flex-direction:column; gap:3px; padding:12px 8px; border-right:1px solid var(--line); background:var(--ice); }
 button { font:inherit; }
 [data-role="page-rail"] button { min-height:48px; border:0; border-left:3px solid transparent; background:transparent; color:#61747d; text-align:left; font-size:12px; font-weight:700; }
@@ -91,15 +92,17 @@ export default function(component) {
     return missing;
   }
   function render() {
+    const doc=root.querySelector('.template-document'); doc.innerHTML=data.previewHtml;
+    const missing = applyWorkingLayout();
     const versionBar=root.querySelector('[data-role="version-bar"]'); versionBar.replaceChildren();
     const title=document.createElement('strong'); title.textContent=`${data.themeName}｜v${data.versionNo}${state.dirty?' · 未儲存':''}`;
-    const save=document.createElement('button'); save.textContent='儲存為新版本'; save.disabled=!state.dirty; save.addEventListener('click',()=>setTriggerValue("saveLayout",{baseVersionId:data.versionId,layout:state.present})); versionBar.append(title,save);
+    const syncError=data.previewSyncError||(missing.length?`預覽缺少版面元素：${missing.join('、')}`:'');
+    const save=document.createElement('button'); save.textContent='儲存為新版本'; save.disabled=!state.dirty||Boolean(syncError); save.addEventListener('click',()=>setTriggerValue("saveLayout",{baseVersionId:data.versionId,layout:state.present})); versionBar.append(title,save);
+    if(syncError){const alert=document.createElement('p');alert.className='preview-sync-error';alert.setAttribute('role','alert');alert.textContent=syncError;versionBar.append(alert);}
     const rail=root.querySelector('[data-role="page-rail"]'); rail.replaceChildren(); data.pages.forEach((item,index)=>{const b=document.createElement('button');b.textContent=`${String(index+1).padStart(2,'0')} ${item.label}`;b.setAttribute('aria-current',item.pageType===data.pageType?'page':'false');b.onclick=()=>setTriggerValue('requestPage',item.pageType);rail.append(b);});
     const toolbar=root.querySelector('.canvas-toolbar'); toolbar.replaceChildren();
     [['復原',undo],['重做',redo]].forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.setAttribute('aria-label',label);b.onclick=fn;toolbar.append(b);});
     const reset=document.createElement('button');reset.textContent='重設本頁';reset.setAttribute('aria-label','重設本頁');reset.onclick=()=>{const next=clone(state.present);next.pages[data.pageType]=clone(data.layout.pages[data.pageType]);mark(next);};toolbar.append(reset);
-    const doc=root.querySelector('.template-document'); doc.innerHTML=data.previewHtml;
-    const missing = applyWorkingLayout();
     const stage=root.querySelector('.template-stage'); const scale=stage.clientWidth/1080; doc.style.transform=`scale(${scale})`;
     doc.querySelectorAll('[data-layout-id]').forEach(el=>{el.tabIndex=0;el.onclick=e=>{e.preventDefault();e.stopPropagation();state.selected=el.dataset.layoutId;persist();renderSelection();renderProperties();};el.onkeydown=e=>{if(e.key==='Enter'){state.selected=el.dataset.layoutId;renderSelection();renderProperties();} if(state.selected===el.dataset.layoutId&&e.key.startsWith('Arrow')){e.preventDefault();const amount=e.shiftKey?10:1;const next=clone(state.present);const item=next.pages[data.pageType].elements[state.selected];if(e.key==='ArrowLeft')item.x-=amount;if(e.key==='ArrowRight')item.x+=amount;if(e.key==='ArrowUp')item.y-=amount;if(e.key==='ArrowDown')item.y+=amount;mark(next);}};});
     renderSelection(); renderProperties();

@@ -71,3 +71,22 @@ def test_template_payload_exposes_collision_policy_without_unsafe_style_data():
     assert by_id["company-name"]["collision"] == "allow"
     assert by_id["rule"]["collision"] == "background"
     assert "css" not in payload
+
+
+def test_template_payload_reports_missing_renderer_layout_hooks():
+    layout = load_builtin_layout()
+    version = SimpleNamespace(
+        id=11,
+        version_no=1,
+        created_at="2026-08-23T10:00:00",
+        layout=layout,
+    )
+    payload = template_editor_payload(
+        SimpleNamespace(id=7, name="AI 新創介紹"),
+        [version],
+        version,
+        "cover",
+        '<main data-layout-id="heading"></main>',
+    )
+    assert payload["previewSyncError"].startswith("預覽缺少版面元素：")
+    assert "company-name" in payload["previewSyncError"]

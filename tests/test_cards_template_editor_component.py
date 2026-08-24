@@ -37,3 +37,10 @@ def test_template_component_applies_working_geometry_to_renderer_dom():
     assert "function applyWorkingLayout()" in script
     assert 'style.setProperty(property,value,"important")' in script
     assert "const missing = applyWorkingLayout();" in script
+
+
+def test_template_component_blocks_save_when_preview_hooks_are_missing():
+    script = template_editor_component.TEMPLATE_JS
+    assert "data.previewSyncError" in script
+    assert "save.disabled=!state.dirty||Boolean(syncError)" in script
+    assert "preview-sync-error" in script
