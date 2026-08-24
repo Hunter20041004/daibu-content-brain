@@ -665,6 +665,7 @@ def page_html(
     *,
     allow_logo_placeholder: bool = False,
     browser_preview: bool = False,
+    logo_placeholder_text: str = "LOGO 待確認",
 ) -> str:
     document = layout or load_builtin_layout()
     if brand_asset is None and allow_logo_placeholder:
@@ -672,7 +673,8 @@ def page_html(
             '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="96" '
             'viewBox="0 0 320 96"><rect width="320" height="96" fill="none"/>'
             '<text x="160" y="56" text-anchor="middle" fill="#2f7c87" '
-            'font-family="sans-serif" font-size="22">LOGO 待確認</text></svg>'
+            'font-family="sans-serif" font-size="22">'
+            f'{html.escape(logo_placeholder_text)}</text></svg>'
         )
         logo_uri = "data:image/svg+xml;base64," + base64.b64encode(
             placeholder.encode("utf-8")
@@ -769,6 +771,9 @@ def template_editor_page_html(
     company: str,
     brand_asset: BrandAsset | None,
     layout: LayoutDocument,
+    *,
+    series_name: str = SERIES_NAME,
+    logo_placeholder_text: str = "LOGO 待確認",
 ) -> str:
     """Reuse the production renderer with browser-safe assets for editing."""
     output = page_html(
@@ -778,6 +783,11 @@ def template_editor_page_html(
         layout,
         allow_logo_placeholder=True,
         browser_preview=True,
+        logo_placeholder_text=logo_placeholder_text,
+    )
+    output = output.replace(
+        html.escape(SERIES_NAME),
+        html.escape(series_name),
     )
     return output.replace(
         'data-template="editorial-v15.1"',

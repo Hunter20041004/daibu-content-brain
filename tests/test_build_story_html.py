@@ -147,6 +147,12 @@ def _file_url() -> str:
     return HTML_PATH.resolve().as_uri()
 
 
+def _open_story(page) -> None:
+    """Load the local story without waiting on unrelated remote font requests."""
+    page.goto(_file_url(), wait_until="domcontentloaded")
+    page.locator("main").wait_for(state="attached")
+
+
 def test_hero_states_multi_series_architecture_with_one_series_today():
     source = HTML_PATH.read_text(encoding="utf-8")
 
@@ -173,10 +179,14 @@ def test_carousel_output_images_are_embedded_and_render():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 800})
-        page.goto(_file_url())
+        _open_story(page)
 
         images = page.locator('.carousel-out img')
         assert images.count() == 7
+        page.wait_for_function(
+            """() => [...document.querySelectorAll('.carousel-out img')]
+                .every(image => image.complete && image.naturalWidth > 0)"""
+        )
 
         srcs = images.evaluate_all("nodes => nodes.map(node => node.getAttribute('src'))")
         assert all(src.startswith("data:image/") for src in srcs), "圖片必須內嵌，分享後才不會失效"
@@ -207,7 +217,7 @@ def test_page_loads_and_interacts_without_console_errors():
             else None,
         )
 
-        page.goto(_file_url())
+        _open_story(page)
         page.wait_for_timeout(600)
 
         for step in page.locator("[data-journey-step]").all():
@@ -224,7 +234,7 @@ def test_no_horizontal_overflow_at_any_width():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 800})
-        page.goto(_file_url())
+        _open_story(page)
 
         offenders = {}
         for width in (375, 414, 768, 1000, 1024, 1100, 1280, 1440, 1920):
@@ -244,7 +254,7 @@ def test_deep_brand_tones_carry_the_structure():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 800})
-        page.goto(_file_url())
+        _open_story(page)
 
         deep = "rgb(36, 74, 91)"  # #244A5B
 
@@ -277,7 +287,7 @@ def test_output_gallery_is_asymmetric_not_an_equal_card_grid():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 800})
-        page.goto(_file_url())
+        _open_story(page)
 
         lead = page.locator(".carousel-out__lead img").evaluate(
             "el => el.getBoundingClientRect().width"
@@ -294,7 +304,7 @@ def test_before_after_comparison_is_side_by_side_then_stacks():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 800})
-        page.goto(_file_url())
+        _open_story(page)
 
         figures = page.locator("#verify .compare figure")
         assert figures.count() == 2
@@ -327,7 +337,7 @@ def test_story_interactions_update_without_reload():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 800})
-        page.goto(_file_url())
+        _open_story(page)
 
         draft_step = page.locator('[data-journey-step="draft"]')
         draft_step.click()
@@ -345,7 +355,7 @@ def test_story_mobile_layout_focus_and_reduced_motion():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 375, "height": 812})
-        page.goto(_file_url())
+        _open_story(page)
 
         overflow = page.evaluate(
             "document.documentElement.scrollWidth - document.documentElement.clientWidth"

@@ -2,6 +2,19 @@
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 
+## 2026-08-23 模板即時預覽與語意佔位修正
+
+- **產品能力**：設定頁模板畫布現在會把拖曳、縮放、X／Y、寬高、字級與對齊同步套到真正的貼文元素；選取框不再自己移動而內容留在原地。復原、重做與 Escape 取消也同步更新內容。
+- **使用者體驗**：七頁模板預覽改用「公司名稱」「系列名稱」「企業 Logo」「封面標題／頁面標題」等欄位角色，不再把 SUN 或其他壓力測試公司誤顯示成固定模板文字。預覽缺少 renderer hook 時會顯示錯誤並禁止儲存，避免存出畫面與數值不一致的版本。
+- **技術結構與資料流**：語意 placeholder builder 產生七頁草稿 → 正式 Renderer 產出唯一預覽 DOM → 瀏覽器把 working layout 白名單屬性套到 `data-layout-id` 元素 → overlay 從實際 DOM 測量。儲存路徑、SQLite schema、版本生命週期與正式產圖預設皆未改。
+- **設計理由與備援**：主方案共用正式 Renderer，可避免編輯器與產圖再度分岔；備援是每次操作回 Python 重繪，但延遲高且拖曳體驗差，未採用。公司名稱採語意 placeholder，而不是實際公司名，讓使用者知道此處會由每篇公司資料替換。
+- **安全與成本**：只允許既有 registry 元素與樣式白名單，沒有任意 CSS／HTML、外部服務、LLM、付費操作或資料表變更。視覺 QA 使用正式庫副本且未按儲存，正式資料未寫入。
+- **TDD 與瀏覽器證據**：先重現「選取框移動但實際元素 `actual_dx == 0`」、拖曳中內容不動、Escape 後內容未復原、缺 hook 仍可儲存，再逐片轉綠。真實 Chromium 驗證實際元素與選取框位移差 `<= 1 CSS px`，七頁均顯示語意 placeholder，沒有 SUN／Billow／Shiraz 殘留。
+- **視覺 QA**：兩輪 1280×800 與 375×812 通過層次、留白、LINE Seed 字體、深藍／青／珊瑚三色、對齊、響應式、狀態與微動效；手機維持唯讀且 `scrollWidth=clientWidth=375`。最終截圖：`.screenshots/template-live-preview-round2-desktop.png`、`.screenshots/template-live-preview-round2-mobile.png`。
+- **測試穩定化**：完整套件曾兩次抓到既有 build-story 靜態頁的 `file://` 載入會被遠端字型拖到 30 秒 timeout；改為等待本機 DOM，圖片案例另等內嵌圖片完成解碼。該檔 16 項通過，完整套件為 `724 passed, 16 deselected, 1 warning in 245.09s`；warning 仍是既有 Starlette／httpx 相依提醒。
+- **剩餘限制**：手機刻意只讀；模板仍不支援新增／刪除／旋轉、z-order、換品牌字型／色票或素材路徑。這些是既有產品邊界，不是本輪缺漏。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-23-template-editor-live-preview-placeholders-design.md`、`docs/superpowers/plans/2026-08-23-template-editor-live-preview-placeholders.md`。
+
 ## 本輪目標與驗收
 
 - 日常工作區改成 1–7 頁導覽、目前頁欄位與同頁即時預覽；所有貼文內容文字含圖解節點可編輯，來源／引文／結構角色鎖定。
