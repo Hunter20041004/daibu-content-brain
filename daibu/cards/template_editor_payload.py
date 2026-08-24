@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 import re
 from typing import Mapping
 
@@ -24,6 +26,20 @@ class TemplateField:
 
 
 _LAYOUT_ID = re.compile(r'data-layout-id=["\u0027]([^"\u0027]+)["\u0027]')
+
+
+def _registry_fingerprint() -> str:
+    identity = {
+        page_type: sorted(rules)
+        for page_type, rules in sorted(ELEMENT_REGISTRY.items())
+    }
+    encoded = json.dumps(
+        identity,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def missing_preview_element_ids(
@@ -128,6 +144,8 @@ def template_editor_payload(
         "pages": [{"pageType": value, "label": pages.label(value)} for value in pages.PAGE_TYPES],
         "elements": elements,
         "layout": layout,
+        "layoutSchemaVersion": selected_version.layout.schema_version,
+        "registryFingerprint": _registry_fingerprint(),
         "previewHtml": preview_html,
         "previewSyncError": sync_error,
         "canvas": {"width": selected_version.layout.canvas_width, "height": selected_version.layout.canvas_height},

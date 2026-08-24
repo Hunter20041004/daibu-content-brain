@@ -1,6 +1,10 @@
+import json
+
 from playwright.sync_api import expect, sync_playwright
 
 from daibu import db
+from daibu.cards import pages as card_pages
+from daibu.cards.layout_registry import ELEMENT_REGISTRY
 from daibu.models import Theme
 from tests.browser_support import running_streamlit
 
@@ -64,6 +68,86 @@ def test_template_property_x_moves_actual_element_and_selection_together(
             box_dx = box_after["x"] - box_before["x"]
             assert actual_dx > 0
             assert abs(actual_dx - box_dx) <= 1
+            browser.close()
+
+
+def test_who_facts_body_font_size_updates_the_real_text_node(tmp_path):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            editor.get_by_role("button", name="02 公司身分卡").click()
+            expect(
+                editor.locator(
+                    '.template-document [data-layout-id="facts-body"]'
+                )
+            ).to_be_visible(timeout=15000)
+            actual = editor.locator(
+                '.template-document [data-layout-id="facts-body"]'
+            )
+            actual.click(position={"x": 20, "y": 20})
+            before = float(
+                actual.evaluate(
+                    "element => getComputedStyle(element).fontSize.slice(0, -2)"
+                )
+            )
+            font_input = editor.locator(
+                '[data-role="property-panel"] input[name="font_size"]'
+            )
+            font_input.fill(str(float(font_input.input_value()) + 8))
+            font_input.press("Tab")
+            after = float(
+                actual.evaluate(
+                    "element => getComputedStyle(element).fontSize.slice(0, -2)"
+                )
+            )
+            assert after == before + 8
+            actual_box = actual.bounding_box()
+            selection_box = editor.locator(".selection-box").bounding_box()
+            for field in ("x", "y", "width", "height"):
+                assert abs(actual_box[field] - selection_box[field]) <= 1
+            browser.close()
+
+
+def test_moving_who_label_does_not_move_its_body_or_background(tmp_path):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            editor.get_by_role("button", name="02 公司身分卡").click()
+            label = editor.locator(
+                '.template-document [data-layout-id="facts-label"]'
+            )
+            body = editor.locator(
+                '.template-document [data-layout-id="facts-body"]'
+            )
+            background = editor.locator(
+                '.template-document [data-layout-id="facts-bg"]'
+            )
+            expect(label).to_be_visible(timeout=15000)
+            body_before = body.bounding_box()
+            background_before = background.bounding_box()
+            label_before = label.bounding_box()
+
+            label.click(position={"x": 10, "y": 10})
+            x_input = editor.locator(
+                '[data-role="property-panel"] input[name="x"]'
+            )
+            x_input.fill(str(float(x_input.input_value()) + 24))
+            x_input.press("Tab")
+
+            label_after = label.bounding_box()
+            body_after = body.bounding_box()
+            background_after = background.bounding_box()
+            assert label_after["x"] > label_before["x"]
+            assert body_after == body_before
+            assert background_after == background_before
             browser.close()
 
 
@@ -220,6 +304,65 @@ def test_template_save_creates_inactive_version_before_explicit_activation(
             browser.close()
 
 
+def test_text_font_size_round_trips_through_saved_v2_and_browser_reload(
+    tmp_path,
+):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            editor.get_by_role("button", name="02 公司身分卡").click()
+            body = editor.locator(
+                '.template-document [data-layout-id="facts-body"]'
+            )
+            expect(body).to_be_visible(timeout=15000)
+            body.click(position={"x": 10, "y": 10})
+            font_input = editor.locator(
+                '[data-role="property-panel"] input[name="font_size"]'
+            )
+            saved_size = float(font_input.input_value()) + 6
+            font_input.fill(str(saved_size))
+            font_input.press("Tab")
+            editor.get_by_role("button", name="儲存為新版本").click()
+            expect(page.get_by_label("模板版本")).to_have_value(
+                "v2 · 尚未啟用", timeout=60000
+            )
+
+            conn = db.connect(str(tmp_path / "browser.db"))
+            row = conn.execute(
+                "SELECT schema_version, layout_json "
+                "FROM carousel_template_versions WHERE version_no = 2"
+            ).fetchone()
+            assert row["schema_version"] == 2
+            assert (
+                json.loads(row["layout_json"])["pages"]
+                ["who"]["elements"]["facts-body"]["font_size"]
+                == saved_size
+            )
+
+            page.reload(wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            expect(page.get_by_label("模板版本")).to_have_value(
+                "v2 · 尚未啟用"
+            )
+            editor.get_by_role("button", name="02 公司身分卡").click()
+            body = editor.locator(
+                '.template-document [data-layout-id="facts-body"]'
+            )
+            expect(body).to_be_visible(timeout=15000)
+            rendered_size = float(
+                body.evaluate(
+                    "element => getComputedStyle(element).fontSize.slice(0, -2)"
+                )
+            )
+            assert rendered_size == saved_size
+            browser.close()
+
+
 def test_template_editor_mobile_is_read_only_without_overflow(tmp_path):
     with running_streamlit(tmp_path,_seed) as base_url:
         with sync_playwright() as driver:
@@ -228,4 +371,67 @@ def test_template_editor_mobile_is_read_only_without_overflow(tmp_path):
             expect(page.get_by_text("請改用桌面寬度調整模板",exact=False)).to_be_visible(timeout=15000)
             assert page.evaluate("document.documentElement.scrollWidth") == 375
             expect(page.locator('.overlay-layer')).to_be_hidden()
+            browser.close()
+
+
+def test_every_page_exposes_real_text_layers_with_matching_font_controls(
+    tmp_path,
+):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+
+            for page_index, page_type in enumerate(
+                card_pages.PAGE_TYPES,
+                start=1,
+            ):
+                page_button = editor.get_by_role(
+                    "button",
+                    name=(
+                        f"{page_index:02d} "
+                        f"{card_pages.label(page_type)}"
+                    ),
+                )
+                page_button.click()
+                expect(
+                    editor.locator(
+                        ".template-document "
+                        f'article[data-page-type="{page_type}"]'
+                    )
+                ).to_be_attached(timeout=15000)
+
+                for element_id, rule in ELEMENT_REGISTRY[page_type].items():
+                    actual = editor.locator(
+                        ".template-document "
+                        f'[data-layout-id="{element_id}"]'
+                    )
+                    assert actual.count() == 1
+                    if not rule.text:
+                        continue
+                    assert actual.evaluate(
+                        "element => element.textContent.trim().length > 0"
+                    )
+                    actual.evaluate("element => element.click()")
+                    font_input = editor.locator(
+                        '[data-role="property-panel"] '
+                        'input[name="font_size"]'
+                    )
+                    expect(font_input).to_be_visible()
+                    expected_size = float(font_input.input_value())
+                    computed_size = float(
+                        actual.evaluate(
+                            "element => "
+                            "getComputedStyle(element).fontSize.slice(0, -2)"
+                        )
+                    )
+                    assert computed_size == expected_size, (
+                        page_type,
+                        element_id,
+                        computed_size,
+                        expected_size,
+                    )
             browser.close()

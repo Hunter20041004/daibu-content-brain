@@ -21,7 +21,7 @@ def _rules(**rules: ElementRule) -> Mapping[str, ElementRule]:
     return MappingProxyType(rules)
 
 
-ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
+LEGACY_ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
     {
         "cover": _rules(
             series=ElementRule("系列名稱", True),
@@ -102,3 +102,129 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
         ),
     }
 )
+
+
+_v2_pages = dict(LEGACY_ELEMENT_REGISTRY)
+_v2_pages["who"] = _rules(
+    header=ElementRule("頁首"),
+    heading=ElementRule("頁面標題", True),
+    **{
+        "positioning-bg": ElementRule(
+            "白話定位背景", False, "background"
+        ),
+        "positioning-label": ElementRule("白話定位標籤", True),
+        "positioning-body": ElementRule("白話定位正文", True),
+        "facts-bg": ElementRule("基本資料背景", False, "background"),
+        "facts-label": ElementRule("基本資料標籤", True),
+        "facts-body": ElementRule("基本資料正文", True),
+        "mascot": ElementRule(
+            "呆一布機器人", False, "allow", 120, 120
+        ),
+    },
+)
+for _page_type in ("who", "problem", "how-ai", "results", "why-care", "cta"):
+    _page_rules = dict(_v2_pages[_page_type])
+    _page_rules.pop("header")
+    _page_rules["series"] = ElementRule("系列名稱", True)
+    _page_rules["company-name"] = ElementRule(
+        "企業名稱", True, "allow", max_font_size=320
+    )
+    _v2_pages[_page_type] = MappingProxyType(_page_rules)
+
+_problem_rules = dict(_v2_pages["problem"])
+for _index in range(1, 4):
+    _problem_rules.pop(f"stage-{_index}")
+    _problem_rules[f"stage-{_index}-bg"] = ElementRule(
+        f"問題階段{_index}背景", False, "background"
+    )
+    _problem_rules[f"stage-{_index}-label"] = ElementRule(
+        f"問題階段{_index}標籤", True
+    )
+    _problem_rules[f"stage-{_index}-body"] = ElementRule(
+        f"問題階段{_index}主句", True
+    )
+for _index in (1, 3):
+    _problem_rules[f"stage-{_index}-context"] = ElementRule(
+        f"問題階段{_index}補充", True
+    )
+_v2_pages["problem"] = MappingProxyType(_problem_rules)
+
+_how_rules = dict(_v2_pages["how-ai"])
+for _index in range(1, 4):
+    _how_rules.pop(f"step-{_index}")
+    _how_rules[f"step-{_index}-bg"] = ElementRule(
+        f"流程{_index}背景", False, "background"
+    )
+    _how_rules[f"step-{_index}-label"] = ElementRule(
+        f"流程{_index}標籤", True
+    )
+    _how_rules[f"step-{_index}-body"] = ElementRule(
+        f"流程{_index}主句", True
+    )
+_how_rules.pop("caution")
+_how_rules["caution-bg"] = ElementRule(
+    "注意區背景", False, "background"
+)
+_how_rules["caution-label"] = ElementRule("注意區標籤", True)
+_how_rules["caution-body"] = ElementRule("注意事項正文", True)
+_v2_pages["how-ai"] = MappingProxyType(_how_rules)
+
+_results_rules = dict(_v2_pages["results"])
+_results_rules.pop("before-copy")
+_results_rules.pop("after-copy")
+_results_rules.update(
+    {
+        "results-before-bg": ElementRule(
+            "改變前背景", False, "background"
+        ),
+        "results-after-bg": ElementRule(
+            "改變後背景", False, "background"
+        ),
+        "before-body": ElementRule("改變前主句", True),
+        "before-context": ElementRule("改變前補充", True),
+        "after-label": ElementRule("改變後標籤", True),
+        "after-body": ElementRule("改變後主句", True),
+        "after-context": ElementRule("改變後補充", True),
+    }
+)
+_v2_pages["results"] = MappingProxyType(_results_rules)
+
+_signals_rules = dict(_v2_pages["why-care"])
+for _index in range(1, 4):
+    _signals_rules.pop(f"signal-{_index}")
+    _signals_rules[f"signal-{_index}-bg"] = ElementRule(
+        f"觀察訊號{_index}背景", False, "background"
+    )
+    _signals_rules[f"signal-{_index}-label"] = ElementRule(
+        f"觀察訊號{_index}標籤", True
+    )
+    _signals_rules[f"signal-{_index}-body"] = ElementRule(
+        f"觀察訊號{_index}主句", True
+    )
+    _signals_rules[f"signal-{_index}-context"] = ElementRule(
+        f"觀察訊號{_index}補充", True
+    )
+_v2_pages["why-care"] = MappingProxyType(_signals_rules)
+
+_cta_rules = dict(_v2_pages["cta"])
+for _name, _label in (("thesis", "收束結論"), ("question", "讀者問題")):
+    _cta_rules.pop(_name)
+    _cta_rules[f"{_name}-bg"] = ElementRule(
+        f"{_label}背景", False, "background"
+    )
+    _cta_rules[f"{_name}-label"] = ElementRule(f"{_label}標籤", True)
+    _cta_rules[f"{_name}-body"] = ElementRule(f"{_label}正文", True)
+_v2_pages["cta"] = MappingProxyType(_cta_rules)
+ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
+    _v2_pages
+)
+
+
+def registry_for_schema(
+    schema_version: int,
+) -> Mapping[str, Mapping[str, ElementRule]]:
+    if schema_version == 1:
+        return LEGACY_ELEMENT_REGISTRY
+    if schema_version == 2:
+        return ELEMENT_REGISTRY
+    raise ValueError(f"不支援的 schema_version：{schema_version}")

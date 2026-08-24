@@ -90,3 +90,25 @@ def test_template_payload_reports_missing_renderer_layout_hooks():
     )
     assert payload["previewSyncError"].startswith("預覽缺少版面元素：")
     assert "company-name" in payload["previewSyncError"]
+
+
+def test_template_payload_identifies_layout_schema_and_registry_revision():
+    layout = load_builtin_layout()
+    version = SimpleNamespace(
+        id=11,
+        version_no=1,
+        created_at="2026-08-23T10:00:00",
+        layout=layout,
+    )
+
+    payload = template_editor_payload(
+        SimpleNamespace(id=7, name="AI 新創介紹"),
+        [version],
+        version,
+        "who",
+        "<main></main>",
+    )
+
+    assert payload["layoutSchemaVersion"] == 2
+    assert isinstance(payload["registryFingerprint"], str)
+    assert len(payload["registryFingerprint"]) == 64

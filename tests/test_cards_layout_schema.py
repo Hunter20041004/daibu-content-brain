@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 
 from daibu.cards.layout_registry import ELEMENT_REGISTRY
@@ -31,10 +34,28 @@ def valid_layout_mapping():
             elements[element_id] = element
         pages[page_type] = {"elements": elements}
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "canvas": {"width": 1080, "height": 1350},
         "pages": pages,
     }
+
+
+def test_parse_layout_accepts_v1_and_serializes_normalized_v2():
+    path = (
+        Path(__file__).parents[1]
+        / "daibu"
+        / "cards"
+        / "layouts"
+        / "editorial-v15-1.json"
+    )
+    raw_v1 = json.loads(path.read_text(encoding="utf-8"))
+
+    document = parse_layout(raw_v1)
+    serialized = layout_to_mapping(document)
+
+    assert document.schema_version == 2
+    assert serialized["schema_version"] == 2
+    assert parse_layout(serialized) == document
 
 
 def test_layout_rejects_unknown_element():
@@ -167,7 +188,7 @@ def test_layout_requires_fixed_canvas_size():
 
 def test_layout_rejects_unknown_schema_version():
     value = {
-        "schema_version": 2,
+        "schema_version": 3,
         "canvas": {"width": 1080, "height": 1350},
         "pages": {},
     }

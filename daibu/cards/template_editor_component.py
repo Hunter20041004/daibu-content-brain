@@ -66,11 +66,13 @@ export default function(component) {
   const {data,parentElement,setStateValue,setTriggerValue} = component;
   const root = parentElement.querySelector('[data-role="template-editor"]');
   const storageKey = `daibu-template-${data.themeId}-${data.versionId}`;
+  const schemaIdentity = `${data.layoutSchemaVersion}:${data.registryFingerprint}`;
   const stored = JSON.parse(sessionStorage.getItem(storageKey) || "null");
-  const state = stored || {past:[],present:clone(data.layout),future:[],selected:null,dirty:false,guides:[]};
+  const restored = stored?.schemaIdentity === schemaIdentity ? stored.state : null;
+  const state = restored || {past:[],present:clone(data.layout),future:[],selected:null,dirty:false,guides:[]};
   state.guides=[];
   let activePointer=null;
-  const persist = () => sessionStorage.setItem(storageKey, JSON.stringify(state));
+  const persist = () => sessionStorage.setItem(storageKey, JSON.stringify({schemaIdentity,state}));
   const mark = next => { if (equal(state.present,next)) return; state.past.push(clone(state.present)); if(state.past.length>HISTORY_LIMIT)state.past.shift(); state.present=next; state.future=[]; state.dirty=!equal(state.present,data.layout); setStateValue("dirty",state.dirty); persist(); render(); };
   const undo = () => { if(!state.past.length)return; state.future.unshift(clone(state.present)); state.present=state.past.pop(); state.dirty=!equal(state.present,data.layout); setStateValue("dirty",state.dirty); persist(); render(); };
   const redo = () => { if(!state.future.length)return; state.past.push(clone(state.present)); state.present=state.future.shift(); state.dirty=!equal(state.present,data.layout); setStateValue("dirty",state.dirty); persist(); render(); };
