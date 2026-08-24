@@ -3,6 +3,8 @@ import json
 from playwright.sync_api import expect, sync_playwright
 
 from daibu import db
+from daibu.cards import pages as card_pages
+from daibu.cards.layout_registry import ELEMENT_REGISTRY
 from daibu.models import Theme
 from tests.browser_support import running_streamlit
 
@@ -369,4 +371,67 @@ def test_template_editor_mobile_is_read_only_without_overflow(tmp_path):
             expect(page.get_by_text("請改用桌面寬度調整模板",exact=False)).to_be_visible(timeout=15000)
             assert page.evaluate("document.documentElement.scrollWidth") == 375
             expect(page.locator('.overlay-layer')).to_be_hidden()
+            browser.close()
+
+
+def test_every_page_exposes_real_text_layers_with_matching_font_controls(
+    tmp_path,
+):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+
+            for page_index, page_type in enumerate(
+                card_pages.PAGE_TYPES,
+                start=1,
+            ):
+                page_button = editor.get_by_role(
+                    "button",
+                    name=(
+                        f"{page_index:02d} "
+                        f"{card_pages.label(page_type)}"
+                    ),
+                )
+                page_button.click()
+                expect(
+                    editor.locator(
+                        ".template-document "
+                        f'article[data-page-type="{page_type}"]'
+                    )
+                ).to_be_attached(timeout=15000)
+
+                for element_id, rule in ELEMENT_REGISTRY[page_type].items():
+                    actual = editor.locator(
+                        ".template-document "
+                        f'[data-layout-id="{element_id}"]'
+                    )
+                    assert actual.count() == 1
+                    if not rule.text:
+                        continue
+                    assert actual.evaluate(
+                        "element => element.textContent.trim().length > 0"
+                    )
+                    actual.evaluate("element => element.click()")
+                    font_input = editor.locator(
+                        '[data-role="property-panel"] '
+                        'input[name="font_size"]'
+                    )
+                    expect(font_input).to_be_visible()
+                    expected_size = float(font_input.input_value())
+                    computed_size = float(
+                        actual.evaluate(
+                            "element => "
+                            "getComputedStyle(element).fontSize.slice(0, -2)"
+                        )
+                    )
+                    assert computed_size == expected_size, (
+                        page_type,
+                        element_id,
+                        computed_size,
+                        expected_size,
+                    )
             browser.close()

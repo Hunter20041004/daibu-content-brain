@@ -310,15 +310,15 @@ def normalize_layout_mapping(
             "x": sx + inset_left,
             "y": sy + 78,
             "w": text_width,
-            "h": 118,
+            "h": 62 if index == 1 else 118,
             "font_size": 52,
             "text_align": "left",
         }
         signals_elements[f"signal-{index}-context"] = {
             "x": sx + inset_left,
-            "y": sy + 214,
+            "y": sy + (148 if index == 1 else 214),
             "w": text_width,
-            "h": max(42, sh - 250),
+            "h": max(42, sh - (162 if index == 1 else 250)),
             "font_size": 30,
             "text_align": "left",
         }
