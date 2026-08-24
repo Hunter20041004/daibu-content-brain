@@ -33,6 +33,7 @@
 - **真實互動 QA**：11 個 Playwright 瀏覽器流程全過，涵蓋拖曳、欄位移動、字級同步、兄弟層互不影響、復原／重做、Escape、上下限、儲存／啟用、schema v2 儲存重開、七頁每個文字層的實際計算字級，以及手機唯讀。
 - **版面壓力 QA**：三家公司、三種 Logo 比例、共 21 頁的 Chromium 輸出驗證通過；QA 額外抓到並修正第 3、6 頁長補充文字框高度不足，沒有降低 overflow 驗證標準。
 - **全套測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `738 passed, 16 deselected, 1 warning in 220.43s`；唯一 warning 是既有 Starlette/httpx deprecation。
+- **main 合併後全套**：同一指令重跑為 `738 passed, 16 deselected, 1 warning in 242.49s`。
 - **視覺 QA**：第一輪截圖未包含模板畫布，判定不合格並重做；最終桌機／手機畫布截圖為 `.screenshots/text-layers-round3-desktop.png`、`.screenshots/text-layers-round3-mobile.png`。手機 `scrollWidth=clientWidth=375`，儲存、選取層與屬性面板皆隱藏，維持唯讀。
 - **安全與成本**：無新依賴、外部服務、任意 CSS／HTML／URL 輸入或資料表；所有元素與屬性仍由 registry 白名單控制。
 - **剩餘步驟**：合併 main 後重跑全套、push、重啟既有 `io.daibu.content-brain`，再以正式 `http://127.0.0.1:8501` 驗證設定頁與七頁模板核心流程。
