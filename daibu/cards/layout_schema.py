@@ -5,7 +5,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
 
-from daibu.cards.layout_registry import ELEMENT_REGISTRY
+from daibu.cards.layout_registry import registry_for_schema
+from daibu.cards.layout_upgrade import normalize_layout_mapping
 
 
 CANVAS_WIDTH = 1080
@@ -125,12 +126,15 @@ def _finite_number(value: object, element_id: str, field: str) -> float:
 
 
 def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
+    value = normalize_layout_mapping(value)
     unknown_properties = set(value) - {"schema_version", "canvas", "pages"}
     if unknown_properties:
         unknown = sorted(str(item) for item in unknown_properties)[0]
         raise LayoutValidationError(None, f"版面含不允許的屬性：{unknown}")
-    if value.get("schema_version") != 1:
+    schema_version = value.get("schema_version")
+    if schema_version not in {1, 2}:
         raise LayoutValidationError(None, "不支援的 schema_version")
+    registry = registry_for_schema(int(schema_version))
     raw_canvas = value.get("canvas")
     if not isinstance(raw_canvas, Mapping):
         raise LayoutValidationError(None, "版面缺少 canvas")
@@ -150,7 +154,7 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
 
     parsed_pages: dict[str, LayoutPage] = {}
     for page_type, raw_page in raw_pages.items():
-        if not isinstance(page_type, str) or page_type not in ELEMENT_REGISTRY:
+        if not isinstance(page_type, str) or page_type not in registry:
             raise LayoutValidationError(None, f"未知頁型：{page_type}")
         if not isinstance(raw_page, Mapping):
             raise LayoutValidationError(None, f"{page_type} 頁版面必須是物件")
@@ -167,14 +171,14 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
 
         parsed_elements: dict[str, LayoutElement] = {}
         for element_id, raw_element in raw_elements.items():
-            if not isinstance(element_id, str) or element_id not in ELEMENT_REGISTRY[page_type]:
+            if not isinstance(element_id, str) or element_id not in registry[page_type]:
                 raise LayoutValidationError(
                     element_id if isinstance(element_id, str) else None,
                     f"未知版面元素：{element_id}",
                 )
             if not isinstance(raw_element, Mapping):
                 raise LayoutValidationError(element_id, f"{element_id} 必須是物件")
-            rule = ELEMENT_REGISTRY[page_type][element_id]
+            rule = registry[page_type][element_id]
             allowed_properties = {"x", "y", "w", "h"}
             if rule.text:
                 allowed_properties.update({"font_size", "text_align"})
@@ -230,7 +234,7 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
             parsed_elements[element_id] = LayoutElement(rect, text_style)
 
         missing_elements = sorted(
-            set(ELEMENT_REGISTRY[page_type]) - set(parsed_elements)
+            set(registry[page_type]) - set(parsed_elements)
         )
         if missing_elements:
             raise LayoutValidationError(
@@ -239,7 +243,7 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
             )
         parsed_pages[page_type] = LayoutPage(MappingProxyType(parsed_elements))
 
-    missing_pages = sorted(set(ELEMENT_REGISTRY) - set(parsed_pages))
+    missing_pages = sorted(set(registry) - set(parsed_pages))
     if missing_pages:
         raise LayoutValidationError(
             None,

@@ -21,7 +21,7 @@ def _rules(**rules: ElementRule) -> Mapping[str, ElementRule]:
     return MappingProxyType(rules)
 
 
-ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
+LEGACY_ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
     {
         "cover": _rules(
             series=ElementRule("系列名稱", True),
@@ -102,3 +102,36 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
         ),
     }
 )
+
+
+_v2_pages = dict(LEGACY_ELEMENT_REGISTRY)
+_v2_pages["who"] = _rules(
+    header=ElementRule("頁首"),
+    heading=ElementRule("頁面標題", True),
+    **{
+        "positioning-bg": ElementRule(
+            "白話定位背景", False, "background"
+        ),
+        "positioning-label": ElementRule("白話定位標籤", True),
+        "positioning-body": ElementRule("白話定位正文", True),
+        "facts-bg": ElementRule("基本資料背景", False, "background"),
+        "facts-label": ElementRule("基本資料標籤", True),
+        "facts-body": ElementRule("基本資料正文", True),
+        "mascot": ElementRule(
+            "呆一布機器人", False, "allow", 120, 120
+        ),
+    },
+)
+ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
+    _v2_pages
+)
+
+
+def registry_for_schema(
+    schema_version: int,
+) -> Mapping[str, Mapping[str, ElementRule]]:
+    if schema_version == 1:
+        return LEGACY_ELEMENT_REGISTRY
+    if schema_version == 2:
+        return ELEMENT_REGISTRY
+    raise ValueError(f"不支援的 schema_version：{schema_version}")
