@@ -256,10 +256,16 @@ def _section_by_label(page: CarouselPage, label: str) -> ContentSection:
 
 def _editorial_header(company: str) -> str:
     return (
-        '<div class="editorial-header" data-layout-id="header">'
-        f'<span class="series">{html.escape(SERIES_NAME)}</span>'
-        f'<span class="company">{html.escape(company)}</span>'
-        "</div>"
+        _layout_box(
+            "series",
+            html.escape(SERIES_NAME),
+            classes="editorial-series",
+        )
+        + _layout_box(
+            "company-name",
+            html.escape(company),
+            classes="editorial-company",
+        )
     )
 
 
@@ -337,38 +343,51 @@ def _problem(page: CarouselPage, company: str) -> str:
         section_index = {1: 0, 3: 1}.get(index)
         supplement_html = ""
         if supplement is not None and section_index is not None:
-            supplement_html = _editable_text(
+            supplement_html = _layout_editable_text(
+                f"stage-{index}-context",
                 f"page.problem.section.{section_index}.text",
                 supplement.text,
                 tag="p",
-                classes="stage-context",
+                classes=(
+                    "problem-stage-context problem-stage-context--anchor"
+                    if index == 3
+                    else "problem-stage-context"
+                ),
             )
         node_prefix = f"page.problem.diagram.{index - 1}"
         stages.append(
             _layout_box(
-                f"stage-{index}",
-                _editable_expression(
-                    f"{node_prefix}.expression",
-                    node.expression,
-                )
-                + _editable_text(
-                    f"{node_prefix}.title",
-                    node.title,
-                    tag="small",
-                )
-                + _editable_text(
-                    f"{node_prefix}.text",
-                    node.text,
-                    tag="strong",
-                )
-                + supplement_html,
-                tag="section",
+                f"stage-{index}-bg",
+                "",
                 classes=(
-                    "problem-stage problem-stage--anchor"
+                    "problem-stage-bg problem-stage-bg--anchor"
                     if index == 3
-                    else "problem-stage"
+                    else "problem-stage-bg"
                 ),
             )
+            + _editable_expression(
+                f"{node_prefix}.expression",
+                node.expression,
+            )
+            + _layout_editable_text(
+                f"stage-{index}-label",
+                f"{node_prefix}.title",
+                node.title,
+                tag="small",
+                classes="problem-stage-label",
+            )
+            + _layout_editable_text(
+                f"stage-{index}-body",
+                f"{node_prefix}.text",
+                node.text,
+                tag="strong",
+                classes=(
+                    "problem-stage-body problem-stage-body--anchor"
+                    if index == 3
+                    else "problem-stage-body"
+                ),
+            )
+            + supplement_html
         )
     return (
         '<article class="card problem-v151" data-page-type="problem">'
@@ -406,27 +425,35 @@ def _how_ai(page: CarouselPage, company: str) -> str:
         }.get(index, "")
         steps.append(
             _layout_box(
-                f"step-{index}",
-                _editable_expression(
-                    f"page.how-ai.diagram.{index - 1}.expression",
-                    node.expression,
-                )
-                + _editable_text(
-                    f"page.how-ai.diagram.{index - 1}.title",
-                    node.title,
-                    tag="small",
-                )
-                + _editable_text(
-                    f"page.how-ai.diagram.{index - 1}.text",
-                    node.text,
-                    tag="strong",
-                )
-                + _hidden_edit_hook(
-                    f"page.how-ai.section.{(0, 1, 3)[index - 1]}.text",
-                    section.text,
+                f"step-{index}-bg",
+                "",
+                classes=f"how-step-bg{modifiers}",
+            )
+            + _editable_expression(
+                f"page.how-ai.diagram.{index - 1}.expression",
+                node.expression,
+            )
+            + _layout_editable_text(
+                f"step-{index}-label",
+                f"page.how-ai.diagram.{index - 1}.title",
+                node.title,
+                tag="small",
+                classes="how-step-label",
+            )
+            + _layout_editable_text(
+                f"step-{index}-body",
+                f"page.how-ai.diagram.{index - 1}.text",
+                node.text,
+                tag="strong",
+                classes=(
+                    "how-step-body how-step-body--output"
+                    if index == 3
+                    else "how-step-body"
                 ),
-                tag="section",
-                classes=f"how-step{modifiers}",
+            )
+            + _hidden_edit_hook(
+                f"page.how-ai.section.{(0, 1, 3)[index - 1]}.text",
+                section.text,
             )
         )
     return (
@@ -441,15 +468,22 @@ def _how_ai(page: CarouselPage, company: str) -> str:
         + _layout_box("spine", "", classes="story-spine")
         + "".join(steps)
         + _layout_box(
-            "caution",
-            '<span>要注意的點</span>'
-            + _editable_text(
-                "page.how-ai.section.2.text",
-                caution.text,
-                tag="strong",
-            ),
-            tag="section",
-            classes="how-caution",
+            "caution-bg",
+            "",
+            classes="how-caution-bg",
+        )
+        + _layout_box(
+            "caution-label",
+            "要注意的點",
+            tag="span",
+            classes="how-caution-label",
+        )
+        + _layout_editable_text(
+            "caution-body",
+            "page.how-ai.section.2.text",
+            caution.text,
+            tag="strong",
+            classes="how-caution-body",
         )
         + _layout_box(
             "mascot",

@@ -95,7 +95,8 @@ def test_who_uses_only_positioning_and_facts_sections(tmp_path):
     assert 'data-template="editorial-v15.1"' in output
     assert 'data-page-type="who"' in output
     for element_id in (
-        "header",
+        "series",
+        "company-name",
         "heading",
         "positioning-bg",
         "positioning-label",
@@ -141,12 +142,13 @@ def test_problem_renders_three_diagram_nodes_as_story_stages(tmp_path):
     assert 'data-template="editorial-v15.1"' in output
     assert 'data-page-type="problem"' in output
     for element_id in (
-        "header",
+        "series",
+        "company-name",
         "heading",
         "spine",
-        "stage-1",
-        "stage-2",
-        "stage-3",
+        "stage-1-bg",
+        "stage-2-bg",
+        "stage-3-bg",
         "mascot",
     ):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
@@ -159,11 +161,44 @@ def test_problem_renders_three_diagram_nodes_as_story_stages(tmp_path):
     assert "來源：" not in markup
 
 
+def test_content_pages_expose_series_and_company_as_independent_layers(
+    tmp_path,
+):
+    for page_index in range(1, 7):
+        markup = _render(tmp_path, page_index=page_index).split(
+            "</style>", 1
+        )[1]
+        assert markup.count('data-layout-id="series"') == 1
+        assert markup.count('data-layout-id="company-name"') == 1
+        assert 'data-layout-id="header"' not in markup
+
+
 def test_problem_requires_its_problem_flow_diagram(tmp_path):
     page = replace(carousel_draft().pages[2], diagram=None)
 
     with pytest.raises(ValueError, match="第 3 頁缺少問題流程圖解"):
         render.page_html(page, "ElevenLabs", brand_asset(_logo(tmp_path)))
+
+
+def test_problem_exposes_each_visible_stage_text_as_its_own_layer(tmp_path):
+    markup = _render(tmp_path, page_index=2).split("</style>", 1)[1]
+
+    for element_id in (
+        "stage-1-bg",
+        "stage-1-label",
+        "stage-1-body",
+        "stage-1-context",
+        "stage-2-bg",
+        "stage-2-label",
+        "stage-2-body",
+        "stage-3-bg",
+        "stage-3-label",
+        "stage-3-body",
+        "stage-3-context",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    for legacy_id in ("stage-1", "stage-2", "stage-3"):
+        assert f'data-layout-id="{legacy_id}"' not in markup
 
 
 def test_how_ai_maps_diagram_steps_and_human_role_by_label(tmp_path):
@@ -178,13 +213,14 @@ def test_how_ai_maps_diagram_steps_and_human_role_by_label(tmp_path):
 
     assert 'data-page-type="how-ai"' in markup
     for element_id in (
-        "header",
+        "series",
+        "company-name",
         "heading",
         "spine",
-        "step-1",
-        "step-2",
-        "step-3",
-        "caution",
+        "step-1-bg",
+        "step-2-bg",
+        "step-3-bg",
+        "caution-bg",
         "mascot",
     ):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
@@ -195,9 +231,31 @@ def test_how_ai_maps_diagram_steps_and_human_role_by_label(tmp_path):
     human_role = next(
         section for section in page.sections if section.label == "人仍負責"
     )
-    caution = markup.split('data-layout-id="caution"', 1)[1]
+    caution = markup.split('data-layout-id="caution-body"', 1)[1]
     assert html_lib.escape(human_role.text) in caution
     assert "來源：" not in markup
+
+
+def test_how_ai_exposes_each_visible_flow_text_as_its_own_layer(tmp_path):
+    markup = _render(tmp_path, page_index=3).split("</style>", 1)[1]
+
+    for element_id in (
+        "step-1-bg",
+        "step-1-label",
+        "step-1-body",
+        "step-2-bg",
+        "step-2-label",
+        "step-2-body",
+        "step-3-bg",
+        "step-3-label",
+        "step-3-body",
+        "caution-bg",
+        "caution-label",
+        "caution-body",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    for legacy_id in ("step-1", "step-2", "step-3", "caution"):
+        assert f'data-layout-id="{legacy_id}"' not in markup
 
 
 def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
@@ -207,7 +265,8 @@ def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
 
     assert 'data-page-type="results"' in markup
     for element_id in (
-        "header",
+        "series",
+        "company-name",
         "before-title",
         "before-copy",
         "axis",
@@ -247,7 +306,8 @@ def test_why_care_renders_three_signals_without_evidence_footnote_grid(
 
     assert 'data-page-type="why-care"' in markup
     for element_id in (
-        "header",
+        "series",
+        "company-name",
         "heading",
         "signal-1",
         "signal-2",
@@ -280,7 +340,8 @@ def test_cta_maps_conclusion_question_and_invitation_by_role(tmp_path):
 
     assert 'data-page-type="cta"' in markup
     for element_id in (
-        "header",
+        "series",
+        "company-name",
         "heading",
         "thesis",
         "question",
@@ -481,10 +542,10 @@ def test_type_hierarchy_uses_approved_weights(tmp_path):
 def test_ai_role_diagram_keeps_readable_step_type(tmp_path):
     output = _render(tmp_path, page_index=3)
 
-    assert ".how-step strong" in output
-    assert "font-size: 49px" in output
-    assert ".how-caution strong" in output
-    assert "font-size: 35px" in output
+    assert ".how-step-body" in output
+    assert "font-size:49px" in output
+    assert ".how-caution-body" in output
+    assert "font-size:35px" in output
 
 
 def test_html_replaces_generic_patterns_with_series_signature(tmp_path):

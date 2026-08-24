@@ -122,6 +122,52 @@ _v2_pages["who"] = _rules(
         ),
     },
 )
+for _page_type in ("who", "problem", "how-ai", "results", "why-care", "cta"):
+    _page_rules = dict(_v2_pages[_page_type])
+    _page_rules.pop("header")
+    _page_rules["series"] = ElementRule("系列名稱", True)
+    _page_rules["company-name"] = ElementRule(
+        "企業名稱", True, "allow", max_font_size=320
+    )
+    _v2_pages[_page_type] = MappingProxyType(_page_rules)
+
+_problem_rules = dict(_v2_pages["problem"])
+for _index in range(1, 4):
+    _problem_rules.pop(f"stage-{_index}")
+    _problem_rules[f"stage-{_index}-bg"] = ElementRule(
+        f"問題階段{_index}背景", False, "background"
+    )
+    _problem_rules[f"stage-{_index}-label"] = ElementRule(
+        f"問題階段{_index}標籤", True
+    )
+    _problem_rules[f"stage-{_index}-body"] = ElementRule(
+        f"問題階段{_index}主句", True
+    )
+for _index in (1, 3):
+    _problem_rules[f"stage-{_index}-context"] = ElementRule(
+        f"問題階段{_index}補充", True
+    )
+_v2_pages["problem"] = MappingProxyType(_problem_rules)
+
+_how_rules = dict(_v2_pages["how-ai"])
+for _index in range(1, 4):
+    _how_rules.pop(f"step-{_index}")
+    _how_rules[f"step-{_index}-bg"] = ElementRule(
+        f"流程{_index}背景", False, "background"
+    )
+    _how_rules[f"step-{_index}-label"] = ElementRule(
+        f"流程{_index}標籤", True
+    )
+    _how_rules[f"step-{_index}-body"] = ElementRule(
+        f"流程{_index}主句", True
+    )
+_how_rules.pop("caution")
+_how_rules["caution-bg"] = ElementRule(
+    "注意區背景", False, "background"
+)
+_how_rules["caution-label"] = ElementRule("注意區標籤", True)
+_how_rules["caution-body"] = ElementRule("注意事項正文", True)
+_v2_pages["how-ai"] = MappingProxyType(_how_rules)
 ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
     _v2_pages
 )

@@ -177,21 +177,14 @@ h1,
   background: var(--ink-deep);
   content: "";
 }
-.editorial-header {
-  left: 73px;
-  top: 73px;
-  display: flex;
-  width: 934px;
-  height: 37px;
-  align-items: center;
-  justify-content: space-between;
+.editorial-series,
+.editorial-company {
   color: var(--ink-deep);
-  font-size: 27px;
   font-weight: 700;
   letter-spacing: .03em;
 }
-.editorial-header .series { font-weight: 800; letter-spacing: -.025em; }
-.editorial-header .company { color: var(--teal); font-weight: 800; }
+.editorial-series { font-weight: 800; letter-spacing: -.025em; }
+.editorial-company { color: var(--teal); font-weight: 800; }
 .editorial-heading {
   left: 73px;
   top: 147px;
@@ -249,15 +242,11 @@ h1,
   height: 774px;
   background: var(--coral);
 }
-.problem-stage {
-  left: 120px;
-  width: 887px;
-  min-height: 215px;
-  padding: 32px 38px;
+.problem-stage-bg {
   border-top: 3px solid var(--line);
   background: rgba(220, 239, 241, .42);
 }
-.problem-stage::before {
+.problem-stage-bg::before {
   position: absolute;
   left: -32px;
   top: 50px;
@@ -266,39 +255,30 @@ h1,
   background: var(--coral);
   content: "";
 }
-.problem-stage small,
-.problem-stage strong,
-.problem-stage p { display: block; margin: 0; }
-.problem-stage small {
-  margin-bottom: 8px;
+.problem-stage-label,
+.problem-stage-body,
+.problem-stage-context { display: block; margin: 0; }
+.problem-stage-label {
   color: var(--coral);
-  font-size: 25px;
   font-weight: 800;
 }
-.problem-stage strong {
+.problem-stage-body {
   color: var(--ink-deep);
-  font-size: 48px;
   font-weight: 800;
   line-height: 1.08;
   letter-spacing: -.03em;
 }
-.problem-stage .stage-context {
-  margin-top: 12px;
+.problem-stage-context {
   color: var(--muted);
-  font-size: 28px;
   line-height: 1.3;
 }
-.problem-v151 [data-layout-id="stage-1"] { top: 341px; height: 215px; }
-.problem-v151 [data-layout-id="stage-2"] { top: 578px; height: 215px; }
-.problem-v151 [data-layout-id="stage-3"] { top: 816px; height: 299px; }
-.problem-stage--anchor {
-  padding-right: 270px;
+.problem-stage-bg--anchor {
   border-top-color: var(--coral);
   color: white;
   background: var(--ink-deep);
 }
-.problem-stage--anchor strong { color: white; }
-.problem-stage--anchor .stage-context { color: rgba(255, 255, 255, .74); }
+.problem-stage-body--anchor { color: white; }
+.problem-stage-context--anchor { color: rgba(255, 255, 255, .74); }
 .problem-v151 [data-layout-id="mascot"] {
   left: 815px;
   top: 1092px;
@@ -320,15 +300,11 @@ h1,
   width: 4px;
   height: 612px;
 }
-.how-step {
-  left: 126px;
-  width: 881px;
-  height: 186px;
-  padding: 30px 36px;
+.how-step-bg {
   border-top: 3px solid var(--line);
   background: rgba(220, 239, 241, .42);
 }
-.how-step::before {
+.how-step-bg::before {
   position: absolute;
   left: -39px;
   top: 48px;
@@ -337,47 +313,31 @@ h1,
   background: var(--coral);
   content: "";
 }
-.how-step small,
-.how-step strong,
-.how-caution span,
-.how-caution strong { display: block; margin: 0; }
-.how-step small {
-  margin-bottom: 9px;
+.how-step-label,
+.how-step-body,
+.how-caution-label,
+.how-caution-body { display: block; margin: 0; }
+.how-step-label {
   color: var(--coral);
-  font-size: 25px;
   font-weight: 800;
 }
-.how-step strong {
+.how-step-body {
   color: var(--ink-deep);
-  font-size: 49px;
   font-weight: 800;
   line-height: 1.06;
   letter-spacing: -.035em;
 }
-.how-v151 [data-layout-id="step-1"] { top: 338px; }
-.how-v151 [data-layout-id="step-2"] { top: 535px; }
-.how-v151 [data-layout-id="step-3"] { top: 731px; }
 .how-step--ai { background: var(--cyan); }
 .how-step--output { color: white; background: var(--ink-deep); }
-.how-step--output strong { color: white; }
-.how-caution {
-  left: 73px;
-  top: 936px;
-  display: grid;
-  width: 934px;
-  height: 178px;
-  align-content: center;
-  padding: 26px 270px 26px 38px;
+.how-step-body--output { color: white; }
+.how-caution-bg {
   color: var(--ink-deep);
   background: var(--coral);
 }
-.how-caution span {
-  margin-bottom: 8px;
-  font-size: 25px;
+.how-caution-label {
   font-weight: 800;
 }
-.how-caution strong {
-  font-size: 35px;
+.how-caution-body {
   font-weight: 800;
   line-height: 1.16;
 }
@@ -400,8 +360,9 @@ h1,
 }
 .results-before { left: 0; background: var(--paper); }
 .results-after { right: 0; background: var(--ink-deep); }
-.results-v151 .editorial-header { z-index: 8; height: 44px; }
-.results-v151 .editorial-header .company { color: white; }
+.results-v151 .editorial-series,
+.results-v151 .editorial-company { z-index: 8; }
+.results-v151 .editorial-company { color: white; }
 .result-title {
   top: 205px;
   width: 368px;
