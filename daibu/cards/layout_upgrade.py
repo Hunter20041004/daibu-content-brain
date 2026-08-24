@@ -212,5 +212,150 @@ def normalize_layout_mapping(
         "font_size": 35,
         "text_align": "left",
     }
+    results_page = pages["results"]
+    assert isinstance(results_page, dict)
+    results_elements = results_page["elements"]
+    assert isinstance(results_elements, dict)
+    results_elements["results-before-bg"] = {
+        "x": 0,
+        "y": 0,
+        "w": 540,
+        "h": 1350,
+    }
+    results_elements["results-after-bg"] = {
+        "x": 540,
+        "y": 0,
+        "w": 540,
+        "h": 1350,
+    }
+    before_copy = results_elements.pop("before-copy")
+    assert isinstance(before_copy, dict)
+    bx = float(before_copy["x"])
+    by = float(before_copy["y"])
+    bw = float(before_copy["w"])
+    results_elements["before-body"] = {
+        "x": bx,
+        "y": by,
+        "w": bw,
+        "h": 120,
+        "font_size": 50,
+        "text_align": "left",
+    }
+    results_elements["before-context"] = {
+        "x": bx,
+        "y": by + 138,
+        "w": bw,
+        "h": 112,
+        "font_size": 28,
+        "text_align": "left",
+    }
+    after_copy = results_elements.pop("after-copy")
+    assert isinstance(after_copy, dict)
+    ax = float(after_copy["x"])
+    ay = float(after_copy["y"])
+    aw = float(after_copy["w"])
+    results_elements["after-label"] = {
+        "x": ax,
+        "y": ay,
+        "w": aw,
+        "h": 52,
+        "font_size": 22,
+        "text_align": "left",
+    }
+    results_elements["after-body"] = {
+        "x": ax,
+        "y": ay + 66,
+        "w": aw,
+        "h": 120,
+        "font_size": 50,
+        "text_align": "left",
+    }
+    results_elements["after-context"] = {
+        "x": ax,
+        "y": ay + 204,
+        "w": aw,
+        "h": 92,
+        "font_size": 28,
+        "text_align": "left",
+    }
+    signals_page = pages["why-care"]
+    assert isinstance(signals_page, dict)
+    signals_elements = signals_page["elements"]
+    assert isinstance(signals_elements, dict)
+    for index in range(1, 4):
+        signal = signals_elements.pop(f"signal-{index}")
+        assert isinstance(signal, dict)
+        sx = float(signal["x"])
+        sy = float(signal["y"])
+        sw = float(signal["w"])
+        sh = float(signal["h"])
+        inset_left = 42 if index == 1 else (0 if index == 2 else 42)
+        inset_right = 330 if index == 1 else (42 if index == 2 else 0)
+        text_width = sw - inset_left - inset_right
+        signals_elements[f"signal-{index}-bg"] = {
+            "x": sx,
+            "y": sy,
+            "w": sw,
+            "h": sh,
+        }
+        signals_elements[f"signal-{index}-label"] = {
+            "x": sx + inset_left,
+            "y": sy + 36,
+            "w": text_width,
+            "h": 32,
+            "font_size": 25,
+            "text_align": "left",
+        }
+        signals_elements[f"signal-{index}-body"] = {
+            "x": sx + inset_left,
+            "y": sy + 78,
+            "w": text_width,
+            "h": 118,
+            "font_size": 52,
+            "text_align": "left",
+        }
+        signals_elements[f"signal-{index}-context"] = {
+            "x": sx + inset_left,
+            "y": sy + 214,
+            "w": text_width,
+            "h": max(42, sh - 250),
+            "font_size": 30,
+            "text_align": "left",
+        }
+    cta_page = pages["cta"]
+    assert isinstance(cta_page, dict)
+    cta_elements = cta_page["elements"]
+    assert isinstance(cta_elements, dict)
+    for name in ("thesis", "question"):
+        block = cta_elements.pop(name)
+        assert isinstance(block, dict)
+        bx = float(block["x"])
+        by = float(block["y"])
+        bw = float(block["w"])
+        bh = float(block["h"])
+        inset = 42 if name == "thesis" else 54
+        body_width = bw - (84 if name == "thesis" else 354)
+        cta_elements[f"{name}-bg"] = {
+            "x": bx,
+            "y": by,
+            "w": bw,
+            "h": bh,
+        }
+        cta_elements[f"{name}-label"] = {
+            "x": bx + inset,
+            "y": by + 34 if name == "thesis" else by + 54,
+            "w": body_width,
+            "h": 34,
+            "font_size": 26,
+            "text_align": "left",
+        }
+        cta_elements[f"{name}-body"] = {
+            "x": bx + inset,
+            "y": by + 78 if name == "thesis" else by + 105,
+            "w": body_width,
+            "h": max(70, bh - (110 if name == "thesis" else 255)),
+            "font_size": 41 if name == "thesis" else 74,
+            "text_align": "left",
+        }
     normalized["schema_version"] = 2
     return normalized

@@ -267,12 +267,17 @@ def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
     for element_id in (
         "series",
         "company-name",
+        "results-before-bg",
+        "results-after-bg",
         "before-title",
-        "before-copy",
+        "before-body",
+        "before-context",
         "axis",
         "to",
         "after-title",
-        "after-copy",
+        "after-label",
+        "after-body",
+        "after-context",
         "summary",
         "mascot",
     ):
@@ -294,10 +299,35 @@ def test_results_uses_equal_before_after_fields_and_visible_to(tmp_path):
         assert html_lib.escape(section.text) in markup
     assert ".results-before {" in output
     assert ".results-after {" in output
-    assert "width: 50%;" in output
+    assert 'data-layout-id="results-before-bg"' in markup
+    assert 'data-layout-id="results-after-bg"' in markup
 
 
-def test_why_care_renders_three_signals_without_evidence_footnote_grid(
+def test_results_exposes_each_visible_comparison_text_as_its_own_layer(
+    tmp_path,
+):
+    markup = _render(tmp_path, page_index=4).split("</style>", 1)[1]
+
+    for element_id in (
+        "results-before-bg",
+        "results-after-bg",
+        "before-title",
+        "before-body",
+        "before-context",
+        "axis",
+        "to",
+        "after-title",
+        "after-label",
+        "after-body",
+        "after-context",
+        "summary",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert 'data-layout-id="before-copy"' not in markup
+    assert 'data-layout-id="after-copy"' not in markup
+
+
+def test_why_care_exposes_each_visible_signal_text_as_its_own_layer(
     tmp_path,
 ):
     page = carousel_draft().pages[5]
@@ -309,12 +339,14 @@ def test_why_care_renders_three_signals_without_evidence_footnote_grid(
         "series",
         "company-name",
         "heading",
-        "signal-1",
-        "signal-2",
-        "signal-3",
         "mascot",
     ):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
+    for index in range(1, 4):
+        for suffix in ("bg", "label", "body", "context"):
+            element_id = f"signal-{index}-{suffix}"
+            assert markup.count(f'data-layout-id="{element_id}"') == 1
+        assert f'data-layout-id="signal-{index}"' not in markup
     assert page.diagram is not None
     for node in page.diagram.nodes:
         assert html_lib.escape(node.title) in markup
@@ -328,7 +360,9 @@ def test_why_care_renders_three_signals_without_evidence_footnote_grid(
     assert "hashtag" not in markup.casefold()
 
 
-def test_cta_maps_conclusion_question_and_invitation_by_role(tmp_path):
+def test_cta_exposes_conclusion_and_question_text_as_independent_layers(
+    tmp_path,
+):
     original = carousel_draft().pages[6]
     page = replace(original, sections=tuple(reversed(original.sections)))
     output = render.page_html(
@@ -343,12 +377,18 @@ def test_cta_maps_conclusion_question_and_invitation_by_role(tmp_path):
         "series",
         "company-name",
         "heading",
-        "thesis",
-        "question",
+        "thesis-bg",
+        "thesis-label",
+        "thesis-body",
+        "question-bg",
+        "question-label",
+        "question-body",
         "invitation",
         "mascot",
     ):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert 'data-layout-id="thesis"' not in markup
+    assert 'data-layout-id="question"' not in markup
     roles = {section.label: section.text for section in page.sections}
     assert html_lib.escape(roles["收束結論"]) in markup
     assert html_lib.escape(roles["給讀者的問題"]) in markup

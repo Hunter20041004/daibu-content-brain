@@ -503,8 +503,18 @@ def _results(page: CarouselPage, company: str) -> str:
     purchase = _section_by_label(page, "購買關係")
     return (
         '<article class="card results-v151" data-page-type="results">'
-        '<div class="results-before" aria-hidden="true"></div>'
-        '<div class="results-after" aria-hidden="true"></div>'
+        + _layout_box(
+            "results-before-bg",
+            "",
+            classes="results-before",
+            aria_hidden=True,
+        )
+        + _layout_box(
+            "results-after-bg",
+            "",
+            classes="results-after",
+            aria_hidden=True,
+        )
         + _editorial_header(company)
         + _layout_box(
             "before-title",
@@ -512,24 +522,23 @@ def _results(page: CarouselPage, company: str) -> str:
             tag="h1",
             classes="result-title result-title--before",
         )
-        + _layout_box(
-            "before-copy",
-            _editable_expression(
-                "page.results.diagram.0.expression",
-                before.expression,
-            )
-            + _editable_text(
-                "page.results.diagram.0.text",
-                before.text,
-                tag="strong",
-            )
-            + _editable_text(
-                "page.results.section.0.text",
-                audience.text,
-                tag="p",
-            ),
-            tag="section",
-            classes="result-copy result-copy--before",
+        + _editable_expression(
+            "page.results.diagram.0.expression",
+            before.expression,
+        )
+        + _layout_editable_text(
+            "before-body",
+            "page.results.diagram.0.text",
+            before.text,
+            tag="strong",
+            classes="result-copy-body result-copy-body--before",
+        )
+        + _layout_editable_text(
+            "before-context",
+            "page.results.section.0.text",
+            audience.text,
+            tag="p",
+            classes="result-copy-context result-copy-context--before",
         )
         + _layout_box("axis", "", classes="result-axis")
         + _layout_box(
@@ -545,37 +554,42 @@ def _results(page: CarouselPage, company: str) -> str:
             classes="result-title result-title--after",
         )
         + _layout_box(
-            "after-copy",
-            '<small>改變之後｜'
+            "after-label",
+            "改變之後｜"
             + _editable_text(
                 "page.results.diagram.1.title",
                 transition.title,
+                tag="span",
             )
-            + "</small>"
-            + _editable_expression(
-                "page.results.diagram.1.expression",
-                transition.expression,
-            )
-            + _hidden_edit_hook(
+            ,
+            tag="small",
+            classes="result-copy-label",
+        )
+        + _editable_expression(
+            "page.results.diagram.1.expression",
+            transition.expression,
+        )
+        + _hidden_edit_hook(
                 "page.results.diagram.1.text",
                 transition.text,
             )
-            + _editable_expression(
-                "page.results.diagram.2.expression",
-                after.expression,
-            )
-            + _editable_text(
-                "page.results.diagram.2.text",
-                after.text,
-                tag="strong",
-            )
-            + _editable_text(
-                "page.results.section.1.text",
-                change.text,
-                tag="p",
-            ),
-            tag="section",
-            classes="result-copy result-copy--after",
+        + _editable_expression(
+            "page.results.diagram.2.expression",
+            after.expression,
+        )
+        + _layout_editable_text(
+            "after-body",
+            "page.results.diagram.2.text",
+            after.text,
+            tag="strong",
+            classes="result-copy-body result-copy-body--after",
+        )
+        + _layout_editable_text(
+            "after-context",
+            "page.results.section.1.text",
+            change.text,
+            tag="p",
+            classes="result-copy-context result-copy-context--after",
         )
         + _layout_box(
             "summary",
@@ -605,34 +619,37 @@ def _why_care(page: CarouselPage, company: str) -> str:
         zip(page.diagram.nodes, signal_sections, strict=True),
         start=1,
     ):
+        variant = "primary" if index == 1 else "secondary"
         signals.append(
             _layout_box(
-                f"signal-{index}",
-                _editable_expression(
-                    f"page.why-care.diagram.{index - 1}.expression",
-                    node.expression,
-                )
-                + _editable_text(
-                    f"page.why-care.diagram.{index - 1}.title",
-                    node.title,
-                    tag="small",
-                )
-                + _editable_text(
-                    f"page.why-care.diagram.{index - 1}.text",
-                    node.text,
-                    tag="strong",
-                )
-                + _editable_text(
-                    f"page.why-care.section.{index - 1}.text",
-                    section.text,
-                    tag="p",
-                ),
-                tag="section",
-                classes=(
-                    "signal signal--primary"
-                    if index == 1
-                    else "signal signal--secondary"
-                ),
+                f"signal-{index}-bg",
+                "",
+                classes=f"signal-bg signal-bg--{variant}",
+            )
+            + _editable_expression(
+                f"page.why-care.diagram.{index - 1}.expression",
+                node.expression,
+            )
+            + _layout_editable_text(
+                f"signal-{index}-label",
+                f"page.why-care.diagram.{index - 1}.title",
+                node.title,
+                tag="small",
+                classes=f"signal-label signal-label--{variant}",
+            )
+            + _layout_editable_text(
+                f"signal-{index}-body",
+                f"page.why-care.diagram.{index - 1}.text",
+                node.text,
+                tag="strong",
+                classes=f"signal-body signal-body--{variant}",
+            )
+            + _layout_editable_text(
+                f"signal-{index}-context",
+                f"page.why-care.section.{index - 1}.text",
+                section.text,
+                tag="p",
+                classes=f"signal-context signal-context--{variant}",
             )
         )
     return (
@@ -672,26 +689,40 @@ def _cta(page: CarouselPage, company: str) -> str:
             classes="editorial-heading",
         )
         + _layout_box(
-            "thesis",
-            f'<small>{html.escape(thesis.label)}</small>'
-            + _editable_text(
-                "page.cta.section.0.text",
-                thesis.text,
-                tag="strong",
-            ),
-            tag="section",
-            classes="closing-thesis",
+            "thesis-bg",
+            "",
+            classes="closing-thesis-bg",
         )
         + _layout_box(
-            "question",
-            '<small>留給你的問題</small>'
-            + _editable_text(
-                "page.cta.section.1.text",
-                question.text,
-                tag="strong",
-            ),
-            tag="section",
-            classes="closing-question",
+            "thesis-label",
+            html.escape(thesis.label),
+            tag="small",
+            classes="closing-label",
+        )
+        + _layout_editable_text(
+            "thesis-body",
+            "page.cta.section.0.text",
+            thesis.text,
+            tag="strong",
+            classes="closing-thesis-body",
+        )
+        + _layout_box(
+            "question-bg",
+            "",
+            classes="closing-question-bg",
+        )
+        + _layout_box(
+            "question-label",
+            "留給你的問題",
+            tag="small",
+            classes="closing-label",
+        )
+        + _layout_editable_text(
+            "question-body",
+            "page.cta.section.1.text",
+            question.text,
+            tag="strong",
+            classes="closing-question-body",
         )
         + _layout_box(
             "invitation",

@@ -354,12 +354,9 @@ h1,
 .results-after {
   position: absolute;
   z-index: 0;
-  top: 0;
-  bottom: 0;
-  width: 50%;
 }
-.results-before { left: 0; background: var(--paper); }
-.results-after { right: 0; background: var(--ink-deep); }
+.results-before { background: var(--paper); }
+.results-after { background: var(--ink-deep); }
 .results-v151 .editorial-series,
 .results-v151 .editorial-company { z-index: 8; }
 .results-v151 .editorial-company { color: white; }
@@ -406,36 +403,30 @@ h1,
   line-height: .84;
   text-align: center;
 }
-.result-copy {
-  top: 518px;
-  width: 415px;
+.result-copy-label,
+.result-copy-body,
+.result-copy-context {
+  display: block;
+  margin: 0;
   padding: 0;
 }
-.result-copy--before { left: 63px; height: 270px; }
-.result-copy--after { left: 603px; height: 217px; color: white; }
-.result-copy strong,
-.result-copy small,
-.result-copy p { display: block; margin: 0; }
-.result-copy small {
-  margin-bottom: 14px;
+.result-copy-label {
   color: var(--cyan);
-  font-size: 22px;
   font-weight: 800;
   line-height: 1.25;
 }
-.result-copy strong {
-  font-size: 50px;
+.result-copy-body {
   font-weight: 800;
   line-height: 1.04;
   letter-spacing: -.045em;
 }
-.result-copy p {
-  margin-top: 18px;
+.result-copy-body--before { color: var(--ink-deep); }
+.result-copy-body--after { color: white; }
+.result-copy-context {
   color: var(--muted);
-  font-size: 28px;
   line-height: 1.36;
 }
-.result-copy--after p { color: rgba(255, 255, 255, .74); }
+.result-copy-context--after { color: rgba(255, 255, 255, .74); }
 .result-summary {
   left: 603px;
   top: 1191px;
@@ -464,56 +455,34 @@ h1,
   height: 73px;
   font-size: 72px;
 }
-.signal {
-  padding: 36px 42px;
-  color: var(--ink-deep);
-}
-.signal small,
-.signal strong,
-.signal p { display: block; margin: 0; }
-.signal small {
-  margin-bottom: 10px;
+.signal-bg,
+.signal-label,
+.signal-body,
+.signal-context { display: block; margin: 0; padding: 0; }
+.signal-label {
   color: var(--coral);
-  font-size: 25px;
   font-weight: 800;
 }
-.signal strong {
-  font-size: 52px;
+.signal-body {
+  color: var(--ink-deep);
   font-weight: 800;
   line-height: 1.04;
   letter-spacing: -.04em;
 }
-.signal p {
-  margin-top: 18px;
+.signal-context {
   color: var(--muted);
-  font-size: 30px;
   line-height: 1.4;
 }
-.signal--primary {
-  left: 73px;
-  top: 260px;
-  width: 934px;
-  height: 290px;
-  padding-right: 330px;
-  color: white;
+.signal-bg--primary {
   background: var(--ink-deep);
 }
-.signal--primary strong { color: white; }
-.signal--primary p { color: rgba(255, 255, 255, .78); }
-.signals-v151 [data-layout-id="signal-2"],
-.signals-v151 [data-layout-id="signal-3"] {
-  top: 575px;
-  width: 467px;
-  height: 516px;
-  padding: 38px 42px 38px 0;
+.signal-body--primary { color: white; }
+.signal-context--primary { color: rgba(255, 255, 255, .78); }
+.signal-bg--secondary {
   border-top: 3px solid var(--line);
   border-bottom: 3px solid var(--line);
 }
-.signals-v151 [data-layout-id="signal-2"] { left: 73px; }
-.signals-v151 [data-layout-id="signal-3"] {
-  left: 540px;
-  padding-right: 0;
-  padding-left: 42px;
+.signals-v151 [data-layout-id="signal-3-bg"] {
   border-left: 3px solid var(--line);
 }
 .signals-v151 [data-layout-id="mascot"] {
@@ -530,47 +499,28 @@ h1,
   height: 73px;
   font-size: 72px;
 }
-.closing-thesis {
-  left: 73px;
-  top: 257px;
-  width: 934px;
-  height: 204px;
-  padding: 34px 42px 38px;
+.closing-thesis-bg {
   border-left: 6px solid var(--coral);
   background: var(--cyan-soft);
 }
-.closing-thesis small,
-.closing-thesis strong,
-.closing-question small,
-.closing-question strong { display: block; margin: 0; }
-.closing-thesis small,
-.closing-question small {
-  margin-bottom: 10px;
+.closing-label,
+.closing-thesis-body,
+.closing-question-body { display: block; margin: 0; padding: 0; }
+.closing-label {
   color: var(--coral);
-  font-size: 26px;
   font-weight: 800;
 }
-.closing-thesis strong {
+.closing-thesis-body {
   color: var(--ink-deep);
-  font-size: 41px;
   font-weight: 800;
   line-height: 1.14;
   letter-spacing: -.03em;
 }
-.closing-question {
-  left: 63px;
-  top: 565px;
-  display: grid;
-  width: 954px;
-  height: 655px;
-  align-content: center;
-  padding: 54px 300px 150px 54px;
-  color: white;
+.closing-question-bg {
   background: var(--ink-deep);
 }
-.closing-question strong {
-  max-width: 680px;
-  font-size: 74px;
+.closing-question-body {
+  color: white;
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -.055em;
