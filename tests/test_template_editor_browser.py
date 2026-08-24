@@ -17,11 +17,19 @@ def test_template_canvas_drag_syncs_property_without_saving(tmp_path):
             browser=driver.chromium.launch();page=browser.new_page(viewport={"width":1280,"height":900})
             page.goto(f"{base_url}/設定",wait_until="networkidle")
             editor=page.locator('[data-role="template-editor"]');expect(editor).to_be_visible(timeout=15000)
-            editor.locator('.template-document [data-layout-id="heading"]').click(position={"x":20,"y":20})
+            actual=editor.locator('.template-document [data-layout-id="heading"]')
+            actual.click(position={"x":20,"y":20})
             x_input=editor.locator('[data-role="property-panel"] input[name="x"]')
-            before=float(x_input.input_value());box=editor.locator('.selection-box');bounds=box.bounding_box()
-            page.mouse.move(bounds["x"]+bounds["width"]/2,bounds["y"]+bounds["height"]/2)
-            page.mouse.down();page.mouse.move(bounds["x"]+bounds["width"]/2+16,bounds["y"]+bounds["height"]/2);page.mouse.up()
+            before=float(x_input.input_value());box=editor.locator('.selection-box')
+            actual_before=actual.bounding_box();box_before=box.bounding_box()
+            page.mouse.move(box_before["x"]+box_before["width"]/2,box_before["y"]+box_before["height"]/2)
+            page.mouse.down();page.mouse.move(box_before["x"]+box_before["width"]/2+16,box_before["y"]+box_before["height"]/2)
+            actual_during=actual.bounding_box();box_during=box.bounding_box()
+            actual_dx=actual_during["x"]-actual_before["x"]
+            box_dx=box_during["x"]-box_before["x"]
+            assert actual_dx>0
+            assert abs(actual_dx-box_dx)<=1
+            page.mouse.up()
             expect(x_input).not_to_have_value(str(before))
             conn=db.connect(str(tmp_path/"browser.db"))
             assert conn.execute("SELECT COUNT(*) FROM carousel_template_versions").fetchone()[0]==1
@@ -67,9 +75,11 @@ def test_template_canvas_resize_undo_and_redo_keep_opposite_anchor(tmp_path):
             page.goto(f"{base_url}/設定", wait_until="networkidle")
             editor = page.locator('[data-role="template-editor"]')
             expect(editor).to_be_visible(timeout=15000)
-            editor.locator(
+            actual = editor.locator(
                 '.template-document [data-layout-id="heading"]'
-            ).click(position={"x": 20, "y": 20})
+            )
+            actual.click(position={"x": 20, "y": 20})
+            actual_before = actual.bounding_box()
             width_input = editor.locator(
                 '[data-role="property-panel"] input[name="w"]'
             )
@@ -82,10 +92,20 @@ def test_template_canvas_resize_undo_and_redo_keep_opposite_anchor(tmp_path):
             page.mouse.up()
             resized = float(width_input.input_value())
             assert resized > before
+            actual_resized = actual.bounding_box()
+            assert actual_resized["width"] > actual_before["width"]
             editor.get_by_role("button", name="復原").click()
             expect(width_input).to_have_value(str(before))
+            actual_undone = actual.bounding_box()
+            assert abs(
+                actual_undone["width"] - actual_before["width"]
+            ) <= 1
             editor.get_by_role("button", name="重做").click()
             assert float(width_input.input_value()) == resized
+            actual_redone = actual.bounding_box()
+            assert abs(
+                actual_redone["width"] - actual_resized["width"]
+            ) <= 1
             browser.close()
 
 
@@ -97,9 +117,11 @@ def test_template_canvas_escape_cancels_active_drag(tmp_path):
             page.goto(f"{base_url}/設定", wait_until="networkidle")
             editor = page.locator('[data-role="template-editor"]')
             expect(editor).to_be_visible(timeout=15000)
-            editor.locator(
+            actual = editor.locator(
                 '.template-document [data-layout-id="heading"]'
-            ).click(position={"x": 20, "y": 20})
+            )
+            actual.click(position={"x": 20, "y": 20})
+            actual_before = actual.bounding_box()
             x_input = editor.locator(
                 '[data-role="property-panel"] input[name="x"]'
             )
@@ -117,6 +139,9 @@ def test_template_canvas_escape_cancels_active_drag(tmp_path):
             page.keyboard.press("Escape")
             page.mouse.up()
             expect(x_input).to_have_value(before)
+            actual_after = actual.bounding_box()
+            assert abs(actual_after["x"] - actual_before["x"]) <= 1
+            assert abs(actual_after["y"] - actual_before["y"]) <= 1
             expect(
                 editor.get_by_role("button", name="儲存為新版本")
             ).to_be_disabled()
