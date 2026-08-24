@@ -204,40 +204,29 @@ h1,
   line-height: 1.02;
   letter-spacing: -.055em;
 }
-.profile-v151 section small,
-.profile-v151 section p { display: block; margin: 0; }
-.profile-v151 section small {
-  margin-bottom: 16px;
+.profile-v151 small,
+.profile-v151 p { display: block; margin: 0; }
+.profile-positioning-label,
+.profile-facts-label {
   color: var(--coral);
-  font-size: 27px;
   font-weight: 800;
 }
-.profile-v151 section p {
-  font-size: 28px;
+.profile-positioning-body,
+.profile-facts-body {
   line-height: 1.42;
 }
-.profile-positioning {
-  left: 73px;
-  top: 248px;
-  width: 934px;
-  height: 310px;
-  padding: 44px 54px;
+.profile-positioning-bg {
   background: var(--cyan);
 }
-.profile-positioning p {
+.profile-positioning-body {
   color: var(--ink-deep);
   font-weight: 700;
 }
-.profile-facts {
-  left: 73px;
-  top: 576px;
-  width: 934px;
-  height: 215px;
-  padding: 24px 46px;
+.profile-facts-bg {
   color: white;
   background: var(--ink-deep);
 }
-.profile-facts p { color: rgba(255, 255, 255, .78); }
+.profile-facts-body { color: rgba(255, 255, 255, .78); }
 .profile-v151 [data-layout-id="mascot"] {
   left: 801px;
   top: 1092px;

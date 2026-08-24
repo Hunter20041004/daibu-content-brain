@@ -158,6 +158,22 @@ def _editable_text(
     )
 
 
+def _layout_editable_text(
+    element_id: str,
+    key: str,
+    value: str,
+    *,
+    tag: str,
+    classes: str = "",
+) -> str:
+    class_attribute = f' class="{classes}"' if classes else ""
+    return (
+        f'<{tag}{class_attribute} data-layout-id="{element_id}" '
+        f'data-edit-key="{html.escape(key)}">'
+        f"{html.escape(value)}</{tag}>"
+    )
+
+
 def _editable_expression(key: str, value: str) -> str:
     if value not in mascot.EXPRESSIONS:
         raise ValueError("圖解表情不存在")
@@ -260,26 +276,42 @@ def _who(page: CarouselPage, company: str) -> str:
             classes="editorial-heading",
         )
         + _layout_box(
-            "positioning",
-            f'<small>{html.escape(positioning.label)}</small>'
-            + _editable_text(
-                "page.who.section.0.text",
-                positioning.text,
-                tag="p",
-            ),
-            tag="section",
-            classes="profile-positioning",
+            "positioning-bg",
+            "",
+            classes="profile-positioning-bg",
+            aria_hidden=True,
         )
         + _layout_box(
-            "facts",
-            f'<small>{html.escape(facts.label)}</small>'
-            + _editable_text(
-                "page.who.section.1.text",
-                facts.text,
-                tag="p",
-            ),
-            tag="section",
-            classes="profile-facts",
+            "positioning-label",
+            html.escape(positioning.label),
+            tag="small",
+            classes="profile-positioning-label",
+        )
+        + _layout_editable_text(
+            "positioning-body",
+            "page.who.section.0.text",
+            positioning.text,
+            tag="p",
+            classes="profile-positioning-body",
+        )
+        + _layout_box(
+            "facts-bg",
+            "",
+            classes="profile-facts-bg",
+            aria_hidden=True,
+        )
+        + _layout_box(
+            "facts-label",
+            html.escape(facts.label),
+            tag="small",
+            classes="profile-facts-label",
+        )
+        + _layout_editable_text(
+            "facts-body",
+            "page.who.section.1.text",
+            facts.text,
+            tag="p",
+            classes="profile-facts-body",
         )
         + _layout_box(
             "mascot",

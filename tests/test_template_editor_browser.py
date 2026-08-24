@@ -67,6 +67,47 @@ def test_template_property_x_moves_actual_element_and_selection_together(
             browser.close()
 
 
+def test_who_facts_body_font_size_updates_the_real_text_node(tmp_path):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            editor.get_by_role("button", name="02 公司身分卡").click()
+            expect(
+                editor.locator(
+                    '.template-document [data-layout-id="facts-body"]'
+                )
+            ).to_be_visible(timeout=15000)
+            actual = editor.locator(
+                '.template-document [data-layout-id="facts-body"]'
+            )
+            actual.click(position={"x": 20, "y": 20})
+            before = float(
+                actual.evaluate(
+                    "element => getComputedStyle(element).fontSize.slice(0, -2)"
+                )
+            )
+            font_input = editor.locator(
+                '[data-role="property-panel"] input[name="font_size"]'
+            )
+            font_input.fill(str(float(font_input.input_value()) + 8))
+            font_input.press("Tab")
+            after = float(
+                actual.evaluate(
+                    "element => getComputedStyle(element).fontSize.slice(0, -2)"
+                )
+            )
+            assert after == before + 8
+            actual_box = actual.bounding_box()
+            selection_box = editor.locator(".selection-box").bounding_box()
+            for field in ("x", "y", "width", "height"):
+                assert abs(actual_box[field] - selection_box[field]) <= 1
+            browser.close()
+
+
 def test_template_canvas_resize_undo_and_redo_keep_opposite_anchor(tmp_path):
     with running_streamlit(tmp_path, _seed) as base_url:
         with sync_playwright() as driver:

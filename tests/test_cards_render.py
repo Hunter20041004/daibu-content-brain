@@ -94,7 +94,17 @@ def test_who_uses_only_positioning_and_facts_sections(tmp_path):
 
     assert 'data-template="editorial-v15.1"' in output
     assert 'data-page-type="who"' in output
-    for element_id in ("header", "heading", "positioning", "facts", "mascot"):
+    for element_id in (
+        "header",
+        "heading",
+        "positioning-bg",
+        "positioning-label",
+        "positioning-body",
+        "facts-bg",
+        "facts-label",
+        "facts-body",
+        "mascot",
+    ):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
     assert page.sections[0].text in output
     assert page.sections[1].text in output
@@ -102,6 +112,25 @@ def test_who_uses_only_positioning_and_facts_sections(tmp_path):
     assert "一句話看懂" not in output
     assert 'class="page-source' not in output
     assert "來源：" not in output
+
+
+def test_who_exposes_background_label_and_body_as_independent_layers(
+    tmp_path,
+):
+    output = _render(tmp_path, page_index=1)
+    markup = output.split("</style>", 1)[1]
+
+    for element_id in (
+        "positioning-bg",
+        "positioning-label",
+        "positioning-body",
+        "facts-bg",
+        "facts-label",
+        "facts-body",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert 'data-layout-id="positioning"' not in markup
+    assert 'data-layout-id="facts"' not in markup
 
 
 def test_problem_renders_three_diagram_nodes_as_story_stages(tmp_path):
