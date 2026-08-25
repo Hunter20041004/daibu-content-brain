@@ -40,6 +40,53 @@ def test_template_canvas_drag_syncs_property_without_saving(tmp_path):
             browser.close()
 
 
+def test_thin_cover_rule_has_a_usable_drag_target(tmp_path):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15000)
+            rule = editor.locator(
+                '.template-document [data-layout-id="rule"]'
+            )
+            expect(rule).to_be_visible()
+            target = editor.locator(
+                '.layout-hit-target[data-element-id="rule"]'
+            )
+            expect(target).to_be_visible()
+            target.scroll_into_view_if_needed()
+            before = rule.bounding_box()
+            target_box = target.bounding_box()
+            assert target_box["height"] >= 24
+            assert target_box["height"] > before["height"]
+
+            page.mouse.move(
+                target_box["x"] + target_box["width"] / 4,
+                target_box["y"] + 3,
+            )
+            page.mouse.down()
+            page.mouse.move(
+                target_box["x"] + target_box["width"] / 4 + 24,
+                target_box["y"] + 27,
+            )
+            page.mouse.up()
+
+            after = rule.bounding_box()
+            assert after["x"] > before["x"]
+            assert after["y"] > before["y"]
+            expect(
+                editor.locator(
+                    '.selection-box[data-element-id="rule"]'
+                )
+            ).to_be_visible()
+            expect(editor.locator(".property-title")).to_have_text(
+                "標題分隔線"
+            )
+            browser.close()
+
+
 def test_template_property_x_moves_actual_element_and_selection_together(
     tmp_path,
 ):
