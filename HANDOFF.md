@@ -2,6 +2,21 @@
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 
+## 2026-08-25 四套公司中立輪播模板原型
+
+- **產品能力**：新增四套彼此獨立、各七頁的公司介紹輪播原型：粉彩手帳、Y2K 科技拼貼、奇幻世界觀、暖紙感 3D 資訊圖解。比較器可切換三家公司、七頁，以及逐套／同頁比較模式。
+- **使用者體驗**：1280px 同頁比較會把四套排在同一列；375px 維持單欄 4:5 畫布，控制列可橫向滑動且整頁沒有水平溢位。鍵盤 focus、selected、hover、active、reduced-motion 與固定素材錯誤提示均有處理。
+- **技術結構**：原型完全位於被忽略的 `.superpowers/prototypes/company-neutral-carousel/`，由 `build.py` 匯出三家公司壓力 fixture 並生成單一 `index.html`；正式 `daibu/cards/templates/`、layouts、SQLite 與現行 Streamlit 服務皆未修改。
+- **資料流程**：公司 Logo 與七頁文字進入四套固定 renderer；背景、吉祥物姿勢、DOM 幾何、CSS 與固定圖像不隨公司改變。SUN、Billow AI Labs、Shiraz AI 僅是壓力測試資料，不存在固定模板材料裡。
+- **設計理由**：四套使用不同的頁面幾何語言，而非同一骨架換皮；手帳用紙張／摺頁／書籤，Y2K 用視窗／終端／訊息框，奇幻用入口／道路／中繼站／橋／塔／山頂，3D 編輯風用紙帶／泡泡／積木／紙堆／結果卡。
+- **固定 AI 素材**：奇幻世界母圖與奇幻／3D 七姿勢表各生成一次後固定重用；圖像不含文字、Logo、公司或產業物件。manifest 使用明確七格整數座標，三家公司切換不改 URL、場景裁切、sprite class 或 background position。
+- **替代方案**：若使用者只喜歡各套中的部分頁型，可在下一輪組成第五套混合方向；本輪不先把未選定設計接入正式 Renderer，避免污染正式模板版本。
+- **安全與成本**：沒有資料表、正式資料、外部 API key、付費模型或部署異動；固定點陣素材只在原型階段生成一次。素材 404 時在畫布外顯示錯誤並把預覽標記為無效，不默默留下空白。
+- **測試證據**：中立掃描器先以五個已知禁用詞校準，再掃固定 HTML／CSS／SVG／manifest；原型為 `8` 項靜態契約、`37` 項瀏覽器契約，瀏覽器矩陣為 `4 × 3 × 7 × 2 = 168` 個狀態。`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `739 passed, 16 deselected, 1 warning in 196.42s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **視覺 QA**：第一輪不合格項目為 1280px 第四套掉到第二列、favicon 404、字型依賴裝置安裝；各自先補失敗契約再修正。第二輪八項檢查全部通過，console `0 errors`；唯一 warning 是單檔原型依規格使用 Tailwind CDN 的開發提示。最終截圖：`.screenshots/company-neutral-four-styles-round2-desktop.png`、`.screenshots/company-neutral-four-styles-round2-mobile.png`。
+- **原型入口**：本機由 repo root 啟動 `python -m http.server 8765 --bind 127.0.0.1` 後，開啟 `http://127.0.0.1:8765/.superpowers/prototypes/company-neutral-carousel/index.html`。
+- **剩餘限制**：此成果是選擇視覺方向用的隔離原型，不是正式貼文模板；使用者仍需選一套或指定混合方式，後續才會另案接入正式 Renderer 與模板版本生命週期。
+
 ## 2026-08-25 細線元件拖曳命中區修正
 
 - **產品能力**：模板畫布中只有約 2px 高的分隔線、軸線與裝飾線，現在都有至少 24 CSS px 的透明拖曳命中區；線條外觀與正式產圖維持原尺寸。
