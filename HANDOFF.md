@@ -10,6 +10,7 @@
 - **TDD 證據**：新增真實 Chromium 迴歸測試，先重現 `.layout-hit-target[data-element-id="rule"]` 不存在，再修到命中區高度 `>= 24px`、大於約 2.21px 的實線，且拖曳後原線 X／Y 同步增加、屬性面板顯示「標題分隔線」。編輯器聚焦套件為 `19 passed in 80.75s`。
 - **完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 235.92s`；唯一 warning 為既有 Starlette／httpx deprecation。
 - **視覺 QA**：兩輪 1280×800 與 375×812 截圖完成；桌面實拖時實線由約 `(550.07, 359.21)` 移至 `(581.15, 382.08)`，寬高不變，右側正確顯示「標題分隔線」。手機依產品規格維持唯讀，沒有顯示操作 overlay。最終截圖：`.screenshots/thin-rule-round2-desktop.png`、`.screenshots/thin-rule-round2-mobile.png`。
+- **正式站驗收**：`origin/main` 已包含功能提交 `6615a81`；既有 `io.daibu.content-brain` 重啟後為 running、PID `48751`，health `ok`。由首頁進入設定後，正式橘線命中區為約 `359.64×24px`，實線仍為約 `359.65×2.21px`；拖動後實線由 `(550.07, 399.21)` 移至 `(581.15, 422.08)`，重設後精確回到原位且儲存鈕停用。模板版本操作前後皆為 2；375px 為 `scrollWidth=clientWidth=375`、唯讀提示可見、儲存按鈕為 0，console 0 errors／0 warnings。正式截圖：`.screenshots/thin-rule-production-moved.png`、`.screenshots/thin-rule-production-mobile.png`。
 - **剩餘限制**：手機仍刻意不提供精準模板操作；24px 是桌面滑鼠命中區，不改變正式圖的視覺粗細。
 
 ## 2026-08-23 模板即時預覽與語意佔位修正
