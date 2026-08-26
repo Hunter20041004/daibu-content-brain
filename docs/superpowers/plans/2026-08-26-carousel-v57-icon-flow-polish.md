@@ -252,7 +252,7 @@ PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q
 
 Expected: `739 passed, 16 deselected`，只允許既有 Starlette／httpx warning。
 
-- [ ] **Step 6: 合併、main 複驗與推送**
+- [x] **Step 6: 合併、main 複驗與推送**
 
 提交追蹤文件，將隔離分支 fast-forward 合回 `main`，於 `main` 重跑完整測試，推送並確認：
 

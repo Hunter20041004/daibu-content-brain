@@ -13,6 +13,7 @@
 - **TDD 證據**：圖標契約先在 v56 抓到 marker 缺失與第 2／5 頁舊位置；搬動後安全契約抓到靶心／成長圖標與文字交疊 31.5px²；因果線契約抓到舊位置僅欄間 62.1%；第四頁契約抓到 `route::before` 仍為 dashed；第一輪視覺 QA 又以尺寸契約抓到三圖標寬度為 35.6／25.9／30.8px。code review 再補兩個紅燈：三圖標與便利貼右下折角各重疊約 76.7px²，以及只看偽元素邊框會把 `display:none` 的箭頭誤判為可見；改成折角零交疊，並同時驗證箭頭的 display、visibility、opacity、實際尺寸、容器邊界及相鄰卡片間位置後全部轉綠。
 - **原型驗證**：v57 專屬圖標／幾何契約，加上文案、標題、六頁結構、敘事、圖示、封面、逐頁精修、密度、便利貼、第三／四頁、CTA、視覺故事與兩個 JS schema 契約共 18 項全部通過。
 - **完整測試**：review 修正後於隔離分支執行 `PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q`，結果為 `739 passed, 16 deselected, 1 warning in 204.00s`；fast-forward 合併後於 `main` 重跑為 `739 passed, 16 deselected, 1 warning in 201.50s`。唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **合併與推送**：隔離分支已 fast-forward 合併至 `main`；本機與 `origin/main` 均為 `659002908b567e32d5722b6b098a1fc7324b20b1`。本輪只有本機核可原型，沒有正式站部署項目。
 - **視覺 QA**：review 修正後再完成兩輪 1280×800／375×812。層次、留白節奏、LINE Seed、粉彩三色、對齊、同尺寸圖標、折角安全區、因果線、單一箭頭語言與既有 hover 微動效皆合格；375px 為 `scrollWidth=clientWidth=375`、六頁均 `overflow:false`，三個圖標折角交疊皆為 0、兩個箭頭均可見且位於相鄰卡片之間，console 0 errors／0 warnings。截圖：`.screenshots/v57-final-desktop.png`、`.screenshots/v57-final-mobile.png`。
 - **剩餘限制**：v57 仍是本機核可原型，尚未接入正式自動產圖工具；正式接線仍需同步處理 Renderer 與 PNG 長文字壓力測試。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-26-carousel-v57-icon-flow-polish-design.md`、`docs/superpowers/plans/2026-08-26-carousel-v57-icon-flow-polish.md`。
