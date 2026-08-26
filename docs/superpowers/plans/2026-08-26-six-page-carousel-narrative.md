@@ -35,7 +35,7 @@
 - Consumes: v54 的七張文章與全部 `data-content-key`。
 - Produces: 六張 `.carousel-page`、`data-page="01"` 至 `"06"`、`data-narrative="identity-opportunity-mechanism-outcome"`、隱藏 `.legacy-why-care-fields`。
 
-- [ ] **Step 1: 寫六頁結構失敗契約**
+- [x] **Step 1: 寫六頁結構失敗契約**
 
 ```python
 from __future__ import annotations
@@ -85,7 +85,7 @@ assert all("06" in value for value in result["totals"]), json.dumps(result["tota
 print("six-page structure contract passed")
 ```
 
-- [ ] **Step 2: 在 v54 驗證紅燈**
+- [x] **Step 2: 在 v54 驗證紅燈**
 
 Run:
 
@@ -96,7 +96,7 @@ Run:
 
 Expected: FAIL，`pages` 仍為 `01` 至 `07`。
 
-- [ ] **Step 3: 建立 v55 的六頁骨架**
+- [x] **Step 3: 建立 v55 的六頁骨架**
 
 複製 v54 為 v55，做以下最小 DOM 變更：
 
@@ -123,13 +123,13 @@ Expected: FAIL，`pages` 仍為 `01` 至 `07`。
 
 刪除可見 `.page-evidence` article；CTA 從 `data-page="07"` 改為 `data-page="06"`。封面 `.cover-meta` 只保留系列名稱，產業分類鍵搬到相容區。
 
-- [ ] **Step 4: 更新三個既有結構契約**
+- [x] **Step 4: 更新三個既有結構契約**
 
 1. `social-cta-contract.py`：CTA selector 由 `[data-page="07"]` 改成 `[data-page="06"]`。
 2. `unified-notebook-contract.js`：可見 page count 與頁碼總數由 7 改成 6。
 3. `cover-company-first-contract.py`：`visibleCoverKeys` 只允許 `["page.cover.section.0.text"]`，並另斷言產業欄位 hidden。
 
-- [ ] **Step 5: 驗證六頁骨架轉綠**
+- [x] **Step 5: 驗證六頁骨架轉綠**
 
 Run:
 
@@ -155,7 +155,7 @@ Expected: `six-page structure contract passed`。
 - Consumes: Task 1 的六頁 DOM 與既有正式內容鍵。
 - Produces: 四個固定短標題、`data-opportunity-layout="current-improvement-value"`、第 2 頁固定提問、第 4 頁「關鍵差別」。
 
-- [ ] **Step 1: 寫標題與語意失敗契約**
+- [x] **Step 1: 寫標題與語意失敗契約**
 
 ```python
 from __future__ import annotations
@@ -203,7 +203,7 @@ for forbidden in ["原本的做法會卡住", "問題出現", "摩擦累積", "�
 print("concise narrative contract passed")
 ```
 
-- [ ] **Step 2: 在六頁骨架驗證紅燈**
+- [x] **Step 2: 在六頁骨架驗證紅燈**
 
 Run:
 
@@ -214,7 +214,7 @@ Run:
 
 Expected: FAIL，四個標題仍是 v54 長句。
 
-- [ ] **Step 3: 實作固定標題與第 2／4 頁文案**
+- [x] **Step 3: 實作固定標題與第 2／4 頁文案**
 
 ```html
 <h3 class="page-title" data-content-key="page.who.heading">它在做什麼？</h3>
@@ -227,7 +227,7 @@ Expected: FAIL，四個標題仍是 v54 長句。
 <h3 class="page-title" data-content-key="page.results.heading">用了，差在哪？</h3>
 ```
 
-- [ ] **Step 4: 垂直重寫第 3 頁改善機會**
+- [x] **Step 4: 垂直重寫第 3 頁改善機會**
 
 第 3 頁加入 `data-opportunity-layout="current-improvement-value"`，並使用以下原型 fixture；正式內容鍵保持不變：
 
@@ -246,7 +246,7 @@ Expected: FAIL，四個標題仍是 v54 長句。
 <span data-content-key="page.problem.diagram.2.text">流程少一點等待與重工，人便能把時間留給判斷、溝通與下一步行動。</span>
 ```
 
-- [ ] **Step 5: 更新敘事與版面契約並驗證綠燈**
+- [x] **Step 5: 更新敘事與版面契約並驗證綠燈**
 
 1. `narrative-density-contract.py`：marker 改為 `identity-opportunity-mechanism-outcome`；roles 改為六頁；最低字數只檢查 `02:110, 03:175, 04:190, 05:175`。
 2. `problem-story-layout-contract.py`：marker 改成 `current-improvement-value`，保留左右欄、三節點等寬、順序與零重疊量測。
@@ -278,7 +278,7 @@ Expected: `concise narrative contract passed` 與 `narrative density contract pa
 - Consumes: v54 原第 6 頁三個 `.signal-icon` SVG path。
 - Produces: page 02 的 `data-visual="target-icon"`、page 03 的 `data-visual="cycle-icon"`、page 05 的 `data-visual="growth-icon"`。
 
-- [ ] **Step 1: 寫圖示分配失敗契約**
+- [x] **Step 1: 寫圖示分配失敗契約**
 
 ```python
 from __future__ import annotations
@@ -316,11 +316,11 @@ assert result == expected, json.dumps(result, ensure_ascii=False)
 print("redistributed icons contract passed")
 ```
 
-- [ ] **Step 2: 在未搬圖示的 v55 驗證紅燈**
+- [x] **Step 2: 在未搬圖示的 v55 驗證紅燈**
 
 Expected: FAIL，找不到三個 `*-icon`。
 
-- [ ] **Step 3: 搬移三個 SVG 並保持低對比**
+- [x] **Step 3: 搬移三個 SVG 並保持低對比**
 
 1. 靶心 SVG 放入第 2 頁 `.identity-map` 的「目標使用者」節點。
 2. 循環 SVG 放入第 3 頁第一張「現有流程」便利貼。
@@ -336,7 +336,7 @@ Expected: FAIL，找不到三個 `*-icon`。
 
 文字容器維持 `position:relative; z-index:1`，不得讓 SVG 壓低對比或擋字。
 
-- [ ] **Step 4: 更新 22 張便利貼材質契約並跑全部原型契約**
+- [x] **Step 4: 更新 22 張便利貼材質契約並跑全部原型契約**
 
 `sticky-note-system-contract.py` 與 `sticky-material-contract.py` 移除 `.signal-stack section,.evidence-limit` selector，預期數量由 `26` 改為 `22`。
 
@@ -362,7 +362,7 @@ node .superpowers/brainstorm/3440-1787701682/content/unified-notebook-contract.j
 
 Expected: 14 項原型契約全部通過。`visual-storytelling-contract.py` 不適用於 v55，因為它的唯一目的，是證明 v50 與 v48 在「文字完全不變」的前提下只增加圖解；v55 已由使用者明確要求改寫文字，內容鍵完整性改由 `schema-aligned-contract.js` 與 `six-page-structure-contract.py` 驗證。
 
-- [ ] **Step 5: 兩輪桌機／手機視覺 QA**
+- [x] **Step 5: 兩輪桌機／手機視覺 QA**
 
 第一輪只截：
 

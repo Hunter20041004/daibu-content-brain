@@ -2,6 +2,20 @@
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 
+## 2026-08-26 六頁公司介紹輪播 v55
+
+- **產品能力**：將 v54 收斂為六張可見頁面：公司主體封面、公司定位、流程優化機會、AI 運作方式、使用前後差異、置中社群 CTA。原本「哪些訊號證明它值得關注」頁已移除。
+- **使用者體驗**：封面不再顯示右上產業分類；第 2–5 頁標題改為「它在做什麼？」、「它想優化什麼？」、「AI 怎麼做到的？」、「用了，差在哪？」。第 3 頁改以既有流程、優化空間、釋放價值說明，不預設舊流程失效。桌機預覽由四欄改成均衡 3×2，手機維持單欄。
+- **技術結構**：v48、v50、v53、v54 全部保留，新候選為 `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-55.html`。可見 DOM 角色為 `hook → identity → opportunity → mechanism → outcome → cta`；原 why-care 與產業分類鍵放入 hidden 相容區。
+- **資料流程**：現有 `CarouselDraft` 仍可提供全部舊內容鍵；v55 只顯示六頁需要的欄位，被刪除頁面的 14 個 why-care 欄位與產業欄位不渲染。正式 schema、Renderer、AI 提示詞與 SQLite 未修改。
+- **設計理由與備援**：主方案直接刪除使用者不需要的第 6 頁，將靶心、循環、成長 SVG 分別移到第 2、3、5 頁支援閱讀；比勉強替弱頁換題更俐落。備援是在正式接線時再做欄位 schema 遷移；目前先隱藏舊欄位，換取回溯相容。
+- **安全與成本**：沒有資料寫入、外部 API、新依賴、付費操作或正式服務異動；v55 仍是 `.gitignore` 內的本機視覺原型。
+- **TDD 證據**：六頁結構契約先在 v54 抓到 7 頁／`07` 頁碼；簡潔敘事契約先抓到四個舊長標題；圖示分配契約先得到空陣列。三個垂直切片各自紅→綠。最終 14 項原型契約全部通過。
+- **完整測試**：隔離分支 `PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 176.51s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **視覺 QA**：第一輪抓到沿用四欄造成卡片過小與第二列大片空白，改為 3×2。最終又以長公司名壓力契約抓到三行裁切，改為 `7.2cqw` 加底部字形安全內距；第 4 頁間距契約由未校準的絕對 px 改成已知 220px 合格版校準出的比例。最終 375px 為 `scrollWidth=clientWidth=375`、六頁均 `overflow:false`、console 0 errors／0 warnings。截圖為 `.screenshots/six-page-narrative-final-desktop.png` 與 `.screenshots/six-page-narrative-final-mobile.png`。
+- **剩餘限制**：目前仍是核可用原型，尚未接入自動產圖 Renderer。正式接線時需同步調整生成提示詞、六頁資料契約與 PNG 長文字壓力測試，之後才能讓工具真正逐頁產出這個版型。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-26-six-page-carousel-narrative-design.md`、`docs/superpowers/plans/2026-08-26-six-page-carousel-narrative.md`。
+
 ## 2026-08-25 粉彩手帳原型對齊現有自動產圖內容契約
 
 - **產品能力**：保留使用者核可的粉彩手帳視覺與四種手繪呆一布動作，將七頁所有內容槽改為現有 `CarouselDraft` 的正式欄位；不用修改 AI 生成器就能在下一輪搬入正式 Renderer。
