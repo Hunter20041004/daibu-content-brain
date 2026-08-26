@@ -2,6 +2,21 @@
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 
+## 2026-08-26 六頁公司介紹輪播 v57 圖標與流程線精修
+
+- **產品能力**：保留 v56 為不可變版本，新增 `company-neutral-seven-pages-sticky-57.html`；把循環、靶心、成長三個半透明 SVG 依序集中到第三頁「現有流程／優化空間／釋放價值」三張便利貼，因果線再向右移，第四頁移除重複虛線並只保留兩個箭頭。
+- **使用者體驗**：三個圖標現在尺寸一致、各自對應一個步驟，不再分散於第 2、3、5 頁。第三頁因果線位於左右欄空隙由左往右 64.9% 的位置，視覺上不再貼著左側兩格；第四頁只用箭頭表達流程方向。
+- **技術結構**：v57 以 `data-v57-polish="icon-flow"` 範圍化 CSS 隔離變更；新增 `v57-icon-flow-contract.py`，並讓 `redistributed-icons-contract.py` 依版本 marker 驗證舊分散配置或 v57 集中配置。`visual-storytelling-contract.py` 依是否存在 proof 頁正確期待 3 或 0 個 signal icon。
+- **資料流程**：既有 `CarouselDraft` 內容鍵 → 六頁語意 DOM → v57 裝飾 SVG 與流程線排版 → 本機瀏覽器預覽。所有內容鍵、hidden 相容欄位與頁碼未變；正式 Renderer、AI 提示詞與 SQLite 未修改。
+- **設計理由與備援**：主方案採「一張便利貼一個同尺寸圖標」與「流程只留箭頭」，讓裝飾服從敘事。備援是第四頁只留虛線，但虛線缺少方向性，因此未採用。
+- **安全與成本**：沒有資料寫入、外部 API、新依賴、付費操作或正式部署；變更仍位於 `.gitignore` 內的本機原型資料夾。
+- **TDD 證據**：圖標契約先在 v56 抓到 marker 缺失與第 2／5 頁舊位置；搬動後安全契約抓到靶心／成長圖標與文字交疊 31.5px²；因果線契約抓到舊位置僅欄間 62.1%；第四頁契約抓到 `route::before` 仍為 dashed；第一輪視覺 QA 又以尺寸契約抓到三圖標寬度為 35.6／25.9／30.8px。逐項最小修正後全部轉綠。
+- **原型驗證**：v57 專屬圖標／幾何契約，加上文案、標題、六頁結構、敘事、圖示、封面、逐頁精修、密度、便利貼、第三／四頁、CTA、視覺故事與兩個 JS schema 契約共 18 項全部通過。
+- **完整測試**：隔離分支執行 `PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q`，結果為 `739 passed, 16 deselected, 1 warning in 230.40s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **視覺 QA**：兩輪各完成 1280×800／375×812。層次、留白節奏、LINE Seed、粉彩三色、對齊、同尺寸圖標、因果線、單一箭頭語言與既有 hover 微動效皆合格；375px 為 `scrollWidth=clientWidth=375`、六頁均 `overflow:false`、console 0 errors／0 warnings。截圖：`.screenshots/v57-final-desktop.png`、`.screenshots/v57-final-mobile.png`。
+- **剩餘限制**：v57 仍是本機核可原型，尚未接入正式自動產圖工具；正式接線仍需同步處理 Renderer 與 PNG 長文字壓力測試。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-26-carousel-v57-icon-flow-polish-design.md`、`docs/superpowers/plans/2026-08-26-carousel-v57-icon-flow-polish.md`。
+
 ## 2026-08-26 六頁公司介紹輪播 v56 精修
 
 - **產品能力**：保留 v55 為不可變版本，新增 `company-neutral-seven-pages-sticky-56.html`；第 2–5 頁標題放大並下移，第 2 頁定位圖與 Logo 分離，第 3 頁內容上移、因果線右移且正文放大，第 4 頁流程與補充卡放大，第 5 頁改用「帶來的價值」，第 6 頁收斂成兩句品牌 CTA。

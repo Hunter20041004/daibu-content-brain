@@ -31,7 +31,7 @@
 - Consumes: v56 的六頁 DOM、`cycle-icon`、`target-icon`、`growth-icon`。
 - Produces: `data-v57-polish="icon-flow"` 與第三頁三張便利貼的一對一圖標映射。
 
-- [ ] **Step 1: 寫圖標分配失敗契約**
+- [x] **Step 1: 寫圖標分配失敗契約**
 
 建立 Playwright 契約，回傳三張右側便利貼各自的 `data-visual`，並確認三個 SVG 的最近頁面與最近便利貼：
 
@@ -65,7 +65,7 @@ assert {item["page"] for item in result["iconHomes"]} == {"03"}, json.dumps(resu
 print("v57 icon distribution contract passed")
 ```
 
-- [ ] **Step 2: 在 v56 驗證紅燈**
+- [x] **Step 2: 在 v56 驗證紅燈**
 
 Run:
 
@@ -76,7 +76,7 @@ Run:
 
 Expected: FAIL，缺少 `icon-flow` marker，靶心與成長圖標仍位於第 2、5 頁。
 
-- [ ] **Step 3: 複製 v56 並搬動三個 SVG**
+- [x] **Step 3: 複製 v56 並搬動三個 SVG**
 
 在 v57 的 `<main>` 加上：
 
@@ -86,7 +86,7 @@ data-v57-polish="icon-flow"
 
 從第 2 頁移除 `target-icon`，從第 5 頁移除 `growth-icon`；保留第 3 頁第一張卡的 `cycle-icon`，並將兩個 SVG 分別放進 `.problem-note.n2` 與 `.problem-note.n3`。所有圖標保留 `aria-hidden="true"`。
 
-- [ ] **Step 4: 驗證圖標分配綠燈**
+- [x] **Step 4: 驗證圖標分配綠燈**
 
 Run:
 
@@ -109,7 +109,7 @@ Expected: `v57 icon distribution contract passed`。
 - Consumes: Task 1 的三張便利貼與三個圖標。
 - Produces: 圖標完全位於所屬便利貼、零文字碰撞，以及因果線中心比例 `0.55–0.65`。
 
-- [ ] **Step 1: 擴充契約並驗證紅燈**
+- [x] **Step 1: 擴充契約並驗證紅燈**
 
 在同一次 evaluate 加入圖標邊界、圖標與正文的交疊面積，以及欄間位置比例：
 
@@ -146,7 +146,7 @@ assert 0.55 <= result["spineGapRatio"] <= 0.65, json.dumps(result, ensure_ascii=
 
 Run v57 before CSS changes. Expected: FAIL，因果線仍在欄間中線偏左處，新增圖標亦尚未使用一致安全區。
 
-- [ ] **Step 2: 實作最小幾何修正**
+- [x] **Step 2: 實作最小幾何修正**
 
 在 v57 尾端加入範圍化 CSS：
 
@@ -162,7 +162,7 @@ Run v57 before CSS changes. Expected: FAIL，因果線仍在欄間中線偏左�
 
 依契約實測只微調 `left`，不得放寬 `0.55–0.65` 門檻。
 
-- [ ] **Step 3: 驗證第三頁綠燈**
+- [x] **Step 3: 驗證第三頁綠燈**
 
 Run:
 
@@ -188,7 +188,7 @@ Expected: 兩項契約通過。
 - Consumes: v57 的 `.schema-route`、兩個 `.flow-arrow`。
 - Produces: 兩個可見箭頭、零 route 虛線，以及完整測試與視覺證據。
 
-- [ ] **Step 1: 擴充第四頁失敗契約**
+- [x] **Step 1: 擴充第四頁失敗契約**
 
 在 evaluate 加入：
 
@@ -212,7 +212,7 @@ assert result["routeBeforeBorderStyle"] == "none", json.dumps(result, ensure_asc
 
 Run v57 before CSS change. Expected: FAIL，`.schema-route::before` 仍為 dashed。
 
-- [ ] **Step 2: 移除虛線並保留箭頭**
+- [x] **Step 2: 移除虛線並保留箭頭**
 
 在 v57 尾端加入：
 
@@ -223,13 +223,13 @@ Run v57 before CSS change. Expected: FAIL，`.schema-route::before` 仍為 dashe
 }
 ```
 
-- [ ] **Step 3: 跑完整原型契約**
+- [x] **Step 3: 跑完整原型契約**
 
 Run v57 專屬契約，以及 v56 已使用的全部 Python／Node 原型契約。`visual-storytelling-contract.py` 以 v57 自身作 baseline 與 candidate，檢查視覺元素仍位於各頁內且可存取性標記完整。
 
 Expected: 全部通過，沒有內容鍵或頁面結構回歸。
 
-- [ ] **Step 4: 兩輪桌機／手機視覺 QA**
+- [x] **Step 4: 兩輪桌機／手機視覺 QA**
 
 第一輪各截一張 1280×800 與 375×812，檢查層次、留白、字體、三色、左右基線、三圖標安全區、因果線位置、第四頁只剩箭頭、響應式與既有 hover 微動效。若有不合格項，只修對應的 v57 CSS。
 
@@ -242,7 +242,7 @@ playwright-cli console
 
 Expected: `scrollWidth == clientWidth == 375`、六頁 `overflow:false`、console 0 errors／0 warnings。
 
-- [ ] **Step 5: 產品理解檢查點、文件與完整測試**
+- [x] **Step 5: 產品理解檢查點、文件與完整測試**
 
 在 `HANDOFF.md` 紀錄產品能力、使用者體驗、技術結構、資料流程、設計理由與備援、安全與成本、TDD 證據、視覺 QA 與剩餘限制。執行：
 
