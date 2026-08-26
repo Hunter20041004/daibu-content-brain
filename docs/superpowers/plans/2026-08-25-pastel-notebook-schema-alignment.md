@@ -62,3 +62,20 @@
 - [x] **Step 3: 回正紙框與資訊框，放大真實內容模組。**
 - [x] **Step 4: 修正第 2 頁窄欄越界，完成桌機與手機視覺迭代。**
 - [x] **Step 5: 驗證內容契約、手帳一致性、直角密度與瀏覽器 console。**
+
+### Task 4: 全頁便利貼表面系統
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/sticky-note-system-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-37.html`
+- Modify: `HANDOFF.md`
+
+**Interfaces:**
+- Consumes: Task 3 的直角密集版面與正式內容鍵。
+- Produces: 29 個語意內容面共用的便利貼紙面、色票與陰影。
+
+- [x] **Step 1: 寫便利貼數量、無框線、有陰影、無旋轉的瀏覽器契約。**
+- [x] **Step 2: 在 v35 確認缺少統一便利貼系統。**
+- [x] **Step 3: 將定位、基本資料、AI 步驟、成果、訊號與結論統一成便利貼。**
+- [x] **Step 4: 依第一輪截圖加強紙片陰影，維持直角與內容密度。**
+- [x] **Step 5: 以桌機、手機與四項契約完成複驗。**
