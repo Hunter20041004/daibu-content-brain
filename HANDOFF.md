@@ -20,6 +20,10 @@
 - **便利貼 TDD 與 QA**：新契約先在 v35 以 `missing straight-sticky note-system marker` 正確失敗；v36 轉綠後，第一輪截圖發現縮小時陰影太淡，v37 加強陰影再複驗。最終 29 個便利貼面、內容密度、內容 schema、共用手帳外殼四項契約通過；375px 無水平捲動、內容越界 0、旋轉框 0、console 0 errors／0 warnings。截圖為 `.screenshots/sticky-notes-final-desktop.png` 與 `.screenshots/sticky-notes-final-mobile.png`。
 - **便利貼材質迭代**：使用者指出 v37 仍較像粉彩卡片。v39 為 29 個便利貼加入上緣 15% 黏膠層、極淡紙纖維顆粒與右下小幅掀角；所有框保持直角，內容幾何與正式欄位不變。
 - **材質 TDD 與 QA**：新契約先在 v37 以 `missing adhesive-texture-fold marker` 正確失敗；第一次實作又抓到高優先級背景覆蓋紙紋，以及 AI 步驟／CTA 不可改為一般定位，修正為保留絕對定位、只提高材質層優先級。第一輪截圖再抓到黏膠層縮小後太淡，v39 加深後完成第二輪。五項原型契約通過；375px 無水平捲動、內容越界 0、旋轉框 0、console 0 errors／0 warnings。截圖為 `.screenshots/sticky-material-final-desktop.png` 與 `.screenshots/sticky-material-final-mobile.png`。
+- **第 3／4 頁密度與社群 CTA 迭代**：v43 將問題頁三張問題便利貼改成等寬直立列，AI 解法頁改成等寬三步流程＋四格補充，消除原本中段與底部的大塊斷層。第 7 頁不再顯示「最後，帶走這個觀察」或收束結論，改為社群帳號、每週內容承諾、下一家公司留言提示，以及追蹤／收藏／留言三個行動。
+- **CTA 舊草稿相容**：現有 `CarouselDraft` 仍會提供 `cta.heading` 與第一段收束結論；原型先保留這兩個 `data-content-key` 但隱藏，不讓舊草稿載入失敗。正式 Renderer 接線時應把社群帳號改由系列品牌設定注入，並決定是否正式移除不再顯示的生成欄位，避免讓 AI 長期產生無用內容。
+- **本輪 TDD 與視覺 QA**：密度契約先在 v39 因缺少 `tight-three-four` 標記失敗；CTA 契約先在 v40 因缺少 `social-account` 失敗；第二輪再以實測 21.35% 的提問至行動列空洞建立失敗門檻，最後加入公司名稱／產業／最想知道的問題三個通用留言提示。v43 的內容 schema、直角密度、便利貼系統、材質、第 3／4 頁密度與 CTA 契約皆通過；375px 無水平破版，console 0 errors／0 warnings。最終截圖為 `.screenshots/cta-density-approved-desktop.png` 與 `.screenshots/cta-density-approved-mobile.png`。
+- **完整測試**：第一次全套為 `738 passed, 1 failed, 16 deselected`，失敗是既有模板編輯器版本儲存瀏覽器流程在 60 秒內未更新下拉值；同一流程單獨重跑為 `1 passed in 19.77s`。未修改測試或正式程式後，第二次完整套件為 `739 passed, 16 deselected, 1 warning in 265.50s`；唯一 warning 仍是既有 Starlette／httpx 棄用提醒。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 

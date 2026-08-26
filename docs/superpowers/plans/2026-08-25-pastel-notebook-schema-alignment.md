@@ -96,3 +96,21 @@
 - [x] **Step 3: 加入三個材質提示，保留 AI 步驟與 CTA 的定位方式。**
 - [x] **Step 4: 依第一輪截圖加強上緣黏膠色差。**
 - [x] **Step 5: 以兩輪截圖與五項原型契約完成複驗。**
+
+### Task 6: 第 3／4 頁密度與社群 CTA
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/page-three-four-density-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/social-cta-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-43.html`
+- Modify: `HANDOFF.md`
+
+**Interfaces:**
+- Consumes: Task 5 的便利貼材質與現有 `CarouselDraft` CTA 欄位。
+- Produces: 第 3／4 頁緊密版面，以及不重複內容總結的系列社群 CTA。
+
+- [x] **Step 1: 寫第 3／4 頁等寬節點與底部空隙契約，在 v39 確認失敗。**
+- [x] **Step 2: 將問題節點與 AI 流程改成等寬列，保留下方四格敘事。**
+- [x] **Step 3: 寫純社群 CTA 契約，在 v40 確認舊結論結構失敗。**
+- [x] **Step 4: 改成帳號、內容承諾、讀者問題與三個行動；隱藏舊生成欄位維持相容。**
+- [x] **Step 5: 依截圖量出 CTA 空洞，加入留言提示並完成桌機／手機複驗。**
