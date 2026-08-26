@@ -35,7 +35,7 @@
 - Consumes: v55 完整 HTML 與全部內容鍵。
 - Produces: v56 指定標題、`data-result-summary="delivered-value"` 與 `data-cta-copy="daibu-lab"`。
 
-- [ ] **Step 1: 寫 v56 文案失敗契約**
+- [x] **Step 1: 寫 v56 文案失敗契約**
 
 ```python
 from __future__ import annotations
@@ -79,7 +79,7 @@ for forbidden in ["購買關係", "喜歡這類內容嗎？", "下一間想看�
 print("v56 copy contract passed")
 ```
 
-- [ ] **Step 2: 在 v55 驗證紅燈**
+- [x] **Step 2: 在 v55 驗證紅燈**
 
 Run:
 
@@ -90,7 +90,7 @@ Run:
 
 Expected: FAIL，標題仍是 v55 文字，CTA 仍有三段。
 
-- [ ] **Step 3: 複製 v55 並實作最小文案變更**
+- [x] **Step 3: 複製 v55 並實作最小文案變更**
 
 ```html
 <h3 class="page-title" data-content-key="page.how-ai.heading">AI 扮演什麼樣的角色？</h3>
@@ -109,7 +109,7 @@ Expected: FAIL，標題仍是 v55 文字，CTA 仍有三段。
 
 舊 CTA 生成欄位繼續保留 `hidden`，但可見 `.cta-center` 只允許上述兩個 `<p>`。
 
-- [ ] **Step 4: 更新既有固定文案契約並驗證綠燈**
+- [x] **Step 4: 更新既有固定文案契約並驗證綠燈**
 
 `concise-narrative-contract.py` 的第 4、5 頁標題預期值改為新文字；`social-cta-contract.py` 改為檢查兩句 CTA、`data-cta-copy="daibu-lab"` 與零舊 CTA 可見文字。
 
@@ -138,7 +138,7 @@ Expected: 三項契約通過。
 - Consumes: Task 1 的 v56 DOM。
 - Produces: `data-v56-layout="expanded-interiors"` 與可量測的標題／第 2、3 頁幾何。
 
-- [ ] **Step 1: 寫標題與第 2 頁失敗契約**
+- [x] **Step 1: 寫標題與第 2 頁失敗契約**
 
 ```python
 from __future__ import annotations
@@ -197,11 +197,11 @@ assert result["profileGap"] >= 6, json.dumps(result, ensure_ascii=False)
 print("v56 interior title and profile layout contract passed")
 ```
 
-- [ ] **Step 2: 在只改文案的 v56 驗證紅燈**
+- [x] **Step 2: 在只改文案的 v56 驗證紅燈**
 
 Expected: FAIL，缺少 `expanded-interiors` 標記，且第 2 頁定位圖仍與 Logo 區相交。
 
-- [ ] **Step 3: 實作標題與第 2 頁最小幾何修正**
+- [x] **Step 3: 實作標題與第 2 頁最小幾何修正**
 
 在 v56 尾端加入：
 
@@ -220,7 +220,7 @@ Expected: FAIL，缺少 `expanded-interiors` 標記，且第 2 頁定位圖仍�
 
 若 `8cqw` 讓兩個長標題超過兩行，只能在第 4、5 頁個別降至仍大於 v55 的 `7.8cqw`；不得縮正文。
 
-- [ ] **Step 4: 擴充同一契約鎖定第 3 頁**
+- [x] **Step 4: 擴充同一契約鎖定第 3 頁**
 
 在 `v56-layout-contract.py` 同一次 Playwright evaluate 加入：
 
@@ -249,7 +249,7 @@ assert result["minimumOpportunityBodyRatio"] >= 0.017
 
 在尚未修改第 3 頁時執行，Expected: FAIL，至少軸線中心或正文比例不符。
 
-- [ ] **Step 5: 實作第 3 頁上移、放大與軸線右移**
+- [x] **Step 5: 實作第 3 頁上移、放大與軸線右移**
 
 ```css
 .carousel-showcase[data-v56-layout="expanded-interiors"] .page-problem .problem-context{top:29%}
@@ -261,7 +261,7 @@ assert result["minimumOpportunityBodyRatio"] >= 0.017
 
 依實際量測微調 `top` 與 `left`，但契約門檻不得放寬。更新 `problem-story-layout-contract.py` 使用 v56 marker，並保留等寬、順序、零重疊與圓點對齊斷言。
 
-- [ ] **Step 6: 跑 Task 2 契約轉綠**
+- [x] **Step 6: 跑 Task 2 契約轉綠**
 
 ```bash
 candidate=.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-56.html
@@ -286,7 +286,7 @@ Expected: 三項契約通過。
 - Consumes: Task 2 的 `expanded-interiors` 幾何。
 - Produces: 第 4 頁高占用內容群組、完整原型契約與視覺證據。
 
-- [ ] **Step 1: 在 v56 幾何契約新增第 4 頁失敗案例**
+- [x] **Step 1: 在 v56 幾何契約新增第 4 頁失敗案例**
 
 在 evaluate 加入：
 
@@ -315,7 +315,7 @@ assert result["mechanismStepSpread"] <= 2
 
 Run v56 before geometry change. Expected: FAIL，標題至流程間距過大或內容群組占用不足。
 
-- [ ] **Step 2: 最小實作第 4 頁群組上移與放大**
+- [x] **Step 2: 最小實作第 4 頁群組上移與放大**
 
 ```css
 .carousel-showcase[data-v56-layout="expanded-interiors"] .page-solution .schema-route{
@@ -337,7 +337,7 @@ Run v56 before geometry change. Expected: FAIL，標題至流程間距過大或�
 
 依實測微調，但維持三步等寬、下方 2×2、正文最小比例與頁碼安全區。
 
-- [ ] **Step 3: 跑全部原型契約**
+- [x] **Step 3: 跑全部原型契約**
 
 ```bash
 candidate=.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-56.html
@@ -361,7 +361,7 @@ node .superpowers/brainstorm/3440-1787701682/content/unified-notebook-contract.j
 
 Expected: 16 項原型契約全部通過。
 
-- [ ] **Step 4: 兩輪桌機／手機視覺 QA**
+- [x] **Step 4: 兩輪桌機／手機視覺 QA**
 
 第一輪只截：
 
