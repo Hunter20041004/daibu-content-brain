@@ -32,7 +32,7 @@
 - Consumes: v53 的七頁 DOM、`page.cover.heading`、`page.cover.section.0.text`、`page.cover.section.1.text`。
 - Produces: `data-cover-hierarchy="company-first"`、`.cover-logo`、`.cover-company-name`、`.cover-subtitle` 與隱藏的 `.legacy-cover-heading`。
 
-- [ ] **Step 1: 寫封面層級失敗契約**
+- [x] **Step 1: 寫封面層級失敗契約**
 
 建立契約並以 Chromium 量測實際畫面：
 
@@ -92,7 +92,7 @@ assert result["nameFits"], "long company name does not fit"
 print("company-first cover contract passed")
 ```
 
-- [ ] **Step 2: 在 v53 執行契約並確認紅燈**
+- [x] **Step 2: 在 v53 執行契約並確認紅燈**
 
 Run:
 
@@ -103,7 +103,7 @@ Run:
 
 Expected: FAIL with `missing company-first cover marker` or missing `.cover-logo`.
 
-- [ ] **Step 3: 建立 v54 並只重排封面**
+- [x] **Step 3: 建立 v54 並只重排封面**
 
 複製 v53 為 v54，將封面文章改為以下結構；舊 heading 保留但隱藏：
 
@@ -141,7 +141,7 @@ Expected: FAIL with `missing company-first cover marker` or missing `.cover-logo
 .page-cover .mascot{right:1%;bottom:2%;width:25%}
 ```
 
-- [ ] **Step 4: 執行封面契約並修到綠燈**
+- [x] **Step 4: 執行封面契約並修到綠燈**
 
 Run:
 
@@ -152,7 +152,7 @@ Run:
 
 Expected: `company-first cover contract passed`.
 
-- [ ] **Step 5: 執行全部既有原型契約**
+- [x] **Step 5: 執行全部既有原型契約**
 
 Run:
 
@@ -188,7 +188,7 @@ Expected: 12 項契約全部通過；`schema-aligned-contract.js` 證明隱藏 h
 - Consumes: Task 1 的 v54 與封面契約。
 - Produces: 經兩輪桌機／手機驗證的封面候選與可追溯測試證據。
 
-- [ ] **Step 1: 第一輪桌機與手機截圖**
+- [x] **Step 1: 第一輪桌機與手機截圖**
 
 將 v54 同步到目前視覺伴隨內容目錄，重新開啟既有 `localhost:65302`，只截：
 
@@ -201,7 +201,7 @@ playwright-cli screenshot --filename=.screenshots/company-first-cover-round1-mob
 
 逐項檢查層次、留白、LINE Seed 字體、三色限制、左右基線、375px overflow、素材缺失狀態與既有 hover 微動效，明確記錄不合格項。
 
-- [ ] **Step 2: 依第一輪證據做最小修正並重跑契約**
+- [x] **Step 2: 依第一輪證據做最小修正並重跑契約**
 
 只修改 `.page-cover` 範圍；若長名稱或副標不合格，優先調整安全框、間距與字級，不放寬兩行／三行限制，也不移動第 2–7 頁。
 
@@ -214,7 +214,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 3: 第二輪桌機與手機截圖及瀏覽器量測**
+- [x] **Step 3: 第二輪桌機與手機截圖及瀏覽器量測**
 
 ```bash
 playwright-cli resize 1280 800
@@ -227,11 +227,11 @@ playwright-cli console
 
 Expected: `scrollWidth == clientWidth == 375`、七頁 `overflow:false`、console 0 errors／0 warnings。
 
-- [ ] **Step 4: 產品理解檢查點與文件更新**
+- [x] **Step 4: 產品理解檢查點與文件更新**
 
 在 `HANDOFF.md` 記錄產品能力、使用者體驗、技術結構、資料流、設計理由、備援、安全與成本、契約與截圖證據、正式 Renderer 尚未接線的限制；將本計畫全部 checkbox 勾選。
 
-- [ ] **Step 5: 完整測試**
+- [x] **Step 5: 完整測試**
 
 Run:
 
