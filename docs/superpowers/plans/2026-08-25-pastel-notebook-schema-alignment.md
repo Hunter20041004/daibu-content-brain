@@ -144,3 +144,16 @@
 - [x] **Step 4: 以同一條公司介紹敘事重寫第 2–6 頁長文 fixture，維持既有正式欄位鍵。**
 - [x] **Step 5: 依第一輪截圖新增正文最小字級比例契約，放大第 4、6 頁正文並縮減內距。**
 - [x] **Step 6: 完成桌機／手機第二輪截圖、九項原型契約與 console 驗收。**
+
+### Task 9: 保留 v48 並建立視覺化候選
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/visual-storytelling-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-50.html`
+- Modify: `HANDOFF.md`
+
+- [x] **Step 1: 寫 v48／候選內容逐鍵相同與視覺語法契約，在 v48 自比時確認缺少視覺層。**
+- [x] **Step 2: 新建 v49，加入定位圖、因果軸、流程箭頭、轉變箭頭與三個訊號 SVG。**
+- [x] **Step 3: 驗證視覺元素無障礙隱藏、沒有假百分比、沒有離開畫布。**
+- [x] **Step 4: 依第一輪截圖為第 3、4 頁加入明確箭頭，建立 v50。**
+- [x] **Step 5: 完成桌機／手機第二輪截圖、十項原型契約與 console 驗收。**

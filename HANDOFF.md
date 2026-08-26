@@ -32,6 +32,10 @@
 - **密度 TDD 與視覺 QA**：`narrative-density-contract.py` 先在 v46 因缺少故事流程標記失敗；v47 增加敘事後，第一輪截圖發現第 4、6 頁最低正文只有畫布寬 1.35%／1.45%，判定不能靠小字換密度。v48 將第 2–6 頁正文下限鎖在 1.55%，同步縮減卡片內距；九項原型契約通過、375px 無水平捲動、console 0 errors／0 warnings。最終截圖為 `.screenshots/narrative-density-final-desktop.png` 與 `.screenshots/narrative-density-final-mobile.png`。
 - **正式接線注意**：目前增加的是原型長文 fixture 與版面容量；正式 AI 生成器尚未被要求輸出這種篇幅與跨頁承接。正式 Renderer 接線時必須同步修改生成提示詞與驗證，讓第 3 頁承接第 2 頁的服務對象、第 4 頁逐項回答第 3 頁問題、第 5 頁對應第 4 頁機制、第 6 頁用證據支持第 5 頁結果，否則只換版型仍會得到薄而斷裂的貼文。
 - **敘事密度完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 264.81s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **視覺化實驗版並存**：使用者要求保留長文 v48，再試更視覺化的版本。v50 是獨立候選，不覆蓋 v48；第 2 頁新增「AI 產品 → 目標使用者 → 核心價值」定位圖，第 3 頁以帶箭頭的因果軸串起三節點，第 4 頁加入兩個流程箭頭，第 5 頁放大轉變箭頭，第 6 頁加入使用循環／市場擴散／商業成長三個非量化 SVG 水印。
+- **視覺層資料安全**：`visual-storytelling-contract.py` 逐鍵比較 v48 與 v50 的全部 `data-content-key`，內容完全相同；視覺元素皆為 `aria-hidden`、留在各自畫布內，且沒有新增百分比或公司專屬圖像。第一輪截圖發現第 3 頁只有關聯線、沒有向下方向，第 4 頁箭頭像漂浮符號；v50 改成明確箭頭後完成第二輪。十項原型契約通過、console 0 errors／0 warnings；最終截圖為 `.screenshots/visual-story-final-desktop.png` 與 `.screenshots/visual-story-final-mobile.png`。
+- **選版狀態**：v48 是目前保留版，v50 是待使用者比較的視覺化候選。正式 Renderer、生成提示詞、SQLite 與正式站均未修改；使用者可選 v48、v50，或逐頁指定混合。
+- **視覺化候選完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 263.43s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 
