@@ -79,3 +79,20 @@
 - [x] **Step 3: 將定位、基本資料、AI 步驟、成果、訊號與結論統一成便利貼。**
 - [x] **Step 4: 依第一輪截圖加強紙片陰影，維持直角與內容密度。**
 - [x] **Step 5: 以桌機、手機與四項契約完成複驗。**
+
+### Task 5: 便利貼實體材質細節
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/sticky-material-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-39.html`
+- Modify: `HANDOFF.md`
+
+**Interfaces:**
+- Consumes: Task 4 的 29 個直角便利貼面。
+- Produces: 每張便利貼共用的上緣黏膠層、紙纖維與右下掀角。
+
+- [x] **Step 1: 寫 29 個便利貼的黏膠、紙紋、折角瀏覽器契約。**
+- [x] **Step 2: 在 v37 確認只有色面與陰影，材質契約失敗。**
+- [x] **Step 3: 加入三個材質提示，保留 AI 步驟與 CTA 的定位方式。**
+- [x] **Step 4: 依第一輪截圖加強上緣黏膠色差。**
+- [x] **Step 5: 以兩輪截圖與五項原型契約完成複驗。**

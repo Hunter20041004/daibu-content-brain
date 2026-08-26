@@ -18,6 +18,8 @@
 - **直角密度驗證**：v35 的直角密度、內容 schema、共用手帳外殼三項契約通過；375px 為 `scrollWidth=clientWidth=375`，可替換內容 0 個越出畫布，主要框旋轉數 0，console 0 errors／0 warnings。最終截圖為 `.screenshots/straight-dense-v35-desktop.png` 與 `.screenshots/straight-dense-v35-mobile.png`。
 - **全頁便利貼迭代**：依使用者要求，把封面定位、公司資料、問題脈絡、AI 步驟、成果對照、訊號、證據限制與結論共 29 個語意內容面統一成第 3 頁的便利貼語言；採粉彩紙面、無完整描邊與紙片陰影，仍維持直角。Logo 區與外層白紙不算內容格，保持原結構。
 - **便利貼 TDD 與 QA**：新契約先在 v35 以 `missing straight-sticky note-system marker` 正確失敗；v36 轉綠後，第一輪截圖發現縮小時陰影太淡，v37 加強陰影再複驗。最終 29 個便利貼面、內容密度、內容 schema、共用手帳外殼四項契約通過；375px 無水平捲動、內容越界 0、旋轉框 0、console 0 errors／0 warnings。截圖為 `.screenshots/sticky-notes-final-desktop.png` 與 `.screenshots/sticky-notes-final-mobile.png`。
+- **便利貼材質迭代**：使用者指出 v37 仍較像粉彩卡片。v39 為 29 個便利貼加入上緣 15% 黏膠層、極淡紙纖維顆粒與右下小幅掀角；所有框保持直角，內容幾何與正式欄位不變。
+- **材質 TDD 與 QA**：新契約先在 v37 以 `missing adhesive-texture-fold marker` 正確失敗；第一次實作又抓到高優先級背景覆蓋紙紋，以及 AI 步驟／CTA 不可改為一般定位，修正為保留絕對定位、只提高材質層優先級。第一輪截圖再抓到黏膠層縮小後太淡，v39 加深後完成第二輪。五項原型契約通過；375px 無水平捲動、內容越界 0、旋轉框 0、console 0 errors／0 warnings。截圖為 `.screenshots/sticky-material-final-desktop.png` 與 `.screenshots/sticky-material-final-mobile.png`。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 
