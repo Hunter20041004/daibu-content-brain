@@ -241,7 +241,7 @@ PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q
 
 Expected: `739 passed, 16 deselected`；只允許既有 Starlette／httpx 棄用 warning。
 
-- [ ] **Step 6: 提交、推送與驗證**
+- [x] **Step 6: 提交、推送與驗證**
 
 ```bash
 git add HANDOFF.md docs/superpowers/plans/2026-08-26-company-first-carousel-cover.md

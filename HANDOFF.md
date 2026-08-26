@@ -45,7 +45,7 @@
 - **封面 TDD 與量測校準**：`cover-company-first-contract.py` 先在 v53 以缺少公司優先標記正確失敗。第一次以 `scrollHeight` 判斷文字裁切時，已知短字也固定多出約 3px，證明方法無法區分真溢位；改以實際文字行框數與最後一行邊界校準，並鎖住長名稱最多兩行、副標最多三行、公司名字級至少為副標兩倍、主體都在紙張內且不與角色重疊。
 - **封面視覺 QA**：第一輪確認資訊方向正確，再把短公司名由 `7.2cqw` 提高至 `7.8cqw`，並讓正式 Logo 圖片自動移除佔位虛線與底色。第二輪 375px 量得公司名／副標字級比 `2.48×`，七頁均 `overflow:false`、`scrollWidth=clientWidth=375`，console 0 errors／0 warnings；十二項原型契約全部通過。最終截圖為 `.screenshots/company-first-cover-final-desktop.png` 與 `.screenshots/company-first-cover-final-mobile.png`。
 - **目前候選狀態**：v48、v50、v53 均保留；v54 是公司辨識優先的最新視覺化候選。v54 仍是本機忽略原型，正式 Renderer、AI 生成提示詞、SQLite 與正式站尚未接線或修改。
-- **公司優先封面完整測試**：隔離 worktree 開工基線為 `739 passed, 16 deselected, 1 warning in 196.08s`；完成後為 `739 passed, 16 deselected, 1 warning in 190.82s`。唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **公司優先封面完整測試**：隔離 worktree 開工基線為 `739 passed, 16 deselected, 1 warning in 196.08s`；完成後為 `739 passed, 16 deselected, 1 warning in 190.82s`；合回 `main` 後重跑為 `739 passed, 16 deselected, 1 warning in 216.06s`。唯一 warning 是既有 Starlette／httpx 棄用提醒。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 
