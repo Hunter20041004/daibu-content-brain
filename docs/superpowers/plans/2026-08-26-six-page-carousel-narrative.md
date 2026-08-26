@@ -388,7 +388,7 @@ playwright-cli console
 
 Expected: `scrollWidth == clientWidth == 375`、六頁 `overflow:false`、console 0 errors／0 warnings。
 
-- [ ] **Step 6: 文件、完整測試、合併與推送**
+- [x] **Step 6: 文件、完整測試、合併與推送**
 
 在 `HANDOFF.md` 記錄九欄產品理解、TDD 紅綠證據、14 項原型契約與兩輪截圖。執行：
 

@@ -11,7 +11,7 @@
 - **設計理由與備援**：主方案直接刪除使用者不需要的第 6 頁，將靶心、循環、成長 SVG 分別移到第 2、3、5 頁支援閱讀；比勉強替弱頁換題更俐落。備援是在正式接線時再做欄位 schema 遷移；目前先隱藏舊欄位，換取回溯相容。
 - **安全與成本**：沒有資料寫入、外部 API、新依賴、付費操作或正式服務異動；v55 仍是 `.gitignore` 內的本機視覺原型。
 - **TDD 證據**：六頁結構契約先在 v54 抓到 7 頁／`07` 頁碼；簡潔敘事契約先抓到四個舊長標題；圖示分配契約先得到空陣列。三個垂直切片各自紅→綠。最終 14 項原型契約全部通過。
-- **完整測試**：隔離分支 `PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 176.51s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **完整測試**：隔離分支為 `739 passed, 16 deselected, 1 warning in 176.51s`；fast-forward 合回 `main` 後重跑為 `739 passed, 16 deselected, 1 warning in 221.51s`。唯一 warning 是既有 Starlette／httpx 棄用提醒。
 - **視覺 QA**：第一輪抓到沿用四欄造成卡片過小與第二列大片空白，改為 3×2。最終又以長公司名壓力契約抓到三行裁切，改為 `7.2cqw` 加底部字形安全內距；第 4 頁間距契約由未校準的絕對 px 改成已知 220px 合格版校準出的比例。最終 375px 為 `scrollWidth=clientWidth=375`、六頁均 `overflow:false`、console 0 errors／0 warnings。截圖為 `.screenshots/six-page-narrative-final-desktop.png` 與 `.screenshots/six-page-narrative-final-mobile.png`。
 - **剩餘限制**：目前仍是核可用原型，尚未接入自動產圖 Renderer。正式接線時需同步調整生成提示詞、六頁資料契約與 PNG 長文字壓力測試，之後才能讓工具真正逐頁產出這個版型。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-26-six-page-carousel-narrative-design.md`、`docs/superpowers/plans/2026-08-26-six-page-carousel-narrative.md`。
