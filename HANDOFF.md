@@ -24,6 +24,9 @@
 - **CTA 舊草稿相容**：現有 `CarouselDraft` 仍會提供 `cta.heading` 與第一段收束結論；原型先保留這兩個 `data-content-key` 但隱藏，不讓舊草稿載入失敗。正式 Renderer 接線時應把社群帳號改由系列品牌設定注入，並決定是否正式移除不再顯示的生成欄位，避免讓 AI 長期產生無用內容。
 - **本輪 TDD 與視覺 QA**：密度契約先在 v39 因缺少 `tight-three-four` 標記失敗；CTA 契約先在 v40 因缺少 `social-account` 失敗；第二輪再以實測 21.35% 的提問至行動列空洞建立失敗門檻，最後加入公司名稱／產業／最想知道的問題三個通用留言提示。v43 的內容 schema、直角密度、便利貼系統、材質、第 3／4 頁密度與 CTA 契約皆通過；375px 無水平破版，console 0 errors／0 warnings。最終截圖為 `.screenshots/cta-density-approved-desktop.png` 與 `.screenshots/cta-density-approved-mobile.png`。
 - **完整測試**：第一次全套為 `738 passed, 1 failed, 16 deselected`，失敗是既有模板編輯器版本儲存瀏覽器流程在 60 秒內未更新下拉值；同一流程單獨重跑為 `1 passed in 19.77s`。未修改測試或正式程式後，第二次完整套件為 `739 passed, 16 deselected, 1 warning in 265.50s`；唯一 warning 仍是既有 Starlette／httpx 棄用提醒。
+- **置中 CTA 修正**：使用者否決 v43 的帳號卡、提問卡、提示膠囊與底部行動列。v45 將第 7 頁簡化為紙張正中央三句：「喜歡這類內容嗎？」、「追蹤 @社群帳號」、「下一間想看哪家公司？留言告訴我們。」；只有帳號是品牌欄位，四個舊 `cta` 生成欄位全部隱藏作相容用途。右下角色與頁碼保留。
+- **置中 CTA TDD 與 QA**：新契約先在 v43 以 `missing centered-copy CTA marker` 失敗；移除三個內容面後，便利貼系統與材質契約由 29 面更新為 26 面，並以 v43 紅、v44 綠校準。第一輪截圖抓到字級只佔畫布寬 2.45%–6.1%、不像主視覺，再新增字級比例契約並於 v45 放大。最終 CTA 垂直中心偏差為 0、舊 CTA 區塊數 0、console 0 errors／0 warnings；截圖為 `.screenshots/cta-centered-final-desktop.png` 與 `.screenshots/cta-centered-final-mobile.png`。
+- **置中 CTA 完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 255.51s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 

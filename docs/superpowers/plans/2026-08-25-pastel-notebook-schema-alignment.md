@@ -114,3 +114,18 @@
 - [x] **Step 3: 寫純社群 CTA 契約，在 v40 確認舊結論結構失敗。**
 - [x] **Step 4: 改成帳號、內容承諾、讀者問題與三個行動；隱藏舊生成欄位維持相容。**
 - [x] **Step 5: 依截圖量出 CTA 空洞，加入留言提示並完成桌機／手機複驗。**
+
+### Task 7: 移除 CTA 區塊並改為置中短句
+
+**Files:**
+- Modify: `.superpowers/brainstorm/3440-1787701682/content/social-cta-contract.py`
+- Modify: `.superpowers/brainstorm/3440-1787701682/content/sticky-note-system-contract.py`
+- Modify: `.superpowers/brainstorm/3440-1787701682/content/sticky-material-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-45.html`
+- Modify: `HANDOFF.md`
+
+- [x] **Step 1: 將 CTA 契約改為 2–3 句置中文字、零舊區塊，並在 v43 確認失敗。**
+- [x] **Step 2: 移除帳號卡、提問卡、提示膠囊與行動列，保留四個隱藏舊欄位。**
+- [x] **Step 3: 將便利貼表面契約由 29 面更新為前六頁 26 面，以 v43 紅、v44 綠校準。**
+- [x] **Step 4: 依第一輪截圖建立 CTA 最小字級比例契約，於 v45 放大三層文字。**
+- [x] **Step 5: 完成桌機／手機第二輪截圖、console 與全套契約驗收。**
