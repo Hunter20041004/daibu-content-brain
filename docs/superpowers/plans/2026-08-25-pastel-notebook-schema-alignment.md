@@ -129,3 +129,18 @@
 - [x] **Step 3: 將便利貼表面契約由 29 面更新為前六頁 26 面，以 v43 紅、v44 綠校準。**
 - [x] **Step 4: 依第一輪截圖建立 CTA 最小字級比例契約，於 v45 放大三層文字。**
 - [x] **Step 5: 完成桌機／手機第二輪截圖、console 與全套契約驗收。**
+
+### Task 8: 問題頁敘事與跨頁內容密度
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/problem-story-layout-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/narrative-density-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-48.html`
+- Modify: `HANDOFF.md`
+
+- [x] **Step 1: 寫第 3 頁左右背景／因果鏈契約，在 v45 確認舊三柱版失敗。**
+- [x] **Step 2: 將第 3 頁改為左側背景、右側三段縱向因果，角色移到標題區。**
+- [x] **Step 3: 寫第 2–6 頁故事角色、最低字數與內容面溢位契約，在 v46 確認失敗。**
+- [x] **Step 4: 以同一條公司介紹敘事重寫第 2–6 頁長文 fixture，維持既有正式欄位鍵。**
+- [x] **Step 5: 依第一輪截圖新增正文最小字級比例契約，放大第 4、6 頁正文並縮減內距。**
+- [x] **Step 6: 完成桌機／手機第二輪截圖、九項原型契約與 console 驗收。**

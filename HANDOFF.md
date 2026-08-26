@@ -27,6 +27,11 @@
 - **置中 CTA 修正**：使用者否決 v43 的帳號卡、提問卡、提示膠囊與底部行動列。v45 將第 7 頁簡化為紙張正中央三句：「喜歡這類內容嗎？」、「追蹤 @社群帳號」、「下一間想看哪家公司？留言告訴我們。」；只有帳號是品牌欄位，四個舊 `cta` 生成欄位全部隱藏作相容用途。右下角色與頁碼保留。
 - **置中 CTA TDD 與 QA**：新契約先在 v43 以 `missing centered-copy CTA marker` 失敗；移除三個內容面後，便利貼系統與材質契約由 29 面更新為 26 面，並以 v43 紅、v44 綠校準。第一輪截圖抓到字級只佔畫布寬 2.45%–6.1%、不像主視覺，再新增字級比例契約並於 v45 放大。最終 CTA 垂直中心偏差為 0、舊 CTA 區塊數 0、console 0 errors／0 warnings；截圖為 `.screenshots/cta-centered-final-desktop.png` 與 `.screenshots/cta-centered-final-mobile.png`。
 - **置中 CTA 完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 255.51s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **第 3 頁敘事重排**：v48 不再使用「上方兩格＋下方三根長柱」。左欄先交代誰受影響與原本代價，右欄由上往下排列問題出現、摩擦累積、形成代價；角色移到標題區，避免蓋住因果內容。`problem-story-layout-contract.py` 先在 v45 以缺少 `context-chain` 正確失敗，再鎖住左右關係、三節點順序、等寬與零重疊。
+- **第 2–6 頁內容密度與連貫性**：頁面角色固定為 `identity → problem → mechanism → outcome → proof`，示範文字不再是單行欄位說明，而是可連續閱讀的公司介紹。可見正式欄位字數由原本第 2–6 頁 `62／74／81／84／93` 提高為 `138／226／229／242／249`；量測直接加總可見 `data-content-key` 文字，不含標籤、角色與隱藏 CTA。
+- **密度 TDD 與視覺 QA**：`narrative-density-contract.py` 先在 v46 因缺少故事流程標記失敗；v47 增加敘事後，第一輪截圖發現第 4、6 頁最低正文只有畫布寬 1.35%／1.45%，判定不能靠小字換密度。v48 將第 2–6 頁正文下限鎖在 1.55%，同步縮減卡片內距；九項原型契約通過、375px 無水平捲動、console 0 errors／0 warnings。最終截圖為 `.screenshots/narrative-density-final-desktop.png` 與 `.screenshots/narrative-density-final-mobile.png`。
+- **正式接線注意**：目前增加的是原型長文 fixture 與版面容量；正式 AI 生成器尚未被要求輸出這種篇幅與跨頁承接。正式 Renderer 接線時必須同步修改生成提示詞與驗證，讓第 3 頁承接第 2 頁的服務對象、第 4 頁逐項回答第 3 頁問題、第 5 頁對應第 4 頁機制、第 6 頁用證據支持第 5 頁結果，否則只換版型仍會得到薄而斷裂的貼文。
+- **敘事密度完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 264.81s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 
