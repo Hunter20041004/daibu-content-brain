@@ -13,6 +13,9 @@
 - **安全與成本**：沒有資料寫入、外部 API、新依賴、付費操作或正式服務異動；原型仍在 `.gitignore` 範圍。
 - **剩餘限制**：相容版目前只證明視覺原型可容納正式資料；正式 PNG 輸出尚未切換到此模板，後續需另案把 DOM、CSS、角色 SVG 與 layout registry 搬入正式 Renderer 並做長文字壓力測試。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-25-pastel-notebook-schema-alignment-design.md`、`docs/superpowers/plans/2026-08-25-pastel-notebook-schema-alignment.md`。
+- **直角密度迭代**：使用者指出空白過多、框線歪斜。最終 v35 將主要紙框、問題便條、AI 步驟、訊號、成果與結尾框全部回正；手帳感只保留在方格底、色紙、膠帶與角色。每頁最後一個主要內容模組延伸到畫布至少 74%，不把角色算成內容；第 5 頁摘要改為淡藍／淡黃實色色面，第 7 頁結論卡加高。
+- **量測校準**：第一次只量文字最後一行，無法辨識容器加高，已停止使用；正式契約改量每頁最後一個主要內容模組的底邊。v33 在 74% 新門檻下正確抓到第 1、2、6 頁不足，再調整轉綠。
+- **直角密度驗證**：v35 的直角密度、內容 schema、共用手帳外殼三項契約通過；375px 為 `scrollWidth=clientWidth=375`，可替換內容 0 個越出畫布，主要框旋轉數 0，console 0 errors／0 warnings。最終截圖為 `.screenshots/straight-dense-v35-desktop.png` 與 `.screenshots/straight-dense-v35-mobile.png`。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 

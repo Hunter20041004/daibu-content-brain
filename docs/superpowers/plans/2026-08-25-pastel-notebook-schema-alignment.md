@@ -45,3 +45,20 @@
 - [x] **Step 2: 列出不合格項並做最小 CSS 修正。**
 - [x] **Step 3: 重截第二輪，檢查 console、scrollWidth 與七頁內容鍵。**
 - [x] **Step 4: 將證據與剩餘限制寫回 `HANDOFF.md`。**
+
+### Task 3: 直角框線與內容密度
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/straight-density-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-straight-dense-35.html`
+- Modify: `HANDOFF.md`
+
+**Interfaces:**
+- Consumes: Task 2 的正式內容鍵與粉彩手帳外殼。
+- Produces: 主要框全數回正、主要內容延伸至畫布至少 74% 的原型。
+
+- [x] **Step 1: 寫主要框旋轉與內容模組高度的瀏覽器契約。**
+- [x] **Step 2: 在 v31 重現 22 個旋轉框及低密度頁面。**
+- [x] **Step 3: 回正紙框與資訊框，放大真實內容模組。**
+- [x] **Step 4: 修正第 2 頁窄欄越界，完成桌機與手機視覺迭代。**
+- [x] **Step 5: 驗證內容契約、手帳一致性、直角密度與瀏覽器 console。**
