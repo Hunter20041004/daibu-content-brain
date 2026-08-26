@@ -36,6 +36,11 @@
 - **視覺層資料安全**：`visual-storytelling-contract.py` 逐鍵比較 v48 與 v50 的全部 `data-content-key`，內容完全相同；視覺元素皆為 `aria-hidden`、留在各自畫布內，且沒有新增百分比或公司專屬圖像。第一輪截圖發現第 3 頁只有關聯線、沒有向下方向，第 4 頁箭頭像漂浮符號；v50 改成明確箭頭後完成第二輪。十項原型契約通過、console 0 errors／0 warnings；最終截圖為 `.screenshots/visual-story-final-desktop.png` 與 `.screenshots/visual-story-final-mobile.png`。
 - **選版狀態**：v48 是目前保留版，v50 是待使用者比較的視覺化候選。正式 Renderer、生成提示詞、SQLite 與正式站均未修改；使用者可選 v48、v50，或逐頁指定混合。
 - **視覺化候選完整測試**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` → `739 passed, 16 deselected, 1 warning in 263.43s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **逐頁細節精修**：v53 延續 v50 的圖解方向但不覆蓋 v48／v50。第 2 頁拉開標題與定位圖，第 3 頁把三個因果節點圓點精確對齊便利貼中心，第 4 頁收斂流程與補充敘事的間距，第 5 頁讓轉變箭頭避開便利貼黏膠層；第 2–6 頁正文行高統一至少 `1.3`，各頁標題重新分配寬度，避免短詞孤立成尾行。
+- **角色與 CTA 細節**：第一輪截圖發現把角色移出文字區後反而裁出畫布，因此契約新增「角色完整留在紙張內」；第 2–6 頁角色改置於右上安全區且不遮內容，第 1、7 頁分別留在右下作開場與 CTA 收尾。第 7 頁仍只有置中 2–3 句 CTA，沒有恢復任何內容卡。
+- **逐頁精修 TDD 與 QA**：`page-polish-contract.py` 先在 v50 因缺少逐頁精修標記失敗；v51 依幾何量測修正後，第一輪截圖抓到角色被裁切，再補邊界失敗案例並建立 v52；第二輪截圖再抓到第 2／4／6 頁標題斷行與第 7 頁角色位置不協調，最後建立 v53。十一項原型契約全數通過；375px 為 `scrollWidth=clientWidth=375`、七頁均無自身 overflow，console 0 errors／0 warnings。最終截圖為 `.screenshots/page-polish-approved-desktop.png` 與 `.screenshots/page-polish-approved-mobile.png`。
+- **目前候選狀態**：v48 保留長文基準、v50 保留第一個視覺化版本、v53 是逐頁細節完成的視覺化候選。三者皆為本機忽略原型，正式 Renderer、生成提示詞、SQLite 與正式站仍未修改。
+- **逐頁精修完整測試**：第一次全套在系統同時存在大量瀏覽器程序時出現 6 個 Streamlit 啟動／Runtime 連鎖超時，其餘 `733 passed`；六個失敗案例隔離重跑為 `6 passed in 52.82s`。關閉額外預覽瀏覽器後重新跑完整套件，結果為 `739 passed, 16 deselected, 1 warning in 596.71s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
 
 ## 2026-08-25 四套公司中立輪播模板原型
 

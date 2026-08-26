@@ -157,3 +157,16 @@
 - [x] **Step 3: 驗證視覺元素無障礙隱藏、沒有假百分比、沒有離開畫布。**
 - [x] **Step 4: 依第一輪截圖為第 3、4 頁加入明確箭頭，建立 v50。**
 - [x] **Step 5: 完成桌機／手機第二輪截圖、十項原型契約與 console 驗收。**
+
+### Task 10: 視覺化候選逐頁細節精修
+
+**Files:**
+- Create: `.superpowers/brainstorm/3440-1787701682/content/page-polish-contract.py`
+- Create: `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-sticky-53.html`
+- Modify: `HANDOFF.md`
+
+- [x] **Step 1: 寫角色避讓、標題間距、因果點、流程分組、箭頭與行高契約，在 v50 確認失敗。**
+- [x] **Step 2: 建立 v51，逐頁修正內容幾何、標題空間、圖解對齊與正文行高。**
+- [x] **Step 3: 依第一輪桌機／手機截圖補角色畫布邊界契約，在 v51 重現裁切並於 v52 修正。**
+- [x] **Step 4: 依第二輪截圖修正第 2／4／6 頁標題斷行與第 7 頁角色位置，建立 v53。**
+- [x] **Step 5: 完成第三輪桌機／手機截圖、十一項原型契約、手機 overflow 與 console 驗收。**
