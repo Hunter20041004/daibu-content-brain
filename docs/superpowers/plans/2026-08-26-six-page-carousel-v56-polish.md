@@ -387,7 +387,7 @@ playwright-cli console
 
 Expected: `scrollWidth == clientWidth == 375`、六頁 `overflow:false`、console 0 errors／0 warnings。
 
-- [ ] **Step 5: 文件、全測、合併與推送**
+- [x] **Step 5: 文件、全測、合併與推送**
 
 在 `HANDOFF.md` 新增 v56 的產品能力、使用者體驗、技術結構、資料流程、設計理由與備援、安全與成本、TDD 證據、視覺 QA、完整測試與剩餘限制。執行：
 

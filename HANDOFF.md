@@ -12,7 +12,7 @@
 - **安全與成本**：沒有外部 API、付費操作、資料寫入、新依賴或正式部署；v56 與契約仍在 `.gitignore` 內的本機原型資料夾。剩餘風險是極長公司名、真實 Logo 比例與生成文字長度，正式接線時仍需三公司以上壓力 fixture。
 - **TDD 證據**：文案契約先在 v55 抓到舊標題、舊摘要與三段 CTA；標題契約先抓到缺少 v56 marker；第 2 頁先量到定位圖與 Logo 僅 1px；第 3 頁先量到因果線位於欄間中心左側 1.91px、正文僅畫布寬 1.55%；第 4 頁先量到標題與流程間距僅 0.35%。第一輪視覺 QA 再以長標題行寬比抓到第 4 頁第二行過短（0.418），加上均衡換行後轉綠。
 - **原型驗證**：v56 文案、幾何、六頁結構、簡潔敘事、圖示分配、公司優先封面、逐頁精修、敘事密度、直角密度、便利貼系統、便利貼材質、第 3／4 頁密度、第 3 頁故事、社群 CTA，以及兩個 JS schema／手帳連續性契約全部通過。
-- **完整測試**：隔離分支執行 `PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q`，結果為 `739 passed, 16 deselected, 1 warning in 199.97s`；唯一 warning 是既有 Starlette／httpx 棄用提醒。
+- **完整測試**：隔離分支為 `739 passed, 16 deselected, 1 warning in 199.97s`；fast-forward 合回 `main` 後重跑為 `739 passed, 16 deselected, 1 warning in 223.29s`。唯一 warning 是既有 Starlette／httpx 棄用提醒。
 - **視覺 QA**：兩輪各完成 1280×800／375×812。最終層次、間距節奏、LINE Seed 字體、粉彩三色、左右基線與微動效皆合格；靜態原型不涉及載入／錯誤／空資料狀態。375px 為 `scrollWidth=clientWidth=375`、六頁均 `overflow:false`、console 0 errors／0 warnings。截圖：`.screenshots/v56-polish-final-desktop.png`、`.screenshots/v56-polish-final-mobile.png`。
 - **剩餘限制**：v56 仍是本機核可原型，尚未接入正式自動產圖。下一輪接線需同步調整生成提示詞、正式六頁資料契約、Renderer 與 PNG 長文字壓力測試。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-26-six-page-carousel-v56-polish-design.md`、`docs/superpowers/plans/2026-08-26-six-page-carousel-v56-polish.md`。
