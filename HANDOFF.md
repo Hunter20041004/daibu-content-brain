@@ -2,6 +2,18 @@
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 
+## 2026-08-25 粉彩手帳原型對齊現有自動產圖內容契約
+
+- **產品能力**：保留使用者核可的粉彩手帳視覺與四種手繪呆一布動作，將七頁所有內容槽改為現有 `CarouselDraft` 的正式欄位；不用修改 AI 生成器就能在下一輪搬入正式 Renderer。
+- **逐頁對照**：封面為定位／產業，公司檔案為白話定位／基本資料，問題頁為兩段敘事＋三節點問題鏈，AI 解法為四段敘事＋三節點流程，成果頁為三段敘事＋三節點前後對照，關注頁為三個訊號＋證據限制＋三節點圖解，結尾為結論／問題／互動邀請。
+- **重要修正**：第 5 頁由工具沒有提供的商業模式改為 `results` 使用前後；第 6 頁移除必須有百分比的假設。原型不再出現 `BUSINESS MODEL`、收入來源、成長飛輪或 `XX%`。
+- **技術結構**：新版為 `.superpowers/brainstorm/3440-1787701682/content/company-neutral-seven-pages-schema-aligned-31.html`；每個可替換文字以正式 `data-content-key` 標記，`schema-aligned-contract.js` 對齊 `daibu/cards/pages.py` 與圖解節點欄位。正式模板、Renderer、提示詞與 SQLite 未修改。
+- **TDD 證據**：新契約先在 v30 以 `missing page.cover.heading` 正確失敗；重綁後內容契約與共用手帳外殼契約均通過。過時的 `seven-pages-contract.js` 仍要求舊展示假字「問題一」，不再作為 v31 的驗收契約。
+- **視覺 QA**：完成三輪桌機／手機檢查；第一輪修正 favicon 404，最終 375px 為 `scrollWidth=clientWidth=375`，七頁共 63 個正式內容元素全部位於各自 4:5 畫布內，console 0 errors／0 warnings。最終截圖為 `.screenshots/schema-aligned-final-desktop.png` 與 `.screenshots/schema-aligned-final-mobile.png`。
+- **安全與成本**：沒有資料寫入、外部 API、新依賴、付費操作或正式服務異動；原型仍在 `.gitignore` 範圍。
+- **剩餘限制**：相容版目前只證明視覺原型可容納正式資料；正式 PNG 輸出尚未切換到此模板，後續需另案把 DOM、CSS、角色 SVG 與 layout registry 搬入正式 Renderer 並做長文字壓力測試。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-25-pastel-notebook-schema-alignment-design.md`、`docs/superpowers/plans/2026-08-25-pastel-notebook-schema-alignment.md`。
+
 ## 2026-08-25 四套公司中立輪播模板原型
 
 - **產品能力**：新增四套彼此獨立、各七頁的公司介紹輪播原型：粉彩手帳、Y2K 科技拼貼、奇幻世界觀、暖紙感 3D 資訊圖解。比較器可切換三家公司、七頁，以及逐套／同頁比較模式。
