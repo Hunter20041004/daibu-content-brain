@@ -1601,6 +1601,16 @@ def test_selecting_adopted_idea_marks_it_and_requests_editor_scroll(
     assert f'id="adopted-editor-{selected_id}"' in scroll_markup
     assert 'data-scroll-requested="true"' in scroll_markup
     assert iframe_calls[-1]["height"] == 1
+    iframe_call_count = len(iframe_calls)
+
+    app.run()
+
+    assert len(iframe_calls) == iframe_call_count
+    settled_markup = " ".join(
+        markdown.value for markdown in app.markdown
+        if f"adopted-editor-{selected_id}" in markdown.value
+    )
+    assert 'data-scroll-requested="true"' not in settled_markup
 
 
 def test_writing_stage_hides_earlier_research_and_candidate_tools(
@@ -3273,6 +3283,58 @@ def test_explicit_research_refreshes_instead_of_reusing_the_snapshot(
     ).click().run()
 
     assert seen_reuse == [False]
+
+
+def test_failed_explicit_research_closes_status_and_keeps_existing_work(
+    tmp_path,
+    monkeypatch,
+):
+    from daibu.cards import research_draft
+    from tests.card_fixtures import carousel_draft
+
+    path = tmp_path / "t.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(path))
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 1))
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("重新研究失敗", "採用角度", "", company="ElevenLabs"),
+        status="採用",
+    )
+    original = carousel_draft()
+    db.save_researched_draft(conn, idea_id, original)
+
+    class Provider:
+        def generate_carousel_text(self, _prompt):
+            return ""
+
+    def fail(*_args, **_kwargs):
+        raise base.LLMResponseError("raw response must stay hidden")
+
+    monkeypatch.setattr(base, "get_provider", lambda _config: Provider())
+    monkeypatch.setattr(research_draft, "generate", fail)
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    cached_images = (b"page-one", b"page-two")
+    app.session_state[f"carousel-png-{idea_id}"] = cached_images
+    next(
+        button for button in app.button
+        if button.label == "確認重新搜尋"
+    ).click().run()
+
+    failed_status = next(
+        status for status in app.status
+        if status.label == "公司資料查證未完成"
+    )
+    assert failed_status.icon == ":material/error:"
+    assert failed_status.proto.expanded is False
+    assert db.get_idea_sources(conn, idea_id) == original.sources
+    assert db.get_carousel_draft(conn, idea_id) == original
+    assert app.session_state[f"carousel-png-{idea_id}"] == cached_images
+    rendered_error = " ".join(error.value for error in app.error)
+    assert "原本來源、草稿與圖片仍保留" in rendered_error
+    assert "raw response must stay hidden" not in rendered_error
 
 
 def test_carousel_logo_block_explains_missing_asset_and_disables_render(

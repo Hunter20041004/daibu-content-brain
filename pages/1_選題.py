@@ -1873,14 +1873,19 @@ with candidate_column:
                             key=f"research-carousel-again-{idea.id}",
                             width="stretch",
                         ):
+                            refresh_research_status = None
                             try:
                                 provider = base.get_provider(provider_config)
                                 with st.status(
                                     "正在重新查證公司資料…",
                                     expanded=True,
-                                ) as research_status:
-                                    research_status.write("搜尋可信網域")
-                                    research_status.write("驗證文章與逐字證據")
+                                ) as refresh_research_status:
+                                    refresh_research_status.write(
+                                        "搜尋可信網域"
+                                    )
+                                    refresh_research_status.write(
+                                        "驗證文章與逐字證據"
+                                    )
                                     carousel_research_draft.generate(
                                         conn,
                                         idea,
@@ -1894,7 +1899,7 @@ with candidate_column:
                                         provider.generate_carousel_text,
                                         reuse_existing_sources=False,
                                     )
-                                    research_status.update(
+                                    refresh_research_status.update(
                                         label="查證證據與六頁草稿已換新",
                                         state="complete",
                                         expanded=False,
@@ -1917,6 +1922,12 @@ with candidate_column:
                                 RuntimeError,
                                 ValueError,
                             ) as error:
+                                if refresh_research_status is not None:
+                                    refresh_research_status.update(
+                                        label="公司資料查證未完成",
+                                        state="error",
+                                        expanded=False,
+                                    )
                                 st.error(
                                     "重新搜尋失敗，原本來源、草稿與圖片仍保留。"
                                     f"請稍後重試；原因：{error}"

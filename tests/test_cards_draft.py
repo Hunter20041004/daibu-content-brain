@@ -132,6 +132,8 @@ def test_generate_replaces_model_cta_with_fixed_brand_copy(tmp_path):
     )
 
     assert result.pages[-1].sections[0].text == pages.CTA_TEXT
+    assert result.pages[-1].sections[0].source_ids == ()
+    assert result.pages[-1].sections[0].evidence_quotes == ()
     assert db.get_carousel_draft(conn, idea_id) == result
     conn.close()
 
@@ -193,6 +195,51 @@ def test_generate_retries_once_with_validation_feedback(tmp_path):
     assert result == valid
     assert len(prompts) == 2
     assert "人仍負責 是事實區塊，必須附來源" in prompts[1]
+    conn.close()
+
+
+@pytest.mark.parametrize(
+    "provider_error",
+    [
+        base.LLMTimeoutError("timeout"),
+        base.LLMQuotaError("quota"),
+        base.LLMUnavailableError("unavailable"),
+    ],
+)
+def test_provider_failures_are_not_retried_or_persisted(
+    tmp_path,
+    provider_error,
+):
+    from tests.card_fixtures import carousel_draft, verified_sources
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(
+            title="t",
+            angle="a",
+            source_url="https://example.com/a",
+            company="ElevenLabs",
+            source_excerpt=LONG_EXCERPT,
+        ),
+    )
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    original = carousel_draft()
+    db.save_carousel_draft(conn, idea_id, original)
+    calls = []
+
+    def fail(prompt_text: str) -> str:
+        calls.append(prompt_text)
+        raise provider_error
+
+    with pytest.raises(type(provider_error)) as raised:
+        draft.generate(conn, idea, verified_sources(), fail)
+
+    assert raised.value is provider_error
+    assert len(calls) == 1
+    assert db.get_carousel_draft(conn, idea_id) == original
     conn.close()
 
 

@@ -1,5 +1,18 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 已採用編輯定位與輪播回覆自救
+
+- **產品能力**：已採用清單會以「正在編輯｜…」標出目前項目；點擊任何已採用項目後，頁面送出一次性捲動請求，把對應正文編輯器帶進視窗。六頁輪播生成則由程式固定品牌 CTA，模型回覆若能解析但未通過頁序、字數、引用或逐字證據規則，會帶具體驗證問題完整重試一次。
+- **使用者體驗**：原本看似「按了沒用」的按鍵現在同時有可見選取狀態與定位結果。研究或第二次模型回覆仍失敗時，進度框會收合為「公司資料查證未完成」，並保留「既有內容沒有被刪除」的錯誤說明，不再留下像仍在查證的狀態。
+- **技術結構與資料流**：按鍵 → `selected_adopted_id` ＋ 一次性 `scroll_to_adopted_editor_id` → 專屬 anchor／1px Streamlit iframe → `scrollIntoView`；已查證來源 → 原始六頁 prompt → JSON decode → 程式化 CTA → grounded validation → 成功才寫 SQLite。第一次 decode／validation `ValueError` 會把最多 2,000 字的安全驗證訊息附回原 prompt 再生成一次；逾時、額度與 provider 例外不在此層重試。
+- **設計理由與備援**：主方案保留既有粉彩品牌與 Streamlit 元件，只加文字型 selected state 和既有捲動橋接，避免引入新前端相依。CTA 是品牌固定內容，不值得交給機率模型逐字猜。備援是把所有產品規則塞進 Gemini JSON schema；目前 schema 適合鎖資料形狀，但逐頁來源、逐字證據與跨欄位規則仍需應用程式驗證，因此採「嚴格驗證＋一次修復」較直接。
+- **安全與成本**：沒有 schema、資料遷移、新套件或付費模型；完整替代草稿驗證成功前不寫入 sources／draft／images。只有第一個模型回覆不合格時才多用一次既有免費額度，最多兩次，不會無限循環。品牌 CTA 會清除模型附帶的來源與引文，其他頁面錯誤仍必須通過驗證或重試。
+- **TDD 證據**：選取標示／scroll marker、固定 CTA、驗證回饋重試、第二次仍失敗、research status 與 1px 捲動橋接均先看到對應紅燈再轉綠。聚焦測試為 `tests/test_cards_draft.py` 9 passed，以及生成成功／失敗 AppTest 共 11 passed（含 cards tests）。
+- **真實邊界**：真實 Gemini 契約已改正舊七頁斷言。第一次全新執行時，第一個回覆被抓到標題過長與四個未附來源區塊，修復呼叫在 provider 端逾時；第二次全新執行通過，結果為 `1 passed in 45.10s`，並驗證六頁、固定 CTA、逐字引文與 SQLite 寫入。畫面仍寫約 10–40 秒，真實免費服務偶爾可能超過 40 秒或逾時，屬剩餘限制。
+- **視覺 QA**：第一輪 1280×800／375×812 抓到 iframe 自動高度造成手機版大空白，TDD 改為 1px 後第二輪通過。桌機從內容頂端捲動 671px、anchor 位於固定頁首下方約 68px；手機 `scrollWidth - clientWidth = 0`，selected 按鍵與編輯卡同時可見。層次、留白、LINE Seed 字體、單一主色、對齊、響應式、selected／focus／錯誤狀態與 reduced-motion 微動效全數合格。最終截圖：`.screenshots/round2-desktop.png`、`.screenshots/round2-mobile.png`。
+- **完整驗證**：隔離分支 `PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `725 passed, 16 deselected, 1 warning in 334.99s`；16 項是預設不打外網的既有 contract，唯一 warning 是既有 Starlette/httpx 棄用提醒。直接開多頁子路徑時 Streamlit 曾對錯誤相對 health URL 回 404，隨後正確根路徑 health 為 200；其餘 console warning 是 Streamlit iframe 的 Chromium feature-policy／sandbox 提示，沒有應用程式 exception。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-27-editor-scroll-and-carousel-recovery-design.md`、`docs/superpowers/plans/2026-08-27-editor-scroll-and-carousel-recovery.md`。
+
 ## 2026-08-27 正文自動儲存 SQLite 跨執行緒修正
 
 - **產品能力**：內容製作頁的正文 `on_change` callback 現在會在 callback 當下的 Streamlit ScriptRunner 執行緒建立專屬 SQLite connection，寫入後立即關閉；不再沿用上一次頁面執行建立的全域 `conn`。
