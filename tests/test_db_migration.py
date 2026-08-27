@@ -1,3 +1,5 @@
+import pytest
+
 from daibu import db
 from daibu.llm.base import Idea
 from daibu.models import CompanyEligibility, Source, Theme
@@ -598,6 +600,115 @@ def test_migration_adds_carousel_template_tables_idempotently(tmp_path):
         for row in indexes
     }
     assert ("theme_id", "version_no") in indexed_columns
+
+
+def test_v57_migration_removes_legacy_carousel_only_and_seeds_v3(tmp_path):
+    from tests.card_fixtures import carousel_draft
+
+    conn = db.connect(str(tmp_path / "v57.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+    )
+    idea_id = db.add_idea(
+        conn,
+        theme_id,
+        Idea("保留題目", "保留角度", "https://example.com/idea"),
+    )
+    db.save_idea_sources(conn, idea_id, carousel_draft().sources)
+    db.save_carousel_draft(conn, idea_id, carousel_draft())
+    conn.execute(
+        "UPDATE carousel_template_versions "
+        "SET schema_version = 2, layout_json = '{\"schema_version\":2}'"
+    )
+    conn.commit()
+    preserved_before = {
+        table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table}")]
+        for table in ("themes", "ideas", "idea_sources")
+    }
+
+    db._migrate_to_six_page_v57(conn)
+
+    assert conn.execute("SELECT COUNT(*) FROM carousel_pages").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM carousel_sources").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM carousel_drafts").fetchone()[0] == 0
+    assert {
+        row[0]
+        for row in conn.execute(
+            "SELECT schema_version FROM carousel_template_versions"
+        )
+    } == {3}
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_settings"
+    ).fetchone()[0] == 1
+    preserved_after = {
+        table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table}")]
+        for table in preserved_before
+    }
+    assert preserved_after == preserved_before
+
+
+def test_v57_migration_is_idempotent(tmp_path):
+    conn = db.connect(str(tmp_path / "v57-idempotent.db"))
+    db.init_schema(conn)
+    db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"))
+    db._seed_v3_template_versions(conn)
+    before = [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT theme_id, version_no, schema_version, layout_json "
+            "FROM carousel_template_versions"
+        )
+    ]
+
+    db._migrate_to_six_page_v57(conn)
+    db._migrate_to_six_page_v57(conn)
+
+    after = [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT theme_id, version_no, schema_version, layout_json "
+            "FROM carousel_template_versions"
+        )
+    ]
+    assert after == before
+
+
+def test_v57_migration_rolls_back_if_v3_seed_fails(tmp_path, monkeypatch):
+    conn = db.connect(str(tmp_path / "v57-rollback.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+    )
+    conn.execute(
+        """
+        INSERT INTO carousel_template_versions (
+            theme_id, version_no, schema_version, layout_json
+        ) VALUES (?, 1, 2, '{"schema_version":2}')
+        """,
+        (theme_id,),
+    )
+    conn.commit()
+    before = [
+        tuple(row)
+        for row in conn.execute("SELECT * FROM carousel_template_versions")
+    ]
+    monkeypatch.setattr(
+        db,
+        "_seed_v3_template_versions",
+        lambda _conn: (_ for _ in ()).throw(RuntimeError("seed failed")),
+    )
+
+    with pytest.raises(RuntimeError, match="seed failed"):
+        db._migrate_to_six_page_v57(conn)
+
+    after = [
+        tuple(row)
+        for row in conn.execute("SELECT * FROM carousel_template_versions")
+    ]
+    assert after == before
 
 
 def test_template_backfill_preserves_existing_carousel_content(tmp_path):

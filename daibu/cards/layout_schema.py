@@ -53,7 +53,7 @@ class LayoutDocument:
 
 
 def load_builtin_layout() -> LayoutDocument:
-    layout_path = Path(__file__).with_name("layouts") / "editorial-v15-1.json"
+    layout_path = Path(__file__).with_name("layouts") / "sticky-notebook-v1.json"
     return parse_layout(json.loads(layout_path.read_text(encoding="utf-8")))
 
 
@@ -132,7 +132,7 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
         unknown = sorted(str(item) for item in unknown_properties)[0]
         raise LayoutValidationError(None, f"版面含不允許的屬性：{unknown}")
     schema_version = value.get("schema_version")
-    if schema_version not in {1, 2}:
+    if schema_version != 3:
         raise LayoutValidationError(None, "不支援的 schema_version")
     registry = registry_for_schema(int(schema_version))
     raw_canvas = value.get("canvas")

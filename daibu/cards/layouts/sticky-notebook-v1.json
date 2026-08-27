@@ -1,0 +1,55 @@
+{
+  "schema_version": 3,
+  "canvas": {"width": 1080, "height": 1350},
+  "pages": {
+    "cover": {"elements": {
+      "company-logo": {"x": 300, "y": 220, "w": 480, "h": 220},
+      "company-name": {"x": 130, "y": 490, "w": 820, "h": 170, "font_size": 78, "text_align": "center"},
+      "positioning": {"x": 190, "y": 760, "w": 700, "h": 180, "font_size": 38, "text_align": "center"},
+      "mascot": {"x": 760, "y": 1000, "w": 260, "h": 260}
+    }},
+    "who": {"elements": {
+      "heading": {"x": 90, "y": 130, "w": 790, "h": 120, "font_size": 72, "text_align": "left"},
+      "logo": {"x": 90, "y": 350, "w": 250, "h": 250},
+      "positioning": {"x": 380, "y": 320, "w": 610, "h": 180, "font_size": 30, "text_align": "left"},
+      "facts": {"x": 380, "y": 530, "w": 610, "h": 180, "font_size": 30, "text_align": "left"},
+      "reason": {"x": 170, "y": 790, "w": 740, "h": 190, "font_size": 34, "text_align": "left"},
+      "mascot": {"x": 790, "y": 1020, "w": 210, "h": 210}
+    }},
+    "problem": {"elements": {
+      "heading": {"x": 80, "y": 130, "w": 800, "h": 120, "font_size": 72, "text_align": "left"},
+      "current": {"x": 70, "y": 350, "w": 300, "h": 270, "font_size": 27, "text_align": "left"},
+      "opportunity": {"x": 70, "y": 660, "w": 300, "h": 270, "font_size": 27, "text_align": "left"},
+      "spine": {"x": 390, "y": 350, "w": 12, "h": 610},
+      "stage-1": {"x": 440, "y": 320, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
+      "stage-2": {"x": 440, "y": 550, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
+      "stage-3": {"x": 440, "y": 780, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
+      "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
+    }},
+    "how-ai": {"elements": {
+      "heading": {"x": 80, "y": 130, "w": 800, "h": 120, "font_size": 72, "text_align": "left"},
+      "step-1": {"x": 70, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
+      "step-2": {"x": 400, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
+      "step-3": {"x": 730, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
+      "traditional": {"x": 70, "y": 710, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
+      "ai-role": {"x": 560, "y": 710, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
+      "human": {"x": 70, "y": 900, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
+      "difference": {"x": 560, "y": 900, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
+      "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
+    }},
+    "results": {"elements": {
+      "heading": {"x": 80, "y": 130, "w": 800, "h": 120, "font_size": 66, "text_align": "left"},
+      "audience": {"x": 80, "y": 285, "w": 920, "h": 130, "font_size": 27, "text_align": "left"},
+      "before": {"x": 65, "y": 465, "w": 300, "h": 300, "font_size": 26, "text_align": "center"},
+      "intervention": {"x": 390, "y": 465, "w": 300, "h": 300, "font_size": 26, "text_align": "center"},
+      "after": {"x": 715, "y": 465, "w": 300, "h": 300, "font_size": 26, "text_align": "center"},
+      "core-difference": {"x": 65, "y": 825, "w": 465, "h": 210, "font_size": 26, "text_align": "left"},
+      "value": {"x": 550, "y": 825, "w": 465, "h": 210, "font_size": 26, "text_align": "left"},
+      "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
+    }},
+    "cta": {"elements": {
+      "invitation": {"x": 120, "y": 390, "w": 840, "h": 420, "font_size": 64, "text_align": "center"},
+      "mascot": {"x": 790, "y": 1020, "w": 220, "h": 220}
+    }}
+  }
+}

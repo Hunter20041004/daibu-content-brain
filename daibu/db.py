@@ -406,6 +406,60 @@ def _backfill_carousel_template_metadata(
             (int(row["id"]), version.id, _now()),
         )
 
+
+def _seed_v3_template_versions(conn: sqlite3.Connection) -> None:
+    from daibu.cards.layout_schema import layout_to_mapping, load_builtin_layout
+
+    layout = load_builtin_layout()
+    layout_json = json.dumps(
+        layout_to_mapping(layout),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    theme_ids = [
+        int(row["id"])
+        for row in conn.execute("SELECT id FROM themes ORDER BY id")
+    ]
+    for theme_id in theme_ids:
+        cursor = conn.execute(
+            """
+            INSERT INTO carousel_template_versions (
+                theme_id, version_no, schema_version, layout_json
+            ) VALUES (?, 1, 3, ?)
+            """,
+            (theme_id, layout_json),
+        )
+        conn.execute(
+            """
+            INSERT INTO carousel_template_settings (theme_id, active_version_id)
+            VALUES (?, ?)
+            """,
+            (theme_id, int(cursor.lastrowid)),
+        )
+
+
+def _migrate_to_six_page_v57(conn: sqlite3.Connection) -> None:
+    """Replace legacy carousel state while preserving research and ideas."""
+    legacy = conn.execute(
+        """
+        SELECT 1
+        FROM carousel_template_versions
+        WHERE schema_version IN (1, 2)
+        LIMIT 1
+        """
+    ).fetchone()
+    if legacy is None:
+        return
+
+    with conn:
+        conn.execute("DELETE FROM carousel_drafts")
+        conn.execute("DELETE FROM carousel_pages")
+        conn.execute("DELETE FROM carousel_sources")
+        conn.execute("DELETE FROM carousel_template_settings")
+        conn.execute("DELETE FROM carousel_template_versions")
+        _seed_v3_template_versions(conn)
+
 def init_schema(conn: sqlite3.Connection) -> None:
     if _table_exists(conn, "themes") and _needs_legacy_migration(conn):
         try:
@@ -710,6 +764,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
         WHERE EXISTS (SELECT 1 FROM themes)
         """
     )
+    _migrate_to_six_page_v57(conn)
     _backfill_carousel_template_metadata(conn)
     conn.commit()
 
