@@ -1559,6 +1559,16 @@ def test_selecting_adopted_idea_marks_it_and_requests_editor_scroll(
     monkeypatch,
     tmp_path,
 ):
+    import streamlit as st
+
+    iframe_calls = []
+    original_iframe = st.iframe
+
+    def capture_iframe(*args, **kwargs):
+        iframe_calls.append(kwargs)
+        return original_iframe(*args, **kwargs)
+
+    monkeypatch.setattr(st, "iframe", capture_iframe)
     database_path = tmp_path / "app.db"
     monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
     conn = db.connect(str(database_path))
@@ -1590,6 +1600,7 @@ def test_selecting_adopted_idea_marks_it_and_requests_editor_scroll(
     )
     assert f'id="adopted-editor-{selected_id}"' in scroll_markup
     assert 'data-scroll-requested="true"' in scroll_markup
+    assert iframe_calls[-1]["height"] == 1
 
 
 def test_writing_stage_hides_earlier_research_and_candidate_tools(

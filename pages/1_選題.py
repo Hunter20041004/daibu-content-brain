@@ -1381,7 +1381,7 @@ with candidate_column:
                     </body>
                     </html>
                     """,
-                    height="content",
+                    height=1,
                     tab_index=-1,
                 )
         with st.expander(
