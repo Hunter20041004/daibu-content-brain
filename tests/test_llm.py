@@ -773,6 +773,16 @@ def test_carousel_parser_builds_a_validated_sourced_draft():
     assert draft.pages[0].source_label.startswith("來源：ElevenLabs")
 
 
+def test_carousel_parser_skips_bracket_in_model_preamble():
+    from tests.card_fixtures import structured_llm_response, verified_sources
+
+    raw = "模型備註：[以下是 JSON]\\n" + structured_llm_response()
+
+    draft = prompt.parse_carousel(raw, verified_sources())
+
+    assert len(draft.pages) == 6
+
+
 def test_carousel_decoder_reports_missing_required_page_fields():
     from tests.card_fixtures import verified_sources
 

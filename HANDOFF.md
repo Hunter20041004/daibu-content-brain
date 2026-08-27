@@ -1,5 +1,16 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 LLM 輪播 JSON 解析韌性修正
+
+- **產品能力**：輪播草稿解析器現在會從模型回覆中尋找第一個真正可解碼的 JSON 陣列；模型偶爾在 JSON 前加上含 `[` 的短前言時，仍能進入既有六頁與逐字引文驗證流程。
+- **使用者體驗**：可解析的模型回覆不會再因前言中的方括號直接顯示「LLM 回傳內容無法解析」；不合法、截斷或查證不完整的回覆仍會重試一次，失敗時保留既有內容，不寫入半成品。
+- **根因與修正**：舊版只取回覆第一個 `[`，若那是說明文字的一部分，`JSONDecoder.raw_decode` 會在真正陣列前失敗。新增共用 `_decode_json_array`，逐個候選陣列邊界嘗試 JSON 解碼；`parse_ideas` 與 `decode_carousel` 共用同一邏輯。
+- **TDD 證據**：新增 `tests/test_llm.py::test_carousel_parser_skips_bracket_in_model_preamble`；先以「模型備註：[以下是 JSON]」看到紅燈，再修正為綠燈。相關 `tests/test_llm.py`、`tests/test_cards_draft.py`、`tests/test_research_draft.py` 共 `76 passed`。
+- **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `730 passed, 16 deselected, 1 warning in 178.38s`。新增的一項是本輪解析回歸測試；唯一 warning 是既有 Starlette/httpx 棄用提醒。
+- **真實邊界**：以測試來源直接呼叫目前 Gemini，曾取得 `5,202` 字的 JSON 回覆；後續免費服務呼叫分別遇到 timeout／503，屬 provider 暫時性失敗，並非解析器吞錯。所有檢查都使用隔離資料，沒有寫入正式資料庫。
+- **安全與成本**：只修改 JSON 萃取共用函式與測試；沒有放寬頁序、字數、來源或逐字證據規則，沒有 schema、SQLite、搜尋 API、新套件或付費操作變更。
+- **待部署驗收**：程式碼通過全套測試後，需重啟既有 `io.daibu.content-brain`、確認 `/_stcore/health = 200`，再由正式內容製作頁驗收既有草稿與錯誤保留流程。
+
 ## 2026-08-27 Streamlit 查證錯誤圖示修正
 
 - **產品能力**：內容製作頁的 `st.status(..., state="error")` 現在會保留 Streamlit 原生 Material Symbols Rounded 圖示，不會再被品牌字體覆蓋成文字。
