@@ -98,7 +98,7 @@ def test_stale_revision_preserves_database(tmp_path):
     assert db.get_carousel_draft(conn, idea_id) == draft
 
 
-def test_save_preserves_required_company_subject(tmp_path):
+def test_save_accepts_a_concise_inner_heading(tmp_path):
     conn, _theme_id, idea_id, draft, asset = _saved_editor(tmp_path)
     metadata = db.get_carousel_draft_meta(conn, idea_id)
     values = editable_values(draft)
@@ -113,5 +113,5 @@ def test_save_preserves_required_company_subject(tmp_path):
         asset,
     )
 
-    assert "必須寫出 ElevenLabs" in result.issues[0].message
-    assert db.get_carousel_draft(conn, idea_id) == draft
+    assert not result.issues
+    assert db.get_carousel_draft(conn, idea_id).pages[3].heading == "如何處理內容"

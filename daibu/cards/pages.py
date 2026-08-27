@@ -4,7 +4,6 @@ PAGE_TYPES = (
     "problem",
     "how-ai",
     "results",
-    "why-care",
     "cta",
 )
 
@@ -18,18 +17,16 @@ MASCOT_FOR = {
     "problem": "think",
     "how-ai": "point",
     "results": "happy",
-    "why-care": "note",
     "cta": "wave",
 }
 
 SECTION_LABELS = {
-    "cover": ("一句話定位", "產業分類"),
-    "who": ("白話定位", "基本資料"),
-    "problem": ("誰受影響", "原本的代價"),
-    "how-ai": ("傳統做法", "AI 的角色", "人仍負責", "本頁要記住"),
-    "results": ("代表使用者", "使用前後", "購買關係"),
-    "why-care": ("觀察訊號 1", "觀察訊號 2", "證據限制"),
-    "cta": ("收束結論", "給讀者的問題", "互動邀請"),
+    "cover": ("一句話定位",),
+    "who": ("白話定位", "基本資料", "為什麼值得介紹"),
+    "problem": ("現在怎麼做", "哪裡還能更好"),
+    "how-ai": ("傳統做法", "AI 的角色", "人仍負責", "關鍵差別"),
+    "results": ("代表使用者", "核心差異", "帶來的價值"),
+    "cta": ("互動邀請",),
 }
 REQUIRED_SECTIONS = {
     page_type: set(labels)
@@ -39,20 +36,6 @@ SECTION_LABEL_SEQUENCES = {
     page_type: (labels,)
     for page_type, labels in SECTION_LABELS.items()
 }
-SECTION_LABEL_SEQUENCES["cta"] = (
-    SECTION_LABELS["cta"],
-    ("公司定位", "AI 的角色", "觀察重點", "互動邀請"),
-)
-REQUIRED_SECTIONS["cta"] = {"互動邀請"}
-SECTION_LABEL_SEQUENCES["why-care"] = (
-    SECTION_LABELS["why-care"],
-    (
-        "觀察訊號 1",
-        "觀察訊號 2",
-        "觀察訊號 3",
-        "證據限制",
-    ),
-)
 
 AI_ROLE_KINDS = {
     "ai-analyze",
@@ -65,7 +48,6 @@ DIAGRAM_FOR = {
     "problem": {"problem-chain"},
     "how-ai": AI_ROLE_KINDS,
     "results": {"before-after"},
-    "why-care": {"signals"},
 }
 
 LIMITS = {
@@ -78,12 +60,11 @@ LIMITS = {
 
 LABELS = {
     "cover": "封面",
-    "who": "公司身分卡",
-    "problem": "它解決什麼問題",
-    "how-ai": "AI 在裡面扮演什麼角色",
-    "results": "誰會用、怎麼用",
-    "why-care": "接下來觀察什麼",
-    "cta": "收束與互動",
+    "who": "它在做什麼",
+    "problem": "它想優化什麼",
+    "how-ai": "AI 扮演什麼樣的角色",
+    "results": "它怎麼實際改善現有流程",
+    "cta": "追蹤呆一布",
 }
 
 

@@ -234,7 +234,7 @@ def test_generate_reports_invalid_json_after_exactly_one_llm_call(tmp_path):
     conn.close()
 
 
-def test_generate_rejects_pages_that_drop_the_company_as_subject(tmp_path):
+def test_generate_accepts_concise_inner_headings_without_repeating_company(tmp_path):
     from dataclasses import replace
 
     from tests.card_fixtures import (
@@ -257,20 +257,20 @@ def test_generate_rejects_pages_that_drop_the_company_as_subject(tmp_path):
         ),
     )
     idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
-    invalid = carousel_draft()
-    page_four = replace(invalid.pages[3], heading="AI 重建說話方式")
-    invalid = replace(
-        invalid,
-        pages=(*invalid.pages[:3], page_four, *invalid.pages[4:]),
+    concise = carousel_draft()
+    page_four = replace(concise.pages[3], heading="AI 扮演什麼樣的角色？")
+    concise = replace(
+        concise,
+        pages=(*concise.pages[:3], page_four, *concise.pages[4:]),
     )
 
-    with pytest.raises(base.LLMResponseError):
-        draft.generate(
-            conn,
-            idea,
-            verified_sources(),
-            lambda _text: structured_llm_response(invalid),
-        )
+    result = draft.generate(
+        conn,
+        idea,
+        verified_sources(),
+        lambda _text: structured_llm_response(concise),
+    )
 
-    assert db.get_carousel_draft(conn, idea_id) is None
+    assert result.pages[3].heading == "AI 扮演什麼樣的角色？"
+    assert db.get_carousel_draft(conn, idea_id) == result
     conn.close()

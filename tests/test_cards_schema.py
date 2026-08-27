@@ -5,14 +5,14 @@ import pytest
 from tests.card_fixtures import carousel_draft
 
 
-def test_complete_seven_page_draft_passes_the_content_contract():
+def test_complete_six_page_draft_passes_the_content_contract():
     from daibu.cards.schema import validate_draft
 
     draft = carousel_draft()
 
     validate_draft(draft)
 
-    assert len(draft.pages) == 7
+    assert len(draft.pages) == 6
     assert draft.pages[3].diagram.kind == "ai-generate"
 
 
@@ -22,33 +22,17 @@ def test_complete_fixture_passes_the_grounded_evidence_contract():
     validate_grounded_draft(carousel_draft())
 
 
-def test_pages_four_through_seven_must_name_the_company_in_the_heading():
-    from daibu.cards.schema import validate_company_headings
-
-    draft = carousel_draft()
-    pages = tuple(
-        replace(page, heading=f"ElevenLabs：{page.heading}")
-        if 4 <= page.page_no <= 7
-        else page
-        for page in draft.pages
-    )
-    pages = (*pages[:3], replace(pages[3], heading="AI 重建說話方式"), *pages[4:])
-
-    with pytest.raises(ValueError, match="第 4 頁標題必須寫出 ElevenLabs"):
-        validate_company_headings(replace(draft, pages=pages), "ElevenLabs")
-
-
-def test_new_cta_contract_closes_with_a_conclusion_and_reader_question():
+def test_cta_contract_is_the_approved_two_line_follow_message():
     from daibu.cards import pages
 
-    assert pages.SECTION_LABELS["cta"] == (
-        "收束結論",
-        "給讀者的問題",
-        "互動邀請",
+    assert pages.SECTION_LABELS["cta"] == ("互動邀請",)
+    cta = carousel_draft().pages[-1]
+    assert cta.sections[0].text == (
+        "追蹤呆一布 AI 共學實驗室\n帶你看更多最新 AI 資訊"
     )
 
 
-def test_legacy_four_section_cta_remains_readable():
+def test_legacy_four_section_cta_is_rejected():
     from daibu.cards.schema import validate_draft
 
     draft = carousel_draft()
@@ -64,7 +48,8 @@ def test_legacy_four_section_cta_remains_readable():
         ),
     )
 
-    validate_draft(replace(draft, pages=(*draft.pages[:-1], legacy)))
+    with pytest.raises(ValueError, match="cta section 必須依固定順序"):
+        validate_draft(replace(draft, pages=(*draft.pages[:-1], legacy)))
 
 
 def test_draft_rejects_incomplete_source_metadata():
@@ -85,7 +70,7 @@ def test_draft_rejects_unknown_source_ids():
     bad_section = ContentSection("一句話定位", "內容", ("S404",))
     bad_page = replace(
         first_page,
-        sections=(bad_section, first_page.sections[1]),
+        sections=(bad_section,),
     )
 
     with pytest.raises(ValueError, match="不存在的來源"):
@@ -144,7 +129,7 @@ def test_grounded_draft_rejects_a_quote_absent_from_its_source():
         cover.sections[0],
         evidence_quotes=(EvidenceQuote("S1", "來源裡不存在"),),
     )
-    cover = replace(cover, sections=(unsupported, cover.sections[1]))
+    cover = replace(cover, sections=(unsupported,))
 
     with pytest.raises(ValueError, match="查證引文不在 S1 原文"):
         validate_grounded_draft(
@@ -152,12 +137,12 @@ def test_grounded_draft_rejects_a_quote_absent_from_its_source():
         )
 
 
-def test_draft_requires_all_seven_pages_in_order():
+def test_draft_requires_all_six_pages_in_order():
     from daibu.cards.schema import validate_draft
 
     draft = carousel_draft()
 
-    with pytest.raises(ValueError, match="固定順序包含七頁"):
+    with pytest.raises(ValueError, match="固定順序包含六頁"):
         validate_draft(replace(draft, pages=draft.pages[:-1]))
 
 
@@ -199,7 +184,7 @@ def test_draft_rejects_blank_required_section_text():
     draft = carousel_draft()
     cover = draft.pages[0]
     blank = replace(cover.sections[0], text=" \n ")
-    cover = replace(cover, sections=(blank, cover.sections[1]))
+    cover = replace(cover, sections=(blank,))
 
     with pytest.raises(ValueError, match="cover 一句話定位 內容不可空白"):
         validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
@@ -286,6 +271,7 @@ def test_draft_allows_a_shorter_grounded_inner_page():
         sections=(
             replace(who_page.sections[0], text="只寫有原文支持的公司定位。"),
             replace(who_page.sections[1], text="公開資料不足，不為湊字數補造。"),
+            replace(who_page.sections[2], text="只說明有證據支持的介紹理由。"),
         ),
     )
 
@@ -298,7 +284,7 @@ def test_draft_requires_sources_for_factual_sections():
     draft = carousel_draft()
     cover = draft.pages[0]
     unsourced = ContentSection("一句話定位", "AI 語音公司", ())
-    cover = replace(cover, sections=(unsourced, cover.sections[1]))
+    cover = replace(cover, sections=(unsourced,))
 
     with pytest.raises(ValueError, match="一句話定位 是事實區塊，必須附來源"):
         validate_draft(replace(draft, pages=(cover, *draft.pages[1:])))
@@ -312,7 +298,7 @@ def test_draft_rejects_external_or_investment_calls_to_action():
     external = ContentSection("互動邀請", "現在就註冊試用。", ())
     cta = replace(cta, sections=(*cta.sections[:-1], external))
 
-    with pytest.raises(ValueError, match="第 7 頁只能邀請按讚或追蹤"):
+    with pytest.raises(ValueError, match="第 6 頁只能邀請按讚或追蹤"):
         validate_draft(replace(draft, pages=(*draft.pages[:-1], cta)))
 
 
@@ -329,11 +315,6 @@ def test_page_mapping_uses_verified_sources_to_build_the_source_label():
                 {
                     "label": "一句話定位",
                     "text": "內容",
-                    "source_ids": ["S1"],
-                },
-                {
-                    "label": "產業分類",
-                    "text": "語音",
                     "source_ids": ["S1"],
                 },
             ],
@@ -360,13 +341,6 @@ def test_page_mapping_derives_source_ids_from_evidence_quotes():
                 {
                     "label": "一句話定位",
                     "text": "內容",
-                    "evidence_quotes": [
-                        {"source_id": "S1", "quote": quote},
-                    ],
-                },
-                {
-                    "label": "產業分類",
-                    "text": "語音",
                     "evidence_quotes": [
                         {"source_id": "S1", "quote": quote},
                     ],
@@ -410,7 +384,6 @@ def test_draft_reports_all_validation_errors_in_one_review():
         draft.pages[0],
         sections=(
             ContentSection("一句話定位", "內容", ()),
-            ContentSection("產業分類", "語音", ()),
         ),
     )
     who = draft.pages[1]
@@ -429,7 +402,6 @@ def test_draft_reports_all_validation_errors_in_one_review():
 
     message = str(error.value)
     assert "一句話定位 是事實區塊，必須附來源" in message
-    assert "產業分類 是事實區塊，必須附來源" in message
     assert "who 文字最多 220 字" in message
     assert error.value.page_types == frozenset({"cover", "who"})
     assert error.value.has_global_issues is False

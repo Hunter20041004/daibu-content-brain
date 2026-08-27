@@ -29,7 +29,6 @@ def create(
     """Generate and validate a draft without mutating persistent state."""
     from daibu.cards.schema import (
         CarouselDraft,
-        validate_company_headings,
         validate_grounded_draft,
         validate_sources,
     )
@@ -50,7 +49,6 @@ def create(
     try:
         result = prompt.parse_carousel(raw, sources)
         validate_grounded_draft(result)
-        validate_company_headings(result, idea.company)
     except ValueError as error:
         raise base.LLMResponseError(raw) from error
     return result

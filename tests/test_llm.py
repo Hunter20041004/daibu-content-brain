@@ -337,7 +337,7 @@ def test_gemini_carousel_generation_requests_json_schema(monkeypatch):
     schema = config["response_json_schema"]
     assert config["response_mime_type"] == "application/json"
     assert config["thinking_config"] == {"thinking_level": "medium"}
-    assert schema["minItems"] == schema["maxItems"] == 7
+    assert schema["minItems"] == schema["maxItems"] == 6
     page_schema = schema["items"]
     assert page_schema["properties"]["page_type"]["enum"] == [
         "cover",
@@ -345,13 +345,12 @@ def test_gemini_carousel_generation_requests_json_schema(monkeypatch):
         "problem",
         "how-ai",
         "results",
-        "why-care",
         "cta",
     ]
     assert page_schema["properties"]["page_no"] == {
         "type": "integer",
         "minimum": 1,
-        "maximum": 7,
+        "maximum": 6,
     }
     section_schema = page_schema["properties"]["sections"]["items"]
     assert set(section_schema["required"]) == {
@@ -623,7 +622,19 @@ def test_carousel_prompt_limits_copy_to_verified_sources():
     assert "evidence_quotes" in text
     assert "quote 必須從對應 excerpt 逐字抄錄" in text
     assert "必須各有剛好 3 個 nodes" in text
-    assert "第 1、2、7 頁的 diagram 必須是 null" in text
+    assert "第 1、2、6 頁的 diagram 必須是 null" in text
+
+
+def test_carousel_prompt_requests_exact_six_page_story():
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel("Acme", "題目", "角度", verified_sources())
+
+    assert "剛好六頁" in text
+    assert "封面定位、公司輪廓、流程優化機會、AI 的角色、流程改善、社群 CTA" in text
+    assert "觀察訊號" not in text
+    assert "追蹤呆一布 AI 共學實驗室" in text
+    assert "帶你看更多最新 AI 資訊" in text
 
 
 def test_carousel_prompt_makes_cover_heading_a_grounded_curiosity_hook():
@@ -652,11 +663,11 @@ def test_carousel_prompt_states_the_exact_order_not_supported_by_gemini_schema()
         verified_sources(),
     )
 
-    assert "1 cover：一句話定位、產業分類" in text
-    assert "7 cta：收束結論、給讀者的問題、互動邀請" in text
+    assert "1 cover：一句話定位" in text
+    assert "6 cta：互動邀請" in text
     assert "應用程式會再逐項驗證頁序" in text
     assert '"page_no": 1, "page_type": "cover"' not in text
-    assert '"cover": ["一句話定位", "產業分類"]' not in text
+    assert '"cover": ["一句話定位"]' not in text
 
 
 def test_carousel_schema_uses_the_gemini_supported_array_subset():
@@ -667,14 +678,28 @@ def test_carousel_schema_uses_the_gemini_supported_array_subset():
     section = page["properties"]["sections"]["items"]
 
     assert "prefixItems" not in str(schema)
-    assert schema["minItems"] == schema["maxItems"] == 7
+    assert schema["minItems"] == schema["maxItems"] == 6
     assert section["required"] == ["label", "text", "evidence_quotes"]
     assert "source_id" in section["properties"]["evidence_quotes"]["items"][
         "properties"
     ]
 
 
-def test_carousel_prompt_checks_company_subject_and_verbatim_evidence():
+def test_carousel_json_schema_requires_six_pages():
+    from daibu.cards import pages as card_pages
+    from daibu.llm import gemini
+
+    schema = gemini.build_carousel_schema()
+
+    assert schema["minItems"] == 6
+    assert schema["maxItems"] == 6
+    assert schema["items"]["properties"]["page_type"]["enum"] == list(
+        card_pages.PAGE_TYPES
+    )
+    assert schema["items"]["properties"]["page_no"]["maximum"] == 6
+
+
+def test_carousel_prompt_checks_concise_headings_and_verbatim_evidence():
     from tests.card_fixtures import verified_sources
 
     text = prompt.build_carousel(
@@ -684,8 +709,8 @@ def test_carousel_prompt_checks_company_subject_and_verbatim_evidence():
         verified_sources(),
     )
 
-    assert "第 4–7 頁的 heading" in text
-    assert "ElevenLabs" in text
+    assert "第 2–5 頁 heading 要簡潔有力" in text
+    assert "不必反覆寫公司名" in text
     assert "事實都有逐字引句" in text
 
 

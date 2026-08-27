@@ -11,7 +11,6 @@ from daibu.cards.schema import (
     BrandAsset,
     CarouselDraft,
     DraftValidationError,
-    validate_company_headings,
     validate_draft,
 )
 
@@ -82,7 +81,7 @@ def save_editor_payload(
     company: str,
     brand_asset: BrandAsset | None,
 ) -> SaveResult:
-    """Validate all seven pages, then atomically save one content revision."""
+    """Validate all six pages, then atomically save one content revision."""
     metadata = db.get_carousel_draft_meta(conn, idea_id)
     if metadata is None:
         return SaveResult(
@@ -104,7 +103,6 @@ def save_editor_payload(
     try:
         edited = apply_editor_values(saved_draft, values)
         validate_draft(edited)
-        validate_company_headings(edited, company)
     except DraftValidationError as error:
         return SaveResult(
             error.draft,

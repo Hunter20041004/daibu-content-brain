@@ -98,6 +98,8 @@ def _source_label(
     sources: tuple[VerifiedSource, ...],
 ) -> str:
     used = {item for section in sections for item in section.source_ids}
+    if not used:
+        return ""
     dates_by_publisher: dict[str, list[str]] = {}
     for source in sorted(sources, key=lambda item: item.source_id):
         if source.source_id in used:
@@ -282,23 +284,6 @@ def validate_sources(sources: tuple[VerifiedSource, ...]) -> None:
         raise ValueError("\n".join(f"- {message}" for message in errors))
 
 
-def validate_company_headings(draft: CarouselDraft, company: str) -> None:
-    """Keep the company as the explicit subject on the closing four pages."""
-    normalized_company = "".join(company.split()).casefold()
-    if not normalized_company:
-        raise ValueError("公司名稱不可空白")
-    errors = []
-    for page in draft.pages:
-        if 4 <= page.page_no <= 7:
-            normalized_heading = "".join(page.heading.split()).casefold()
-            if normalized_company not in normalized_heading:
-                errors.append(
-                    f"第 {page.page_no} 頁標題必須寫出 {company.strip()}"
-                )
-    if errors:
-        raise ValueError("\n".join(f"- {message}" for message in errors))
-
-
 def validate_draft(draft: CarouselDraft) -> None:
     """Validate a structured carousel draft."""
     errors: list[tuple[str | None, str]] = []
@@ -314,7 +299,7 @@ def validate_draft(draft: CarouselDraft) -> None:
     expected = list(enumerate(pages.PAGE_TYPES, start=1))
     actual = [(page.page_no, page.page_type) for page in draft.pages]
     if actual != expected:
-        record("輪播必須依固定順序包含七頁")
+        record("輪播必須依固定順序包含六頁")
 
     known_sources = {source.source_id for source in draft.sources}
     for page in draft.pages:
@@ -364,7 +349,7 @@ def validate_draft(draft: CarouselDraft) -> None:
         elif page.page_type in pages.PAGE_TYPES and page.diagram is not None:
             record(f"{page.page_type} 不應放主圖解", page.page_type)
 
-        if page.page_type in pages.PAGE_TYPES[1:6]:
+        if page.page_type in pages.PAGE_TYPES[1:5]:
             count = narrative_chars(page)
             if count > pages.LIMITS["inner_max"]:
                 record(
@@ -386,11 +371,7 @@ def validate_draft(draft: CarouselDraft) -> None:
                     f"引用不存在的來源：{', '.join(sorted(unknown))}",
                     page.page_type,
                 )
-            may_be_unsourced = section.label in {
-                "互動邀請",
-                "證據限制",
-                "給讀者的問題",
-            }
+            may_be_unsourced = section.label == "互動邀請"
             if not section.source_ids and not may_be_unsourced:
                 record(
                     f"{section.label} 是事實區塊，必須附來源",
@@ -407,7 +388,7 @@ def validate_draft(draft: CarouselDraft) -> None:
             word in cta
             for word in ("試用", "註冊", "下載", "投資", "官網看看")
         ):
-            record("第 7 頁只能邀請按讚或追蹤", "cta")
+            record("第 6 頁只能邀請按讚或追蹤", "cta")
 
     if errors:
         raise DraftValidationError(draft, tuple(errors))
@@ -418,7 +399,7 @@ def validate_grounded_draft(draft: CarouselDraft) -> None:
     validate_draft(draft)
     sources = {source.source_id: source for source in draft.sources}
     errors: list[tuple[str | None, str]] = []
-    may_be_unsourced = {"互動邀請", "證據限制", "給讀者的問題"}
+    may_be_unsourced = {"互動邀請"}
 
     for page in draft.pages:
         for section in page.sections:

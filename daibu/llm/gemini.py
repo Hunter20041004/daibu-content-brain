@@ -80,16 +80,7 @@ def _diagram_schema() -> dict[str, object]:
 
 
 def build_carousel_schema() -> dict[str, object]:
-    labels_by_page = {
-        **carousel_pages.SECTION_LABELS,
-        "why-care": (
-            "觀察訊號 1",
-            "觀察訊號 2",
-            "觀察訊號 3",
-            "證據限制",
-        ),
-        "cta": ("收束結論", "給讀者的問題", "互動邀請"),
-    }
+    labels_by_page = carousel_pages.SECTION_LABELS
     labels = list(
         dict.fromkeys(
             label
@@ -99,8 +90,8 @@ def build_carousel_schema() -> dict[str, object]:
     )
     return {
         "type": "array",
-        "minItems": 7,
-        "maxItems": 7,
+        "minItems": 6,
+        "maxItems": 6,
         "items": {
             "type": "object",
             "required": [
@@ -111,7 +102,7 @@ def build_carousel_schema() -> dict[str, object]:
                 "diagram",
             ],
             "properties": {
-                "page_no": {"type": "integer", "minimum": 1, "maximum": 7},
+                "page_no": {"type": "integer", "minimum": 1, "maximum": 6},
                 "page_type": {
                     "type": "string",
                     "enum": list(carousel_pages.PAGE_TYPES),
