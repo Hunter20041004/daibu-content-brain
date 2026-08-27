@@ -28,11 +28,11 @@ def _saved_editor(tmp_path: Path):
     return conn, theme_id, idea_id, draft, brand_asset(logo_path)
 
 
-def test_layout_failure_rolls_back_all_seven_pages(tmp_path):
+def test_layout_failure_rolls_back_all_six_pages(tmp_path):
     conn, theme_id, idea_id, draft, asset = _saved_editor(tmp_path)
     bad_layout = replace_element(
         load_builtin_layout(),
-        "cover",
+        "who",
         "heading",
         h=24,
     )
@@ -40,7 +40,7 @@ def test_layout_failure_rolls_back_all_seven_pages(tmp_path):
     db.upgrade_carousel_template(conn, idea_id, version.id)
     before_meta = db.get_carousel_draft_meta(conn, idea_id)
     values = editable_values(draft)
-    values["page.cover.heading"] = "新封面標題"
+    values["page.who.heading"] = "新內頁標題"
 
     result = editor_service.save_editor_payload(
         conn,
@@ -53,8 +53,8 @@ def test_layout_failure_rolls_back_all_seven_pages(tmp_path):
 
     assert db.get_carousel_draft(conn, idea_id) == draft
     assert db.get_carousel_draft_meta(conn, idea_id) == before_meta
-    assert result.issues[0].page_type == "cover"
-    assert result.issues[0].field_key == "page.cover.heading"
+    assert result.issues[0].page_type == "who"
+    assert result.issues[0].field_key == "page.who.heading"
 
 
 def test_success_saves_all_changes_and_increments_revision(tmp_path):

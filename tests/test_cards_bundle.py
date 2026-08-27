@@ -7,8 +7,8 @@ import pytest
 from daibu.cards import bundle
 
 
-def test_zip_contains_seven_numbered_pages_in_order():
-    pngs = [f"png-{index}".encode() for index in range(7)]
+def test_zip_contains_six_numbered_pages_in_order():
+    pngs = [f"png-{index}".encode() for index in range(6)]
 
     archive = bundle.carousel_zip(pngs)
 
@@ -19,14 +19,13 @@ def test_zip_contains_seven_numbered_pages_in_order():
             "03-problem.png",
             "04-how-ai.png",
             "05-results.png",
-            "06-why-care.png",
-            "07-cta.png",
+            "06-cta.png",
         ]
         assert bundled.read("04-how-ai.png") == b"png-3"
 
 
 def test_zip_rejects_a_wrong_number_of_pages():
-    with pytest.raises(ValueError, match="七張"):
+    with pytest.raises(ValueError, match="六張"):
         bundle.carousel_zip([b"only-one"])
 
 

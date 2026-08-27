@@ -6,7 +6,7 @@ import streamlit as st
 
 CONTENT_HTML = """
 <div class="carousel-editor" data-role="editor-shell">
-  <nav data-role="page-rail" aria-label="七頁導覽"></nav>
+  <nav data-role="page-rail" aria-label="六頁導覽"></nav>
   <section data-role="field-panel"></section>
   <section data-role="preview"></section>
   <aside data-role="action-bar"></aside>
@@ -198,7 +198,7 @@ function renderEditor(root, data, state, actions) {
   root.dataset.role = "editor-shell";
   const rail = document.createElement("nav");
   rail.dataset.role = "page-rail";
-  rail.setAttribute("aria-label", "七頁導覽");
+  rail.setAttribute("aria-label", "六頁導覽");
   const form = document.createElement("section");
   form.dataset.role = "field-panel";
   const preview = document.createElement("section");

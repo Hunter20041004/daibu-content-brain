@@ -94,7 +94,7 @@ def test_hard_limit_marks_page_and_blocks_save_and_generation(tmp_path):
             expect(
                 editor.get_by_role("button", name="儲存全部變更")
             ).to_be_disabled()
-            expect(page.get_by_role("button", name="產生七張圖")).to_be_disabled()
+            expect(page.get_by_role("button", name="產生六張圖")).to_be_disabled()
             browser.close()
 
 
@@ -113,7 +113,7 @@ def test_legal_save_updates_database_and_keeps_current_page(tmp_path):
             ).fill("新的合法流程節點")
             editor.get_by_role("button", name="儲存全部變更").click()
 
-            expect(page.get_by_text("七頁變更已全部儲存。")).to_be_visible(
+            expect(page.get_by_text("六頁變更已全部儲存。")).to_be_visible(
                 timeout=15_000
             )
             editor = page.locator('[data-role="editor-shell"]')

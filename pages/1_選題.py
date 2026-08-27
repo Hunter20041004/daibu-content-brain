@@ -927,7 +927,7 @@ with candidate_column:
         elif just_completed_step == "write" and journey.current == "carousel":
             pose = "happy"
             coach_title = "正文存好了"
-            coach_message = "接著照輪播清單補齊資料，就能產出七張圖。"
+            coach_message = "接著照輪播清單補齊資料，就能產出六張圖。"
             coach_tone = "success"
         else:
             pose, coach_title, coach_message = coach_copy[journey.current]
@@ -1643,7 +1643,7 @@ with candidate_column:
                             'carousel-status--missing">'
                             f"<strong>還沒有 {html.escape(idea.company)} "
                             "的官方 Logo</strong>"
-                            "<p>草稿仍可產生；上傳 Logo 後才能輸出七張圖。</p>"
+                            "<p>草稿仍可產生；上傳 Logo 後才能輸出六張圖。</p>"
                             "</div>",
                             unsafe_allow_html=True,
                         )
@@ -1726,13 +1726,13 @@ with candidate_column:
                                     provider.generate_carousel_text,
                                 )
                                 research_status.update(
-                                    label="公司資料已查證，七頁草稿已產生",
+                                    label="公司資料已查證，六頁草稿已產生",
                                     state="complete",
                                     expanded=False,
                                 )
                             queue_toast(
                                 st.session_state,
-                                "七頁輪播草稿已產生。",
+                                "六頁輪播草稿已產生。",
                             )
                             st.rerun()
                         except (
@@ -1754,15 +1754,15 @@ with candidate_column:
                     )
                     if editor_state.request_regenerate:
                         st.info(
-                            "要覆蓋七頁內容，請再按下方「重新產生」裡的確認按鈕。"
+                            "要覆蓋六頁內容，請再按下方「重新產生」裡的確認按鈕。"
                         )
                     if editor_state.request_research:
                         st.info(
-                            "要換掉查證資料與七頁內容，請再按下方「重新搜尋公司資料」裡的確認按鈕。"
+                            "要換掉查證資料與六頁內容，請再按下方「重新搜尋公司資料」裡的確認按鈕。"
                         )
                     with st.popover("重新產生"):
                         st.caption(
-                            "會覆蓋目前的七頁內容，且無法復原；"
+                            "會覆蓋目前的六頁內容，且無法復原；"
                             "也會再使用一次免費 AI 額度。"
                         )
                         if st.button(
@@ -1773,7 +1773,7 @@ with candidate_column:
                             try:
                                 provider = base.get_provider(provider_config)
                                 with st.spinner(
-                                    "正在重新整理七頁輪播草稿…"
+                                    "正在重新整理六頁輪播草稿…"
                                 ):
                                     carousel_draft_service.generate(
                                         conn,
@@ -1787,7 +1787,7 @@ with candidate_column:
                                 )
                                 queue_toast(
                                     st.session_state,
-                                    "七頁輪播草稿已重新產生。",
+                                    "六頁輪播草稿已重新產生。",
                                 )
                                 st.rerun()
                             except (
@@ -1801,7 +1801,7 @@ with candidate_column:
                                 )
                     with st.popover("重新搜尋公司資料"):
                         st.caption(
-                            "會重新搜尋可信網域並覆蓋目前的查證證據與七頁草稿；"
+                            "會重新搜尋可信網域並覆蓋目前的查證證據與六頁草稿；"
                             "只有整套新資料成功時才會換掉舊版本。"
                         )
                         if st.button(
@@ -1831,7 +1831,7 @@ with candidate_column:
                                         reuse_existing_sources=False,
                                     )
                                     research_status.update(
-                                        label="查證證據與七頁草稿已換新",
+                                        label="查證證據與六頁草稿已換新",
                                         state="complete",
                                         expanded=False,
                                     )
@@ -1845,7 +1845,7 @@ with candidate_column:
                                 )
                                 queue_toast(
                                     st.session_state,
-                                    "公司資料與七頁草稿已重新查證。",
+                                    "公司資料與六頁草稿已重新查證。",
                                 )
                                 st.rerun()
                             except (
@@ -1868,9 +1868,9 @@ with candidate_column:
                     )
                 )
                 if editor_state is not None and editor_state.dirty:
-                    st.caption("先儲存七頁變更，再產生圖片。")
+                    st.caption("先儲存六頁變更，再產生圖片。")
                 if st.button(
-                    "產生七張圖",
+                    "產生六張圖",
                     key=f"render-carousel-{idea.id}",
                     disabled=render_disabled,
                     type=(
@@ -1898,7 +1898,7 @@ with candidate_column:
                         carousel_logo.InvalidBrandAsset,
                     ) as error:
                         st.error(
-                            "七張圖產生失敗，草稿與 Logo 都沒有被改動。"
+                            "六張圖產生失敗，草稿與 Logo 都沒有被改動。"
                             f"請依訊息修正後再試；原因：{error}"
                         )
                     else:
@@ -1923,7 +1923,7 @@ with candidate_column:
                 else:
                     cached_pngs = None
                 if cached_pngs is not None:
-                    st.markdown("#### 七張圖預覽")
+                    st.markdown("#### 六張圖預覽")
                     with st.container(
                         key=f"carousel-preview-grid-{idea.id}"
                     ):

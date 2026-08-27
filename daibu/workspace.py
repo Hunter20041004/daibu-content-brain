@@ -127,8 +127,8 @@ def carousel_checklist(
         ("company", "公司名稱", has_company),
         ("evidence", "這篇內容的查證證據", source_count > 0),
         ("logo", "官方 Logo", has_logo),
-        ("draft", "七頁草稿", has_draft),
-        ("images", "七張圖片", has_pngs),
+        ("draft", "六頁草稿", has_draft),
+        ("images", "六張圖片", has_pngs),
     )
     current_found = False
     items = []

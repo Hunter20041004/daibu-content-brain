@@ -65,7 +65,7 @@ def render_template_management(conn: sqlite3.Connection) -> TemplateManagementSt
         st.session_state[f"template-page-{theme.id}"]=event.request_page
         st.rerun()
     if event.save_payload:
-        with st.spinner("正在用三家公司與七頁內容檢查新版面…"):
+        with st.spinner("正在用三家公司與六頁內容檢查新版面…"):
             result=template_editor_service.save_template_version(conn,theme.id,int(event.save_payload.get("baseVersionId",0)),event.save_payload.get("layout",{}),stress_cases)
         if result.issues:
             for issue in result.issues[:8]: st.error(issue.message)

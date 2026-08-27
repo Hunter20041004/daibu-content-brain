@@ -33,15 +33,20 @@ _ELEMENT_FIELDS = {
     "heading": "heading",
     "positioning": "section.0.text",
     "facts": "section.1.text",
-    "caution": "section.2.text",
-    "before-title": "diagram.0.title",
-    "before-copy": "diagram.0.text",
-    "after-title": "diagram.2.title",
-    "after-copy": "diagram.2.text",
-    "summary": "section.2.text",
-    "thesis": "section.0.text",
-    "question": "section.1.text",
-    "invitation": "section.2.text",
+    "reason": "section.2.text",
+    "current": "section.0.text",
+    "opportunity": "section.1.text",
+    "traditional": "section.0.text",
+    "ai-role": "section.1.text",
+    "human": "section.2.text",
+    "difference": "section.3.text",
+    "audience": "section.0.text",
+    "core-difference": "section.1.text",
+    "value": "section.2.text",
+    "before": "diagram.0.text",
+    "intervention": "diagram.1.text",
+    "after": "diagram.2.text",
+    "invitation": "section.0.text",
 }
 
 
@@ -51,8 +56,6 @@ def _field_key(page_type: str, element_id: str) -> str:
         suffix = f"diagram.{int(element_id.removeprefix('stage-')) - 1}.text"
     if suffix is None and element_id.startswith("step-"):
         suffix = f"diagram.{int(element_id.removeprefix('step-')) - 1}.text"
-    if suffix is None and element_id.startswith("signal-"):
-        suffix = f"diagram.{int(element_id.removeprefix('signal-')) - 1}.text"
     return f"page.{page_type}.{suffix or 'heading'}"
 
 

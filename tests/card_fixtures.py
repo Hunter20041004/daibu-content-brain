@@ -215,9 +215,9 @@ def carousel_draft() -> CarouselDraft:
             DiagramSpec(
                 "before-after",
                 (
-                    DiagramNode("以前", "改字後重新排錄音與後製", "concerned"),
-                    DiagramNode("AI 介入", "先產生可聽、可修改版本", "think"),
-                    DiagramNode("現在", "人力集中在內容與品質", "happy"),
+                    DiagramNode("使用前", "改字後重新排錄音與後製", "concerned"),
+                    DiagramNode("產品介入", "先產生可聽、可修改版本", "think"),
+                    DiagramNode("使用後", "人力集中在內容與品質", "happy"),
                 ),
             ),
             "來源：ElevenLabs · 2026-07-12、2026-07-18；Verified News · 2026-07-20",
@@ -300,11 +300,6 @@ def company_stress_draft(company: str) -> CarouselDraft:
                     ("按需生成", "AI 先理解問題"),
                     ("直接生成", "音訊依你的問題出現"),
                 ),
-                "why-care": (
-                    ("訊號 1", "內容是否正確"),
-                    ("訊號 2", "脈絡使用是否透明"),
-                    ("訊號 3", "長時間收聽是否自然"),
-                ),
             },
         },
         "Billow AI Labs": {
@@ -355,11 +350,6 @@ def company_stress_draft(company: str) -> CarouselDraft:
                     ("AI 先整理", "標出異常線索"),
                     ("AI 原生服務", "專業時間回到審核解釋"),
                 ),
-                "why-care": (
-                    ("標準 1", "錯誤率是否可控"),
-                    ("標準 2", "每一步能否追溯"),
-                    ("標準 3", "最後由誰負責"),
-                ),
             },
         },
         "Shiraz AI": {
@@ -409,11 +399,6 @@ def company_stress_draft(company: str) -> CarouselDraft:
                     ("工程師編程", "新任務等待重新編程"),
                     ("示範一次", "AI 辨認任務模式"),
                     ("現場示範", "懂工序的人直接教機器人"),
-                ),
-                "why-care": (
-                    ("訊號 1", "一次示範成功率"),
-                    ("訊號 2", "安全與例外處理"),
-                    ("訊號 3", "跨任務是否可重複"),
                 ),
             },
         },

@@ -6,7 +6,6 @@ from types import MappingProxyType
 from typing import Mapping
 
 from daibu.cards.layout_registry import registry_for_schema
-from daibu.cards.layout_upgrade import normalize_layout_mapping
 
 
 CANVAS_WIDTH = 1080
@@ -126,7 +125,6 @@ def _finite_number(value: object, element_id: str, field: str) -> float:
 
 
 def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
-    value = normalize_layout_mapping(value)
     unknown_properties = set(value) - {"schema_version", "canvas", "pages"}
     if unknown_properties:
         unknown = sorted(str(item) for item in unknown_properties)[0]

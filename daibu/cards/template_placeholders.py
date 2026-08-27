@@ -16,23 +16,29 @@ _DIAGRAM_KIND = {
     "problem": "problem-chain",
     "how-ai": "ai-generate",
     "results": "before-after",
-    "why-care": "signals",
 }
 _DIAGRAM_ELEMENT_IDS = {
-    "problem": ("stage-1-label", "stage-2-label", "stage-3-label"),
-    "how-ai": ("step-1-label", "step-2-label", "step-3-label"),
-    "results": ("before-title", "to", "after-title"),
-    "why-care": ("signal-1-label", "signal-2-label", "signal-3-label"),
+    "problem": ("stage-1", "stage-2", "stage-3"),
+    "how-ai": ("step-1", "step-2", "step-3"),
+    "results": ("before", "intervention", "after"),
 }
 
 
 def build_template_placeholder_draft() -> CarouselDraft:
     built = []
     for page_no, page_type in enumerate(pages.PAGE_TYPES, start=1):
-        sequence_index = 1 if page_type == "why-care" else 0
-        labels = pages.SECTION_LABEL_SEQUENCES[page_type][sequence_index]
+        labels = pages.SECTION_LABEL_SEQUENCES[page_type][0]
         sections = tuple(
-            ContentSection(label, label, (), ())
+            ContentSection(
+                label,
+                (
+                    "追蹤呆一布 AI 共學實驗室\n帶你看更多最新 AI 資訊"
+                    if page_type == "cta"
+                    else label
+                ),
+                (),
+                (),
+            )
             for label in labels
         )
         diagram = None

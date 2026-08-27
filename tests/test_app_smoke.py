@@ -349,7 +349,7 @@ def test_candidate_comparison_shows_one_detail_at_a_time(
     db.add_idea(conn, theme_id, Idea("候選甲", "角度甲", ""))
     db.add_idea(conn, theme_id, Idea("候選乙", "角度乙", ""))
 
-    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=10)
 
     candidate_details = [
         markdown.value
@@ -1493,7 +1493,7 @@ def test_existing_copy_requires_confirmation_before_regeneration(
         )(),
     )
 
-    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=10)
 
     assert not any(
         button.label == "AI 幫我寫初稿" for button in app.button
@@ -1597,8 +1597,8 @@ def test_carousel_prerequisites_are_one_linear_checklist(
         "公司名稱",
         "這篇內容的查證證據",
         "官方 Logo",
-        "七頁草稿",
-        "七張圖片",
+            "六頁草稿",
+            "六張圖片",
     ):
         assert label in checklist
     assert checklist.count("carousel-checklist__item--current") == 1
@@ -1978,6 +1978,7 @@ def test_settings_page_only_keeps_system_settings(monkeypatch, tmp_path):
 
 def test_settings_reports_key_status(monkeypatch, tmp_path):
     monkeypatch.setenv("DAIBU_DB_PATH", str(tmp_path / "app.db"))
+    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
     for key_name in (
         "GEMINI_API_KEY",
         "GROQ_API_KEY",
@@ -2121,7 +2122,7 @@ def test_performance_form_clears_after_submit(monkeypatch, tmp_path):
     next(
         button for button in app.button
         if button.label == "儲存成效"
-    ).click().run()
+        ).click().run(timeout=10)
 
     values = {
         field.label: field.value
@@ -2721,16 +2722,16 @@ def test_adopted_idea_can_generate_a_carousel_draft(
             return structured_llm_response()
 
     monkeypatch.setattr(base, "get_provider", lambda _config: Provider())
-    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run(timeout=10)
     next(
         button for button in app.button
         if button.label == "產生輪播草稿"
-    ).click().run()
+    ).click().run(timeout=10)
 
     stored = db.get_carousel_draft(conn, idea_id)
     assert not app.exception
     assert stored is not None
-    assert len(stored.pages) == 7
+    assert len(stored.pages) == 6
 
 
 def test_company_research_can_generate_without_a_manual_source_pack(
@@ -2820,7 +2821,7 @@ def test_company_research_can_generate_without_a_manual_source_pack(
     )
 
 
-def test_saved_carousel_draft_shows_seven_editable_pages(
+def test_saved_carousel_draft_shows_six_editable_pages(
     tmp_path,
     monkeypatch,
 ):
@@ -2870,7 +2871,7 @@ def test_saved_carousel_draft_shows_seven_editable_pages(
     rendered = " ".join(block.value for block in app.markdown)
 
     assert not app.exception
-    assert len(captured["payload"]["pages"]) == 7
+    assert len(captured["payload"]["pages"]) == 6
     assert all(page["previewHtml"] for page in captured["payload"]["pages"])
     assert any(
         ".diagram." in field["key"]
@@ -2882,7 +2883,7 @@ def test_saved_carousel_draft_shows_seven_editable_pages(
         for page in captured["payload"]["pages"]
     )
     assert "儲存草稿" not in [button.label for button in app.button]
-    assert "七頁內容編輯器" in rendered
+    assert "六頁內容編輯器" in rendered
 
 
 def test_invalid_carousel_edit_keeps_widgets_and_database_unchanged(
@@ -2939,7 +2940,7 @@ def test_invalid_carousel_edit_keeps_widgets_and_database_unchanged(
 
     assert any("220" in error.value for error in app.error)
     assert db.get_carousel_draft(conn, idea_id) == original
-    assert any("先儲存七頁變更" in item.value for item in app.caption)
+    assert any("先儲存六頁變更" in item.value for item in app.caption)
 
 
 def test_carousel_editor_save_action_updates_database(tmp_path, monkeypatch):
@@ -3021,10 +3022,10 @@ def test_unsaved_carousel_editor_disables_image_generation(tmp_path, monkeypatch
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
 
     render_button = next(
-        button for button in app.button if button.label == "產生七張圖"
+        button for button in app.button if button.label == "產生六張圖"
     )
     assert render_button.disabled is True
-    assert any("先儲存七頁變更" in item.value for item in app.caption)
+    assert any("先儲存六頁變更" in item.value for item in app.caption)
     assert db.get_carousel_draft(conn, idea_id) == original
 
 
@@ -3063,7 +3064,7 @@ def test_regenerating_a_carousel_requires_explicit_confirmation(
         for button in app.button
     )
     assert any(
-        "會覆蓋目前的七頁內容，且無法復原" in caption.value
+        "會覆蓋目前的六頁內容，且無法復原" in caption.value
         for caption in app.caption
     )
 
@@ -3199,7 +3200,7 @@ def test_carousel_logo_block_explains_missing_asset_and_disables_render(
     rendered = " ".join(block.value for block in app.markdown)
     render_button = next(
         button for button in app.button
-        if button.label == "產生七張圖"
+        if button.label == "產生六張圖"
     )
 
     assert not app.exception
@@ -3710,7 +3711,7 @@ def test_rejected_carousel_logo_upload_keeps_page_running(
     assert not (tmp_path / "logos").exists()
 
 
-def test_complete_carousel_can_render_and_download_seven_pngs(
+def test_complete_carousel_can_render_and_download_six_pngs(
     tmp_path,
     monkeypatch,
 ):
@@ -3755,7 +3756,7 @@ def test_complete_carousel_can_render_and_download_seven_pngs(
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     next(
         button for button in app.button
-        if button.label == "產生七張圖"
+        if button.label == "產生六張圖"
     ).click().run(timeout=20)
 
     pngs = workbench.cached_pngs(
@@ -3836,7 +3837,7 @@ def test_saving_carousel_edits_invalidates_the_old_download(
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
     next(
         button for button in app.button
-        if button.label == "產生七張圖"
+        if button.label == "產生六張圖"
     ).click().run(timeout=20)
     assert len(app.download_button) == 1
 

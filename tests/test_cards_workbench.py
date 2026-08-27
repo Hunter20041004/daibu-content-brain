@@ -75,10 +75,22 @@ def test_cached_pngs_are_invalidated_when_draft_content_changes():
     state = {
         "carousel-png-42": (
             workbench.render_fingerprint(draft, 11, 3),
-            [b"png"] * 7,
+            [b"png"] * 6,
         )
     }
-    assert workbench.cached_pngs(state, 42, draft, 11, 3) == [b"png"] * 7
+    assert workbench.cached_pngs(state, 42, draft, 11, 3) == [b"png"] * 6
     assert workbench.cached_pngs(state, 42, changed, 11, 3) is None
     assert workbench.cached_pngs(state, 42, draft, 12, 3) is None
     assert workbench.cached_pngs(state, 42, draft, 11, 4) is None
+
+
+def test_cached_pngs_rejects_a_legacy_seven_page_bundle():
+    draft = carousel_draft()
+    state = {
+        "carousel-png-42": (
+            workbench.render_fingerprint(draft, 11, 3),
+            [b"legacy"] * 7,
+        )
+    }
+
+    assert workbench.cached_pngs(state, 42, draft, 11, 3) is None

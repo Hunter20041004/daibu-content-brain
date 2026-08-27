@@ -90,8 +90,8 @@ def test_carousel_checklist_is_linear_and_blocks_later_requirements():
         "公司名稱",
         "這篇內容的查證證據",
         "官方 Logo",
-        "七頁草稿",
-        "七張圖片",
+        "六頁草稿",
+        "六張圖片",
     ]
     assert [item.state for item in items] == [
         "complete",

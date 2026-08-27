@@ -61,7 +61,7 @@ def render_content_workbench(
     issue_key = f"carousel-editor-issues-{idea.id}"
     payload["serverIssues"] = st.session_state.get(issue_key, [])
 
-    st.markdown("#### 七頁內容編輯器")
+    st.markdown("#### 六頁內容編輯器")
     st.caption(
         "左側切換頁面，中間修改內容，右側同步預覽；"
         "查證來源與頁面結構會保持鎖定。"
@@ -69,7 +69,7 @@ def render_content_workbench(
     event = mount_content_editor(payload, key=f"carousel-editor-{idea.id}")
     issues: tuple[editor_service.EditorIssue, ...] = ()
     if event.save_payload is not None:
-        with st.spinner("正在檢查七頁文字與版面…"):
+        with st.spinner("正在檢查六頁文字與版面…"):
             saved = editor_service.save_editor_payload(
                 conn,
                 idea.id,
@@ -92,7 +92,7 @@ def render_content_workbench(
                 st.error(issue.message)
         else:
             st.session_state.pop(issue_key, None)
-            queue_toast(st.session_state, "七頁變更已全部儲存。")
+            queue_toast(st.session_state, "六頁變更已全部儲存。")
             st.rerun()
 
     active = layout_repository.get_active_version(conn, int(idea.theme_id))
@@ -109,7 +109,7 @@ def render_content_workbench(
             key=f"confirm-template-upgrade-{idea.id}-{active.id}",
         )
         if event.dirty:
-            st.caption("請先儲存七頁內容，再升級模板。")
+            st.caption("請先儲存六頁內容，再升級模板。")
         if st.button(
             f"檢查並改用 v{active.version_no}",
             disabled=event.dirty or not confirmed,

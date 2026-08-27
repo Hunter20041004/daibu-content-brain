@@ -37,13 +37,13 @@ def _html(tmp_path: Path) -> str:
     )
 
 
-def test_seven_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
+def test_six_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
 
     draft = renderable_carousel_draft()
     outputs = shoot.carousel_pngs(draft, "ElevenLabs", asset)
 
-    assert len(outputs) == 7
+    assert len(outputs) == 6
     assert all(_png_size(data) == (1080, 1350) for data in outputs)
     for index, data in enumerate(outputs):
         image = Image.open(io.BytesIO(data)).convert("RGB")
@@ -83,7 +83,7 @@ def test_seven_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
         ("Shiraz AI", (180, 180)),
     ),
 )
-def test_three_company_stress_drafts_render_all_twenty_one_pages(
+def test_three_company_stress_drafts_render_all_eighteen_pages(
     tmp_path,
     company,
     logo_size,
@@ -99,7 +99,7 @@ def test_three_company_stress_drafts_render_all_twenty_one_pages(
     ]
     outputs = shoot.carousel_pngs(draft, company, asset)
 
-    assert len(outputs) == 7
+    assert len(outputs) == 6
     assert all(_png_size(data) == (1080, 1350) for data in outputs)
     assert all('class="page-tag"' not in html for html in html_pages)
     assert all('class="page-source"' not in html for html in html_pages)
@@ -129,7 +129,7 @@ def test_invalid_layout_blocks_every_screenshot(tmp_path, monkeypatch):
     layout = replace_element(
         load_builtin_layout(),
         "cover",
-        "heading",
+        "positioning",
         h=24,
     )
     screenshots = []
@@ -141,7 +141,7 @@ def test_invalid_layout_blocks_every_screenshot(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Locator, "screenshot", recording_screenshot)
 
-    with pytest.raises(RuntimeError, match="第 1 頁.*封面標題"):
+    with pytest.raises(RuntimeError, match="第 1 頁.*一句話定位"):
         shoot.carousel_pngs(
             carousel_draft(),
             "ElevenLabs",
@@ -188,15 +188,15 @@ def test_png_bytes_has_brand_pixels(tmp_path):
     data = shoot.png_bytes(_html(tmp_path))
     image = Image.open(io.BytesIO(data)).convert("RGB")
 
-    assert image.getpixel((20, 20)) == (0x10, 0x2F, 0x3D)
-    assert image.getpixel((20, 1340)) == (0xEC, 0x98, 0x70)
+    assert image.getpixel((20, 20)) == (0xCA, 0xE9, 0xF4)
+    assert image.getpixel((20, 1340)) == (0xCA, 0xE9, 0xF4)
 
 
 def test_text_actually_rendered_with_the_bundled_font(tmp_path):
     data = shoot.png_bytes(_html(tmp_path))
     image = Image.open(io.BytesIO(data)).convert("RGB")
 
-    band = [image.getpixel((x, 430)) for x in range(140, 760, 4)]
+    band = [image.getpixel((x, 570)) for x in range(140, 950, 4)]
     inked = [pixel for pixel in band if sum(pixel) < 650]
 
     assert len(inked) > 20, "封面公司名沒有足夠文字像素，代表字型可能未載入"

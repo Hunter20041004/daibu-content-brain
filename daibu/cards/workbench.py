@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Protocol
 
+from daibu.cards import pages as carousel_pages
 from daibu.cards.schema import BrandAsset, CarouselDraft, VerifiedSource
 
 
@@ -79,6 +80,7 @@ def cached_pngs(
             content_revision,
         )
         or not isinstance(pngs, list)
+        or len(pngs) != len(carousel_pages.PAGE_TYPES)
     ):
         return None
     return pngs

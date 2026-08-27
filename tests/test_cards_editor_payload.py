@@ -51,7 +51,7 @@ def test_editor_rebuild_keeps_section_and_diagram_counts():
     ]
 
 
-def test_payload_contains_seven_pages_preview_fields_and_locked_evidence():
+def test_payload_contains_six_pages_preview_fields_and_locked_evidence():
     draft = carousel_draft()
     previews = {
         page.page_type: f"<main>{page.page_type}</main>"
@@ -62,7 +62,7 @@ def test_payload_contains_seven_pages_preview_fields_and_locked_evidence():
 
     assert payload["revision"] == 7
     assert payload["ideaId"] == 42
-    assert len(payload["pages"]) == 7
+    assert len(payload["pages"]) == 6
     assert payload["pages"][2]["previewHtml"] == "<main>problem</main>"
     assert any(
         field["key"] == "page.problem.diagram.0.expression"

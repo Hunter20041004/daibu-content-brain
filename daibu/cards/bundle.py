@@ -26,7 +26,7 @@ def zip_name(company: str, today: date) -> str:
 
 def carousel_zip(pngs: list[bytes]) -> bytes:
     if len(pngs) != len(PAGE_FILENAMES):
-        raise ValueError("輪播圖必須剛好包含七張")
+        raise ValueError("輪播圖必須剛好包含六張")
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         for filename, data in zip(PAGE_FILENAMES, pngs):
