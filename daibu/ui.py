@@ -8,7 +8,7 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 
-from daibu import db, seeds, theme
+from daibu import db, pipeline, seeds, theme
 
 DEFAULT_DB_PATH = "daibu.db"
 PENDING_TOAST_KEY = "_pending_toast"
@@ -110,6 +110,14 @@ def connect_app_db() -> sqlite3.Connection:
     db.init_schema(conn)
     seeds.load(conn)
     return conn
+
+
+def save_body_draft(idea_id: int, body: str) -> None:
+    conn = connect_app_db()
+    try:
+        pipeline.update_body(conn, idea_id, body)
+    finally:
+        conn.close()
 
 
 def queue_toast(

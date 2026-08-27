@@ -40,6 +40,7 @@ from daibu.ui import (
     mascot_coach,
     page_header,
     queue_toast,
+    save_body_draft as persist_body_draft,
     show_queued_toast,
 )
 
@@ -368,7 +369,7 @@ def render_logo_discovery_recovery(idea_id: int) -> None:
 
 
 def save_body_draft(idea_id: int, body_key: str) -> None:
-    pipeline.update_body(conn, idea_id, st.session_state[body_key])
+    persist_body_draft(idea_id, st.session_state[body_key])
     st.session_state[f"body-saved-at-{idea_id}"] = clock.now()[11:16]
 
 

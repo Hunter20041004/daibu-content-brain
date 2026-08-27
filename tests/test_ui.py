@@ -1,8 +1,13 @@
+import ast
 import tomllib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
 
-from daibu import theme, ui
+import pytest
+
+from daibu import db, theme, ui
+from daibu.llm.base import Idea
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,6 +88,71 @@ def test_connect_app_db_loads_dotenv(monkeypatch, tmp_path):
     conn.close()
 
     assert loaded == [True]
+
+
+def test_save_body_draft_opens_connection_in_callback_thread(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    main_thread_conn = db.connect(str(database_path))
+    db.init_schema(main_thread_conn)
+    idea_id = db.add_idea(
+        main_thread_conn,
+        None,
+        Idea("跨執行緒正文", "角度", ""),
+    )
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(
+            ui.save_body_draft,
+            idea_id,
+            "由 callback 執行緒安全儲存",
+        ).result()
+
+    assert db.get_ideas(main_thread_conn)[0].body == "由 callback 執行緒安全儲存"
+    main_thread_conn.close()
+
+
+def test_save_body_draft_closes_callback_connection_on_failure(monkeypatch):
+    class TrackedConnection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    callback_conn = TrackedConnection()
+    monkeypatch.setattr(ui, "connect_app_db", lambda: callback_conn)
+
+    def fail_update(*_args):
+        raise RuntimeError("寫入失敗")
+
+    monkeypatch.setattr(ui.pipeline, "update_body", fail_update)
+
+    with pytest.raises(RuntimeError, match="寫入失敗"):
+        ui.save_body_draft(1, "正文")
+
+    assert callback_conn.closed is True
+
+
+def test_body_editor_callback_does_not_reuse_page_connection():
+    page_source = (ROOT / "pages" / "1_選題.py").read_text()
+    tree = ast.parse(page_source)
+    callback = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "save_body_draft"
+    )
+    loaded_names = {
+        node.id
+        for node in ast.walk(callback)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+    }
+
+    assert "persist_body_draft" in loaded_names
+    assert "conn" not in loaded_names
 
 
 def test_apply_styles_injects_brand_theme(monkeypatch):
