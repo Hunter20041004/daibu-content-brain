@@ -82,6 +82,120 @@ def test_generate_passes_company_into_the_prompt(tmp_path):
     conn.close()
 
 
+def test_generate_replaces_model_cta_with_fixed_brand_copy(tmp_path):
+    from dataclasses import replace
+
+    from daibu.cards import pages
+    from tests.card_fixtures import (
+        carousel_draft,
+        structured_llm_response,
+        verified_sources,
+    )
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(
+            title="t",
+            angle="a",
+            source_url="https://example.com/a",
+            company="ElevenLabs",
+            source_excerpt=LONG_EXCERPT,
+        ),
+    )
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    generated = carousel_draft()
+    generated_cta = generated.pages[-1]
+    generated = replace(
+        generated,
+        pages=(
+            *generated.pages[:-1],
+            replace(
+                generated_cta,
+                sections=(
+                    replace(
+                        generated_cta.sections[0],
+                        text="留言告訴我你最想試哪個功能",
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    result = draft.generate(
+        conn,
+        idea,
+        verified_sources(),
+        lambda _text: structured_llm_response(generated),
+    )
+
+    assert result.pages[-1].sections[0].text == pages.CTA_TEXT
+    assert db.get_carousel_draft(conn, idea_id) == result
+    conn.close()
+
+
+def test_generate_retries_once_with_validation_feedback(tmp_path):
+    from dataclasses import replace
+
+    from tests.card_fixtures import (
+        carousel_draft,
+        structured_llm_response,
+        verified_sources,
+    )
+
+    conn = db.connect(str(tmp_path / "t.db"))
+    db.init_schema(conn)
+    idea_id = db.add_idea(
+        conn,
+        None,
+        Idea(
+            title="t",
+            angle="a",
+            source_url="https://example.com/a",
+            company="ElevenLabs",
+            source_excerpt=LONG_EXCERPT,
+        ),
+    )
+    idea = next(item for item in db.get_ideas(conn) if item.id == idea_id)
+    valid = carousel_draft()
+    how_ai = valid.pages[3]
+    human_role = replace(
+        how_ai.sections[2],
+        source_ids=(),
+        evidence_quotes=(),
+    )
+    invalid = replace(
+        valid,
+        pages=(
+            *valid.pages[:3],
+            replace(
+                how_ai,
+                sections=(
+                    *how_ai.sections[:2],
+                    human_role,
+                    *how_ai.sections[3:],
+                ),
+            ),
+            *valid.pages[4:],
+        ),
+    )
+    prompts = []
+
+    def respond(prompt_text: str) -> str:
+        prompts.append(prompt_text)
+        generated = invalid if len(prompts) == 1 else valid
+        return structured_llm_response(generated)
+
+    result = draft.generate(conn, idea, verified_sources(), respond)
+
+    assert result == valid
+    assert len(prompts) == 2
+    assert "人仍負責 是事實區塊，必須附來源" in prompts[1]
+    conn.close()
+
+
 def test_generate_refuses_when_company_is_empty(tmp_path):
     """沒有公司名就不該送出去燒額度。"""
     conn = db.connect(str(tmp_path / "t.db"))
@@ -202,7 +316,7 @@ def test_generate_rejects_invalid_sources_before_calling_the_llm(tmp_path):
     conn.close()
 
 
-def test_generate_reports_invalid_json_after_exactly_one_llm_call(tmp_path):
+def test_generate_reports_invalid_json_after_one_repair_attempt(tmp_path):
     from tests.card_fixtures import verified_sources
 
     conn = db.connect(str(tmp_path / "t.db"))
@@ -229,7 +343,8 @@ def test_generate_reports_invalid_json_after_exactly_one_llm_call(tmp_path):
             lambda text: calls.append(text) or "不是 JSON",
         )
 
-    assert len(calls) == 1
+    assert len(calls) == 2
+    assert "LLM 回覆中找不到 JSON 陣列" in calls[1]
     assert db.get_carousel_draft(conn, idea_id) is None
     conn.close()
 
