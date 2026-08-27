@@ -12,6 +12,7 @@
 - **視覺 QA**：Streamlit 隔離副本從根網址進入內容製作、展開 SUN 的輪播製作並切換第 4 頁；1280×800／375×812 各完成最終截圖。桌機預覽可見第 4 頁自然單行標題與完整流程卡，手機保有正確層次、留白、LINE Seed 字體、粉彩三色配色、對齊與已儲存狀態；手機 `scrollWidth - clientWidth = 0`、exceptions = 0，console errors／warnings = 0。證據：`.screenshots/template-v57-final/desktop.png`、`.screenshots/template-v57-final/mobile.png`。
 - **安全與成本**：沒有新套件、LLM／搜尋 API、付費呼叫或資料表變更；SQLite 連線仍維持 thread affinity；只有模板版本與既有草稿的模板綁定變更，研究來源、正文、圖片與公司資料均未重寫。
 - **剩餘限制**：舊版仍可在模板管理回看，但已啟用 v3 只影響之後的新草稿；現有草稿已針對目前唯一 SUN 項目完成安全升級。若使用者之後另存自訂模板，仍會保留不可變版本與壓力檢查規則。
+- **正式推送與驗收**：程式提交 `5ee913c` 已推到 `origin/main`；提交後 `main` 再驗為 `738 passed, 16 deselected, 1 warning`。既有 LaunchAgent `io.daibu.content-brain` 由 PID 78462 重啟為 96548，`/_stcore/health=ok`，只監聽 `127.0.0.1:8501`。正式 SUN 輪播第 4 頁 DOM 為 `HOW AI WORKS`、完整單行標題、2 個箭頭、3 個步驟、4 張補充卡；桌機與手機橫向溢出 0、exceptions 0、console errors／warnings 0。正式截圖：`.screenshots/template-v57-production/desktop.png`、`.screenshots/template-v57-production/mobile.png`。stderr 最後 traceback 仍是部署前 10:49 的既有 SQLite 記錄，重啟後沒有新增錯誤。
 
 ## 2026-08-27 封面頁面標題接回即時預覽
 
