@@ -1,5 +1,17 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 正文自動儲存 SQLite 跨執行緒修正
+
+- **產品能力**：內容製作頁的正文 `on_change` callback 現在會在 callback 當下的 Streamlit ScriptRunner 執行緒建立專屬 SQLite connection，寫入後立即關閉；不再沿用上一次頁面執行建立的全域 `conn`。
+- **使用者體驗**：編輯正文後失去焦點或切換內容系列，仍會看到「已自動儲存於」，不會再出現 `SQLite objects created in a thread can only be used in that same thread` 錯誤頁。
+- **根因與資料流**：Streamlit 在新一輪 script rerun 之前先呼叫舊 widget callback；舊 callback 擷取的頁面全域 connection 屬於上一條執行緒，SQLite 因 thread affinity 正確拒絕。修正後改為 Session State 正文值 → `daibu.ui.save_body_draft` 當場開連線 → `pipeline.update_body` → commit → `finally` 關閉。
+- **設計理由與備援**：主方案保留 SQLite 原生 `check_same_thread=True`，讓每條執行緒只用自己的連線。備援 `check_same_thread=False` 雖然只要一行，卻會掩蓋共享 connection 的競態風險，因此不採用。
+- **TDD 與 review 證據**：跨執行緒寫入測試先因安全入口不存在而紅；頁面 callback 接線契約再次還原舊 `conn` 寫法後能抓到紅燈；寫入失敗時關閉連線的測試也先驗證無 `finally` 時為 `closed=False`。最終聚焦為 `tests/test_ui.py` 23 passed，既有正文切換流程 1 passed；獨立 review 為 Critical 0、Important 0，ready to merge。
+- **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 最終為 `721 passed, 16 deselected, 1 warning in 169.82s`；16 個 deselected 是既有外部服務契約，唯一 warning 是既有 Starlette/httpx 棄用提醒。
+- **使用者視角驗收**：以正式 `daibu.db` 的 `/tmp` 副本與 8766 隔離服務，在真實 Chromium 將已採用正文改為驗收字串並移開焦點；畫面顯示「已自動儲存於 11:00」，副本 SQLite 讀回完全相同字串，`integrity_check=ok`，console 0 errors／0 warnings。正式資料未寫入；副本已移到 macOS 垃圾桶，可復原。
+- **正式服務與推送**：程式提交 `fbcb9b3` 已推至 `origin/main`，並核對本機與遠端 SHA 相同。既有 LaunchAgent `io.daibu.content-brain` 由 PID 39632 重啟為 53543，`/_stcore/health=ok`，只監聽 `127.0.0.1:8501`。正式內容製作頁可開，console 0 errors／0 warnings；stderr 最後時間仍是重啟前用戶回報的 `2026-08-27 10:49:17` traceback，部署後沒有新 server error。
+- **安全、成本與剩餘限制**：無 schema、新套件、外部 API、付費或視覺變更；每次正文變更多一個短生命週期 SQLite connection。目前沒有其他會從 callback 擷取全域 SQLite connection 的頁面互動。
+
 ## 2026-08-27 六頁粉彩手帳正式接入工具
 
 - **產品能力**：正式公司介紹輪播已固定為 `cover → who → problem → how-ai → results → cta` 六頁；`sticky-notebook-v1` 是唯一 Renderer、layout 與模板入口。
