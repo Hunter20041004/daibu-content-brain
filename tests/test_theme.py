@@ -95,6 +95,9 @@ def test_css_preserves_streamlit_material_icon_font():
     styles = theme.css()
 
     assert '[data-testid="stIconMaterial"]' in styles
+    assert '[data-testid="stExpanderIconSpinner"]' in styles
+    assert '[data-testid="stExpanderIconCheck"]' in styles
+    assert '[data-testid="stExpanderIconError"]' in styles
     assert '"Material Symbols Rounded"' in styles
 
 

@@ -153,7 +153,10 @@ def css(mode: str | None = None) -> str:
         -webkit-text-fill-color: var(--ink) !important;
     }}
 
-    [data-testid="stIconMaterial"] {{
+    [data-testid="stIconMaterial"],
+    [data-testid="stExpanderIconSpinner"],
+    [data-testid="stExpanderIconCheck"],
+    [data-testid="stExpanderIconError"] {{
         font-family: "Material Symbols Rounded" !important;
     }}
 

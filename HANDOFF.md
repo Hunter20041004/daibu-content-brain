@@ -1,5 +1,16 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 Streamlit 查證錯誤圖示修正
+
+- **產品能力**：內容製作頁的 `st.status(..., state="error")` 現在會保留 Streamlit 原生 Material Symbols Rounded 圖示，不會再被品牌字體覆蓋成文字。
+- **使用者體驗**：查證失敗時，進度框會顯示完整「公司資料查證未完成」與圓形驚嘆號；不再出現左側 `rror` 的殘缺字樣。這只修正錯誤狀態的呈現，不改變既有失敗保留內容與稍後重試行為。
+- **根因與修正**：`daibu/theme.py` 的 `.stApp *` 全域字體規則會覆蓋 Streamlit 的 `[data-testid="stExpanderIconError"]`。原本只保護 `[data-testid="stIconMaterial"]`，因此圖示字元 `error` 以 Figtree 顯示並被欄位裁掉第一個字元。現在同時保護 Streamlit 實際使用的 spinner／check／error 三種狀態圖示。
+- **TDD 證據**：`tests/test_theme.py::test_css_preserves_streamlit_material_icon_font` 先以缺少 spinner selector 的版本看到紅燈，再以最小 CSS selector 修正轉綠；聚焦 `tests/test_theme.py` 為 `42 passed`。
+- **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `729 passed, 16 deselected, 1 warning in 189.81s`。16 項是預設不打外網的既有 contract；唯一 warning 是既有 Starlette/httpx 棄用提醒。
+- **視覺 QA**：第二輪以 1280×800／375×812 各一張截圖驗收，兩個尺寸均顯示真正的圓形驚嘆號、完整錯誤文字；`scrollWidth - viewportWidth = 0`、console errors = 0。證據：`.screenshots/status-icon-recovery-round2-desktop.png`、`.screenshots/status-icon-recovery-round2-mobile.png`。主題隔離頁的 computed font 為 `"Material Symbols Rounded"`。
+- **安全與成本**：只修改 CSS selector 與回歸測試；沒有資料表、SQLite、LLM、搜尋 API、新套件、付費操作或資料內容變更。
+- **待部署驗收**：程式碼與交接紀錄完成後，需重啟既有 `io.daibu.content-brain`、確認 `/_stcore/health = 200`，再由正式首頁進入內容製作頁驗收無 exception／橫向溢出／console error。
+
 ## 2026-08-27 已採用編輯定位與輪播回覆自救
 
 - **產品能力**：已採用清單會以「正在編輯｜…」標出目前項目；點擊任何已採用項目後，頁面送出一次性捲動請求，把對應正文編輯器帶進視窗。六頁輪播生成則由程式固定品牌 CTA，模型回覆若能解析但未通過頁序、字數、引用或逐字證據規則，會帶具體驗證問題完整重試一次。
