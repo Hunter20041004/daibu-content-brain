@@ -93,6 +93,13 @@ def test_who_renders_all_three_approved_sticky_sections(tmp_path):
         assert html_lib.escape(section.text) in markup
 
 
+def test_content_sync_targets_text_span_without_replacing_sticky_label(tmp_path):
+    markup = _markup(_render(tmp_path, 1))
+
+    assert '<b>白話定位</b><span data-edit-key="page.who.section.0.text">' in markup
+    assert 'data-layout-id="positioning" data-edit-key=' not in markup
+
+
 def test_problem_renders_context_and_three_connected_flow_cards(tmp_path):
     page = carousel_draft().pages[2]
     markup = _markup(_render(tmp_path, 2))

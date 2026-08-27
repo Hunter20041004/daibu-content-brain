@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 
 from daibu.cards.schema import (
@@ -439,8 +440,49 @@ def _seed_v3_template_versions(conn: sqlite3.Connection) -> None:
         )
 
 
+def _backup_before_v57_migration(conn: sqlite3.Connection) -> Path | None:
+    database_path = next(
+        (
+            Path(row[2])
+            for row in conn.execute("PRAGMA database_list")
+            if row[1] == "main" and row[2]
+        ),
+        None,
+    )
+    if database_path is None:
+        return None
+    backup_dir = database_path.parent / ".backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    backup_path = backup_dir / (
+        f"{database_path.stem}-before-six-page-v57-{stamp}.db"
+    )
+    backup_conn = sqlite3.connect(backup_path)
+    try:
+        conn.backup(backup_conn)
+        integrity = backup_conn.execute("PRAGMA integrity_check").fetchone()
+        if integrity is None or integrity[0] != "ok":
+            raise RuntimeError("六頁模板遷移備份驗證失敗")
+    except Exception:
+        backup_conn.close()
+        backup_path.unlink(missing_ok=True)
+        raise
+    backup_conn.close()
+    return backup_path
+
+
 def _migrate_to_six_page_v57(conn: sqlite3.Connection) -> None:
     """Replace legacy carousel state while preserving research and ideas."""
+    schema_versions = {
+        int(row[0])
+        for row in conn.execute(
+            "SELECT DISTINCT schema_version FROM carousel_template_versions"
+        )
+    }
+    unknown_versions = sorted(schema_versions - {1, 2, 3})
+    if unknown_versions:
+        joined = "、".join(str(version) for version in unknown_versions)
+        raise RuntimeError(f"未知的模板 schema_version：{joined}")
     legacy = conn.execute(
         """
         SELECT 1
@@ -452,6 +494,16 @@ def _migrate_to_six_page_v57(conn: sqlite3.Connection) -> None:
     if legacy is None:
         return
 
+    if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+        raise RuntimeError("資料庫外鍵關聯已損壞，已停止六頁模板遷移")
+
+    # sqlite3.Connection.backup waits for an active write transaction on its
+    # own source connection. Commit schema preparation before taking the
+    # verified snapshot; destructive deletes still begin only afterwards.
+    if conn.in_transaction:
+        conn.commit()
+    _backup_before_v57_migration(conn)
+
     with conn:
         conn.execute("DELETE FROM carousel_drafts")
         conn.execute("DELETE FROM carousel_pages")
@@ -459,6 +511,8 @@ def _migrate_to_six_page_v57(conn: sqlite3.Connection) -> None:
         conn.execute("DELETE FROM carousel_template_settings")
         conn.execute("DELETE FROM carousel_template_versions")
         _seed_v3_template_versions(conn)
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise RuntimeError("六頁模板遷移造成外鍵關聯損壞")
 
 def init_schema(conn: sqlite3.Connection) -> None:
     if _table_exists(conn, "themes") and _needs_legacy_migration(conn):

@@ -117,10 +117,9 @@ def _node_card(page: CarouselPage, index: int, element_id: str, classes: str) ->
 def _heading(page: CarouselPage) -> str:
     return _layout_box(
         "heading",
-        html.escape(page.heading),
+        _editable(f"page.{page.page_type}.heading", page.heading),
         tag="h1",
         classes="page-title",
-        edit_key=f"page.{page.page_type}.heading",
     )
 
 
@@ -139,10 +138,9 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
         )
         + _layout_box(
             "positioning",
-            html.escape(positioning.text),
+            _editable("page.cover.section.0.text", positioning.text),
             tag="p",
             classes="sticky-note cover-positioning",
-            edit_key="page.cover.section.0.text",
         )
         + _layout_box("mascot", _mascot_html("cover"), classes="mascot-box")
         + _hidden_edit_hook("page.cover.heading")
@@ -165,21 +163,21 @@ def _who(page: CarouselPage, logo_uri: str, company: str) -> str:
         )
         + _layout_box(
             "positioning",
-            f"<b>{html.escape(positioning.label)}</b><span>{html.escape(positioning.text)}</span>",
+            f"<b>{html.escape(positioning.label)}</b>"
+            + _editable("page.who.section.0.text", positioning.text),
             classes="sticky-note mint",
-            edit_key="page.who.section.0.text",
         )
         + _layout_box(
             "facts",
-            f"<b>{html.escape(facts.label)}</b><span>{html.escape(facts.text)}</span>",
+            f"<b>{html.escape(facts.label)}</b>"
+            + _editable("page.who.section.1.text", facts.text),
             classes="sticky-note yellow",
-            edit_key="page.who.section.1.text",
         )
         + _layout_box(
             "reason",
-            f"<b>{html.escape(reason.label)}</b><span>{html.escape(reason.text)}</span>",
+            f"<b>{html.escape(reason.label)}</b>"
+            + _editable("page.who.section.2.text", reason.text),
             classes="sticky-note coral",
-            edit_key="page.who.section.2.text",
         )
         + _layout_box("mascot", _mascot_html("who"), classes="mascot-box")
         + "</article>"
@@ -197,15 +195,15 @@ def _problem(page: CarouselPage) -> str:
         + _heading(page)
         + _layout_box(
             "current",
-            f"<b>{html.escape(current.label)}</b><span>{html.escape(current.text)}</span>",
+            f"<b>{html.escape(current.label)}</b>"
+            + _editable("page.problem.section.0.text", current.text),
             classes="sticky-note mint",
-            edit_key="page.problem.section.0.text",
         )
         + _layout_box(
             "opportunity",
-            f"<b>{html.escape(opportunity.label)}</b><span>{html.escape(opportunity.text)}</span>",
+            f"<b>{html.escape(opportunity.label)}</b>"
+            + _editable("page.problem.section.1.text", opportunity.text),
             classes="sticky-note yellow",
-            edit_key="page.problem.section.1.text",
         )
         + _layout_box("spine", "", classes="causal-spine")
         + _node_card(page, 0, "stage-1", "flow-note white")
@@ -228,9 +226,9 @@ def _how_ai(page: CarouselPage) -> str:
         context.append(
             _layout_box(
                 element_id,
-                f"<b>{html.escape(label)}</b><span>{html.escape(section.text)}</span>",
+                f"<b>{html.escape(label)}</b>"
+                + _editable(f"page.how-ai.section.{index}.text", section.text),
                 classes="sticky-note context-note",
-                edit_key=f"page.how-ai.section.{index}.text",
             )
         )
     return (
@@ -259,9 +257,9 @@ def _results(page: CarouselPage) -> str:
         + _heading(page)
         + _layout_box(
             "audience",
-            f"<b>{html.escape(audience.label)}</b><span>{html.escape(audience.text)}</span>",
+            f"<b>{html.escape(audience.label)}</b>"
+            + _editable("page.results.section.0.text", audience.text),
             classes="sticky-note audience",
-            edit_key="page.results.section.0.text",
         )
         + '<div class="result-flow">'
         + _node_card(page, 0, "before", "result-card mint")
@@ -270,15 +268,15 @@ def _results(page: CarouselPage) -> str:
         + "</div>"
         + _layout_box(
             "core-difference",
-            f"<b>{html.escape(difference.label)}</b><span>{html.escape(difference.text)}</span>",
+            f"<b>{html.escape(difference.label)}</b>"
+            + _editable("page.results.section.1.text", difference.text),
             classes="sticky-note white",
-            edit_key="page.results.section.1.text",
         )
         + _layout_box(
             "value",
-            f"<b>{html.escape(value.label)}</b><span>{html.escape(value.text)}</span>",
+            f"<b>{html.escape(value.label)}</b>"
+            + _editable("page.results.section.2.text", value.text),
             classes="sticky-note yellow",
-            edit_key="page.results.section.2.text",
         )
         + _layout_box("mascot", _mascot_html("results"), classes="mascot-box")
         + "</article>"
@@ -294,7 +292,6 @@ def _cta(page: CarouselPage) -> str:
             "invitation",
             html.escape(invitation.text),
             classes="cta-copy",
-            edit_key="page.cta.section.0.text",
         )
         + _layout_box("mascot", _mascot_html("cta"), classes="mascot-box")
         + _hidden_edit_hook("page.cta.heading")

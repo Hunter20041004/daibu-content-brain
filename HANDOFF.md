@@ -1,4 +1,18 @@
-# HANDOFF — 七頁內容與系列模板編輯器完成
+# HANDOFF — 六頁 v57 正式模板整合
+
+## 2026-08-27 六頁粉彩手帳正式接入工具
+
+- **產品能力**：正式公司介紹輪播已固定為 `cover → who → problem → how-ai → results → cta` 六頁；`sticky-notebook-v1` 是唯一 Renderer、layout 與模板入口。
+- **使用者體驗**：封面以 Logo／公司名為主體；內頁使用四個固定短標題；第三頁半透明圖示各自位於流程便利貼內；第四頁只用箭頭；第五頁三卡同為 300×300；第六頁只顯示兩句置中 CTA。
+- **技術結構**：`CarouselDraft` 六頁內容契約、Gemini 六頁 JSON schema、layout schema v3、內容編輯器、模板編輯器、PNG／ZIP 共用同一頁序；舊 v1/v2 parser、upgrade 與 editorial／ai-startup 模板已移除。
+- **資料流程**：已查證來源＋公司資料＋官方 Logo → 免費 LLM 產六頁草稿 → 逐頁編輯／來源鎖定 → `sticky-notebook-v1` → 6 張 1080×1350 PNG → ZIP。
+- **遷移安全**：偵測到舊 v1/v2 模板時，先拒絕未知 schema 與損壞的外鍵、建立並驗證檔案型 SQLite 備份，再以單一 transaction 清除舊輪播 pages／sources／draft meta／模板 settings／versions，最後為每個 theme 建立 v3；themes、ideas、idea_sources、brand_assets 與成效不動，且有 idempotency／rollback 測試。備份前先結束 schema 準備交易，避免 SQLite source connection 自我等待。
+- **正式資料**：遷移前盤點為 1 theme、23 ideas、6 idea_sources、0 carousel pages／sources／drafts、2 舊模板版本；SQLite 備份為 `.backups/daibu-before-six-page-v57-20260827.db`，`integrity_check = ok`。舊 `railway-carousel-20260731` 七張 PNG 已依明確檔名刪除。
+- **TDD 與瀏覽器證據**：每個行為均先紅後綠；新增正式內容長度出圖、固定 CTA、第五頁等尺寸、內文同步不刪標籤、可見字級跟隨模板、遷移前自動備份／未知版本／外鍵損壞測試。分支全套為 `712 passed, 16 deselected, 1 warning in 149.41s`；warning 是既有 Starlette／httpx 棄用提醒。
+- **視覺 QA**：審查修正後完成兩輪 1280×800／375×812；最終文件寬為 375、無橫向破版、console 0 error／0 warning。截圖：`.screenshots/review-round-2/desktop.png`、`.screenshots/review-round-2/mobile.png`。
+- **設計理由與備援**：採單一六頁模板，避免使用者誤選舊七頁；備援是保留相容入口，但會留下 why-care 與雙資料契約，因此依核可決策不採用。
+- **安全與成本**：沒有新付費服務或外部套件；LLM adapter 仍使用既有免費 Gemini／Groq 路徑。正式 main 合併後須再跑全套、觸發 DB migration、驗證既有網站核心流程與遠端提交。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-26-six-page-v57-production-integration-design.md`、`docs/superpowers/plans/2026-08-26-six-page-v57-production-integration.md`。
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
 

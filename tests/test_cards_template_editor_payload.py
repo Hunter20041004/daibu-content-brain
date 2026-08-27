@@ -46,9 +46,9 @@ def test_reset_only_restores_selected_page():
 
 def test_layout_diff_summarizes_moves_and_resizes():
     base = load_builtin_layout()
-    working = replace_element(base, "results", "before", x=80, w=320)
+    working = replace_element(base, "who", "positioning", x=390, w=600)
     summary = summarize_layout_diff(base, working)
-    assert "第 5 頁：移動 1 個元素、調整 1 個文字框" in summary
+    assert "第 2 頁：移動 1 個元素、調整 1 個文字框" in summary
 
 
 def test_template_payload_exposes_collision_policy_without_unsafe_style_data():

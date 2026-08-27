@@ -649,6 +649,87 @@ def test_v57_migration_removes_legacy_carousel_only_and_seeds_v3(tmp_path):
     assert preserved_after == preserved_before
 
 
+def test_v57_migration_creates_verified_backup_before_deleting_legacy_rows(tmp_path):
+    path = tmp_path / "v57-backup.db"
+    conn = db.connect(str(path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+    )
+    conn.execute(
+        "INSERT INTO carousel_template_versions "
+        "(theme_id, version_no, schema_version, layout_json) "
+        "VALUES (?, 1, 2, '{\"schema_version\":2}')",
+        (theme_id,),
+    )
+    conn.commit()
+
+    db._migrate_to_six_page_v57(conn)
+
+    backups = list((tmp_path / ".backups").glob("v57-backup-before-six-page-v57-*.db"))
+    assert len(backups) == 1
+    backup = db.connect(str(backups[0]))
+    assert backup.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    assert backup.execute(
+        "SELECT COUNT(*) FROM carousel_template_versions WHERE schema_version = 2"
+    ).fetchone()[0] == 1
+    backup.close()
+
+
+def test_v57_migration_aborts_before_deletion_for_unknown_template_schema(tmp_path):
+    conn = db.connect(str(tmp_path / "v57-unknown.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+    )
+    conn.execute(
+        "INSERT INTO carousel_template_versions "
+        "(theme_id, version_no, schema_version, layout_json) "
+        "VALUES (?, 1, 99, '{\"schema_version\":99}')",
+        (theme_id,),
+    )
+    conn.commit()
+
+    with pytest.raises(RuntimeError, match="未知的模板 schema_version：99"):
+        db._migrate_to_six_page_v57(conn)
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_versions WHERE schema_version = 99"
+    ).fetchone()[0] == 1
+
+
+def test_v57_migration_aborts_when_foreign_keys_are_already_broken(tmp_path):
+    conn = db.connect(str(tmp_path / "v57-broken-fk.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"),
+    )
+    conn.execute(
+        "INSERT INTO carousel_template_versions "
+        "(theme_id, version_no, schema_version, layout_json) "
+        "VALUES (?, 1, 2, '{\"schema_version\":2}')",
+        (theme_id,),
+    )
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = OFF")
+    conn.execute(
+        "INSERT INTO theme_sources (theme_id, source_id) VALUES (?, ?)",
+        (theme_id, 999999),
+    )
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = ON")
+
+    with pytest.raises(RuntimeError, match="外鍵關聯已損壞"):
+        db._migrate_to_six_page_v57(conn)
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM carousel_template_versions WHERE schema_version = 2"
+    ).fetchone()[0] == 1
+
+
 def test_v57_migration_is_idempotent(tmp_path):
     conn = db.connect(str(tmp_path / "v57-idempotent.db"))
     db.init_schema(conn)

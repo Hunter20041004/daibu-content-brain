@@ -383,7 +383,9 @@ def validate_draft(draft: CarouselDraft) -> None:
         None,
     )
     if cta_page is not None:
-        cta = " ".join(section.text for section in cta_page.sections)
+        cta = "\n".join(section.text for section in cta_page.sections)
+        if cta != pages.CTA_TEXT:
+            record("第 6 頁必須使用固定品牌文案", "cta")
         if any(
             word in cta
             for word in ("試用", "註冊", "下載", "投資", "官網看看")

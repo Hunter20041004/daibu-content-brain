@@ -248,6 +248,19 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
             f"版面缺少必要頁型：{', '.join(missing_pages)}",
         )
 
+    result_cards = tuple(
+        parsed_pages["results"].elements[element_id].rect
+        for element_id in ("before", "intervention", "after")
+    )
+    if (
+        max(rect.w for rect in result_cards) - min(rect.w for rect in result_cards) > 1
+        or max(rect.h for rect in result_cards) - min(rect.h for rect in result_cards) > 1
+    ):
+        raise LayoutValidationError(
+            "intervention",
+            "第五頁三張流程便利貼必須等寬等高",
+        )
+
     return LayoutDocument(
         int(value.get("schema_version", 0)),
         int(raw_canvas.get("width", 0)),

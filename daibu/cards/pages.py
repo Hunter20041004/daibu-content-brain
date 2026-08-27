@@ -7,6 +7,8 @@ PAGE_TYPES = (
     "cta",
 )
 
+CTA_TEXT = "追蹤呆一布 AI 共學實驗室\n帶你看更多最新 AI 資訊"
+
 # 七種姿勢與網站 PRD 共用同一組素材；貼文只用到前五種，
 # confused 與 lost 是網站的空狀態與 404 頁在用的。
 POSES = ("wave", "think", "happy", "point", "note", "confused", "lost")

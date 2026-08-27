@@ -18,8 +18,8 @@
     }},
     "problem": {"elements": {
       "heading": {"x": 80, "y": 130, "w": 800, "h": 180, "font_size": 68, "text_align": "left"},
-      "current": {"x": 70, "y": 350, "w": 300, "h": 270, "font_size": 27, "text_align": "left"},
-      "opportunity": {"x": 70, "y": 660, "w": 300, "h": 270, "font_size": 27, "text_align": "left"},
+      "current": {"x": 50, "y": 340, "w": 320, "h": 290, "font_size": 23, "text_align": "left"},
+      "opportunity": {"x": 50, "y": 650, "w": 320, "h": 290, "font_size": 23, "text_align": "left"},
       "spine": {"x": 405, "y": 350, "w": 12, "h": 610},
       "stage-1": {"x": 440, "y": 320, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
       "stage-2": {"x": 440, "y": 550, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},

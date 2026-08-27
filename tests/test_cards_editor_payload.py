@@ -51,6 +51,12 @@ def test_editor_rebuild_keeps_section_and_diagram_counts():
     ]
 
 
+def test_fixed_cta_copy_is_not_exposed_as_an_editable_field():
+    keys = editable_values(carousel_draft())
+
+    assert "page.cta.section.0.text" not in keys
+
+
 def test_payload_contains_six_pages_preview_fields_and_locked_evidence():
     draft = carousel_draft()
     previews = {

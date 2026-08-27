@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
-from playwright.sync_api import Locator
+from playwright.sync_api import Locator, sync_playwright
 
 from daibu import db
 from daibu.cards import bundle, logo, render, shoot
@@ -73,6 +73,14 @@ def test_six_pngs_have_logo_content_in_lower_third_and_no_overflow(tmp_path):
     assert all(not report.logo_visible for report in reports[1:])
     assert all(not report.canvas_overflow for report in reports)
     assert all(not report.content_overflow for report in reports)
+
+
+def test_canonical_generated_draft_fits_all_six_pages_without_text_clipping(tmp_path):
+    asset = brand_asset(_test_logo(tmp_path))
+
+    outputs = shoot.carousel_pngs(carousel_draft(), "ElevenLabs", asset)
+
+    assert len(outputs) == 6
 
 
 @pytest.mark.parametrize(
@@ -200,6 +208,39 @@ def test_text_actually_rendered_with_the_bundled_font(tmp_path):
     inked = [pixel for pixel in band if sum(pixel) < 650]
 
     assert len(inked) > 20, "封面公司名沒有足夠文字像素，代表字型可能未載入"
+
+
+def test_saved_flow_card_font_size_changes_the_visible_text(tmp_path):
+    asset = brand_asset(_test_logo(tmp_path))
+    base = load_builtin_layout()
+    enlarged = replace_element(base, "how-ai", "step-1", font_size=36)
+    paths = []
+    for name, layout in (("base", base), ("enlarged", enlarged)):
+        path = tmp_path / f"{name}.html"
+        path.write_text(
+            render.page_html(carousel_draft().pages[3], "ElevenLabs", asset, layout),
+            encoding="utf-8",
+        )
+        paths.append(path)
+
+    with sync_playwright() as driver:
+        browser = driver.chromium.launch()
+        page = browser.new_page(viewport={"width": 1080, "height": 1350})
+        sizes = []
+        for path in paths:
+            page.goto(path.as_uri())
+            sizes.append(
+                float(
+                    page.locator(
+                        '[data-layout-id="step-1"] > '
+                        'span[data-edit-key$=".text"]'
+                    )
+                    .evaluate("node => parseFloat(getComputedStyle(node).fontSize)")
+                )
+            )
+        browser.close()
+
+    assert sizes[1] > sizes[0]
 
 
 def test_missing_bundled_font_does_not_silently_use_fallback(tmp_path):

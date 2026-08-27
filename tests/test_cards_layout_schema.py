@@ -222,3 +222,11 @@ def test_builtin_layout_covers_every_registered_element():
     assert set(document.pages) == set(ELEMENT_REGISTRY)
     for page_type, rules in ELEMENT_REGISTRY.items():
         assert set(document.pages[page_type].elements) == set(rules)
+
+
+def test_results_flow_cards_must_remain_equal_size():
+    value = valid_layout_mapping()
+    value["pages"]["results"]["elements"]["intervention"]["w"] += 10
+
+    with pytest.raises(LayoutValidationError, match="等寬等高"):
+        parse_layout(value)

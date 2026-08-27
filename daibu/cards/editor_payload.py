@@ -74,6 +74,8 @@ def editable_fields(draft: CarouselDraft) -> tuple[EditableField, ...]:
             )
         )
         for index, section in enumerate(page.sections):
+            if page.page_type == "cta":
+                continue
             fields.append(
                 _field(
                     f"{prefix}.section.{index}.text",

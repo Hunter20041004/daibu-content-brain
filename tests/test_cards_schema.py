@@ -302,6 +302,20 @@ def test_draft_rejects_external_or_investment_calls_to_action():
         validate_draft(replace(draft, pages=(*draft.pages[:-1], cta)))
 
 
+def test_cta_requires_the_approved_brand_message_exactly():
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    cta = draft.pages[-1]
+    modified = replace(
+        cta,
+        sections=(replace(cta.sections[0], text="追蹤其他帳號"),),
+    )
+
+    with pytest.raises(ValueError, match="固定品牌文案"):
+        validate_draft(replace(draft, pages=(*draft.pages[:-1], modified)))
+
+
 def test_page_mapping_uses_verified_sources_to_build_the_source_label():
     from daibu.cards.schema import page_from_mapping
 
