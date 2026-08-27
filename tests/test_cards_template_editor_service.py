@@ -17,7 +17,7 @@ def _setup(tmp_path):
 
 def test_unknown_template_property_does_not_create_version(tmp_path):
     conn,theme_id,version=_setup(tmp_path);raw=layout_to_mapping(version.layout)
-    raw["pages"]["cover"]["elements"]["heading"]["rotate"]=10
+    raw["pages"]["cover"]["elements"]["company-name"]["rotate"]=10
     result=template_editor_service.save_template_version(conn,theme_id,version.id,raw,())
     assert result.version is None
     assert "不允許" in result.issues[0].message

@@ -656,8 +656,8 @@ def test_count_theme_content_reports_what_will_be_deleted(tmp_path):
         )
         for index in range(8)
     ]
-    db.save_carousel(conn, candidate_ids[0], _seven_rows())
-    db.save_carousel(conn, candidate_ids[1], _seven_rows())
+    db.save_carousel(conn, candidate_ids[0], _six_rows())
+    db.save_carousel(conn, candidate_ids[1], _six_rows())
     db.add_idea(
         conn,
         theme_id,
@@ -669,7 +669,7 @@ def test_count_theme_content_reports_what_will_be_deleted(tmp_path):
         other_theme_id,
         Idea("別的主題", "角度", ""),
     )
-    db.save_carousel(conn, other_idea_id, _seven_rows())
+    db.save_carousel(conn, other_idea_id, _six_rows())
 
     counts = db.count_theme_content(conn, theme_id)
 
@@ -693,7 +693,7 @@ def test_count_theme_content_includes_template_versions(tmp_path):
     idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
     db.save_carousel_draft(conn, idea_id, carousel_draft())
     active = layout_repository.get_active_version(conn, theme_id)
-    changed = replace_element(active.layout, "cover", "heading", x=120)
+    changed = replace_element(active.layout, "cover", "company-name", x=120)
     layout_repository.create_version(conn, theme_id, changed)
 
     counts = db.count_theme_content(conn, theme_id)
@@ -802,7 +802,7 @@ def test_delete_idea_removes_rejected_candidate(tmp_path):
     assert db.get_ideas(conn) == []
 
 
-def _seven_rows():
+def _six_rows():
     from daibu.cards import pages
 
     return [
@@ -827,12 +827,12 @@ def test_save_and_get_carousel(tmp_path):
         Idea(title="t", angle="a", source_url=""),
     )
 
-    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
     got = db.get_carousel(conn, idea_id)
 
-    assert [row["page_no"] for row in got] == [1, 2, 3, 4, 5, 6, 7]
+    assert [row["page_no"] for row in got] == [1, 2, 3, 4, 5, 6]
     assert got[0]["page_type"] == "cover"
-    assert got[6]["grounding"] == "model"
+    assert got[5]["grounding"] == "model"
     conn.close()
 
 
@@ -845,10 +845,10 @@ def test_save_carousel_overwrites_previous_draft(tmp_path):
         Idea(title="t", angle="a", source_url=""),
     )
 
-    db.save_carousel(conn, idea_id, _seven_rows())
-    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
 
-    assert len(db.get_carousel(conn, idea_id)) == 7
+    assert len(db.get_carousel(conn, idea_id)) == 6
     conn.close()
 
 
@@ -902,7 +902,7 @@ def test_saving_existing_carousel_preserves_template_and_increments_revision(
     next_layout = replace_element(
         current.layout,
         "cover",
-        "heading",
+        "company-name",
         x=120,
     )
     next_version = layout_repository.create_version(
@@ -1000,7 +1000,7 @@ def test_upgrade_carousel_template_changes_only_version_binding(tmp_path):
     idea_id = db.add_idea(conn, theme_id, Idea("t", "a", ""))
     first = db.save_carousel_draft(conn, idea_id, carousel_draft())
     active = layout_repository.get_active_version(conn, theme_id)
-    changed = replace_element(active.layout, "cover", "heading", x=120)
+    changed = replace_element(active.layout, "cover", "company-name", x=120)
     second_version = layout_repository.create_version(
         conn,
         theme_id,
@@ -1107,7 +1107,7 @@ def test_update_single_carousel_page(tmp_path):
         None,
         Idea(title="t", angle="a", source_url=""),
     )
-    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
     page_id = db.get_carousel(conn, idea_id)[0]["id"]
 
     db.update_carousel_page(conn, page_id, "新標題", "新內文")
@@ -1124,11 +1124,11 @@ def test_rejecting_idea_keeps_its_carousel(tmp_path):
         None,
         Idea(title="t", angle="a", source_url=""),
     )
-    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
 
     pipeline.set_status(conn, idea_id, "已淘汰")
 
-    assert len(db.get_carousel(conn, idea_id)) == 7
+    assert len(db.get_carousel(conn, idea_id)) == 6
     conn.close()
 
 
@@ -1140,7 +1140,7 @@ def test_deleting_idea_removes_its_carousel(tmp_path):
         None,
         Idea(title="t", angle="a", source_url=""),
     )
-    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
 
     db.delete_idea(conn, idea_id)
 
@@ -1163,7 +1163,7 @@ def test_deleting_theme_removes_carousels_of_its_ideas(tmp_path):
         theme_id,
         Idea(title="t", angle="a", source_url=""),
     )
-    db.save_carousel(conn, idea_id, _seven_rows())
+    db.save_carousel(conn, idea_id, _six_rows())
 
     db.delete_theme(conn, theme_id)
 

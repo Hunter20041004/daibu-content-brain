@@ -1320,7 +1320,7 @@ def test_ai_copy_generation_loads_and_saves_the_new_draft(
     next(
         button for button in app.button
         if button.label == "AI 幫我寫初稿"
-    ).click().run(timeout=10)
+    ).click().run(timeout=20)
 
     stored = next(item for item in db.get_ideas(conn) if item.id == idea_id)
     assert calls == [

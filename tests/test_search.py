@@ -70,6 +70,7 @@ def test_search_web_maps_https_results_without_domain_filter(monkeypatch):
 
 
 def test_raw_search_explains_missing_api_key(monkeypatch):
+    monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
     monkeypatch.delenv("TAVILY_API_KEY", raising=False)
 
     with pytest.raises(RuntimeError, match="TAVILY_API_KEY"):

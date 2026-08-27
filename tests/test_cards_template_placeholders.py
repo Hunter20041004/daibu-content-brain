@@ -11,7 +11,7 @@ from daibu.cards.template_placeholders import (
 )
 
 
-def test_template_placeholder_draft_covers_all_seven_semantic_pages():
+def test_template_placeholder_draft_covers_all_six_semantic_pages():
     draft = build_template_placeholder_draft()
     assert tuple(page.page_type for page in draft.pages) == pages.PAGE_TYPES
     assert draft.pages[0].heading == "封面標題"
@@ -23,7 +23,7 @@ def test_template_placeholder_draft_covers_all_seven_semantic_pages():
     assert SERIES_PLACEHOLDER == "系列名稱"
 
 
-def test_template_editor_html_uses_semantic_company_series_and_logo():
+def test_template_editor_html_uses_semantic_company_and_logo():
     draft = build_template_placeholder_draft()
     cover = render.template_editor_page_html(
         draft.pages[0],
@@ -34,7 +34,7 @@ def test_template_editor_html_uses_semantic_company_series_and_logo():
         logo_placeholder_text="企業 Logo",
     )
     assert "公司名稱" in cover
-    assert "系列名稱" in cover
+    assert "系列名稱" not in cover
     assert "一布懂 AI 新創" not in cover
     match = re.search(
         r'<img src="data:image/svg\+xml;base64,([^"]+)" '
