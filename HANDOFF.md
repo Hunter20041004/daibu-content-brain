@@ -9,7 +9,7 @@
 - **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `730 passed, 16 deselected, 1 warning in 178.38s`。新增的一項是本輪解析回歸測試；唯一 warning 是既有 Starlette/httpx 棄用提醒。
 - **真實邊界**：以測試來源直接呼叫目前 Gemini，曾取得 `5,202` 字的 JSON 回覆；後續免費服務呼叫分別遇到 timeout／503，屬 provider 暫時性失敗，並非解析器吞錯。所有檢查都使用隔離資料，沒有寫入正式資料庫。
 - **安全與成本**：只修改 JSON 萃取共用函式與測試；沒有放寬頁序、字數、來源或逐字證據規則，沒有 schema、SQLite、搜尋 API、新套件或付費操作變更。
-- **待部署驗收**：程式碼通過全套測試後，需重啟既有 `io.daibu.content-brain`、確認 `/_stcore/health = 200`，再由正式內容製作頁驗收既有草稿與錯誤保留流程。
+- **正式驗收與推送**：`1cd97b0` 已推至 `origin/main`，本機與遠端 SHA 相同。既有 `io.daibu.content-brain` 重啟後為 PID `71908`，`/_stcore/health = 200 ok`，只監聽 `127.0.0.1:8501`。正式 Chromium 從首頁進入「內容製作」成功，`scrollWidth - viewportWidth = 0`、console errors = 0；既有草稿與錯誤保留流程未改。
 
 ## 2026-08-27 Streamlit 查證錯誤圖示修正
 
