@@ -1760,6 +1760,7 @@ with candidate_column:
                         disabled=not idea.company.strip(),
                         width="stretch",
                     ):
+                        research_status = None
                         try:
                             provider = base.get_provider(provider_config)
                             configured_domains = trusted_domains_for(
@@ -1797,6 +1798,12 @@ with candidate_column:
                             RuntimeError,
                             ValueError,
                         ) as error:
+                            if research_status is not None:
+                                research_status.update(
+                                    label="公司資料查證未完成",
+                                    state="error",
+                                    expanded=False,
+                                )
                             st.error(
                                 "輪播草稿產生失敗，既有內容沒有被刪除。"
                                 f"請稍後重試；原因：{error}"

@@ -126,7 +126,8 @@ def test_real_gemma_returns_parsable_company_categories():
 )
 def test_real_llm_returns_valid_sourced_carousel(tmp_path):
     from daibu import db
-    from daibu.cards import draft
+    from daibu.cards import draft, pages
+    from daibu.cards.schema import validate_grounded_draft
     from daibu.llm.base import Idea
     from tests.card_fixtures import verified_sources
 
@@ -153,7 +154,9 @@ def test_real_llm_returns_valid_sourced_carousel(tmp_path):
         provider.generate_carousel_text,
     )
 
-    assert len(result.pages) == 7
+    assert len(result.pages) == 6
     assert all(page.sections for page in result.pages)
+    assert result.pages[-1].sections[0].text == pages.CTA_TEXT
+    validate_grounded_draft(result)
     assert db.get_carousel_draft(conn, idea_id) == result
     conn.close()
