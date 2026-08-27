@@ -1543,11 +1543,53 @@ def test_writing_workspace_opens_one_adopted_idea_at_a_time(
     app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
 
     assert len([area for area in app.text_area if area.label == "正文"]) == 1
-    assert {
+    writing_labels = {
         button.label
         for button in app.button
-        if button.label.startswith("編輯｜")
+        if "編輯｜" in button.label
+    }
+    assert {
+        label.replace("正在編輯｜", "編輯｜")
+        for label in writing_labels
     } == {"編輯｜正文甲", "編輯｜正文乙"}
+    assert sum(label.startswith("正在編輯｜") for label in writing_labels) == 1
+
+
+def test_selecting_adopted_idea_marks_it_and_requests_editor_scroll(
+    monkeypatch,
+    tmp_path,
+):
+    database_path = tmp_path / "app.db"
+    monkeypatch.setenv("DAIBU_DB_PATH", str(database_path))
+    conn = db.connect(str(database_path))
+    db.init_schema(conn)
+    theme_id = db.add_theme(conn, Theme(None, "寫作系列", 0, [], 2))
+    first_id = db.add_idea(
+        conn, theme_id, Idea("正文甲", "角度甲", ""), status="採用"
+    )
+    second_id = db.add_idea(
+        conn, theme_id, Idea("正文乙", "角度乙", ""), status="採用"
+    )
+
+    app = AppTest.from_file(PROJECT_ROOT / "pages/1_選題.py").run()
+    edit_button = next(
+        button for button in app.button
+        if button.label.startswith("編輯｜")
+    )
+    selected_title = edit_button.label.removeprefix("編輯｜")
+    selected_id = first_id if selected_title == "正文甲" else second_id
+    edit_button.click().run()
+
+    assert any(
+        button.label == f"正在編輯｜{selected_title}"
+        for button in app.button
+    )
+    scroll_markup = " ".join(
+        markdown.value for markdown in app.markdown
+        if f"adopted-editor-{selected_id}" in markdown.value
+    )
+    assert f'id="adopted-editor-{selected_id}"' in scroll_markup
+    assert 'data-scroll-requested="true"' in scroll_markup
 
 
 def test_writing_stage_hides_earlier_research_and_candidate_tools(

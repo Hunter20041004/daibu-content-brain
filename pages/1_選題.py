@@ -1311,13 +1311,24 @@ with candidate_column:
                 gap="small",
             )
             for index, adopted_idea in enumerate(selected_adopted):
+                is_selected = (
+                    adopted_idea.id
+                    == st.session_state.get("selected_adopted_id")
+                )
                 if writing_columns[index % len(writing_columns)].button(
-                    f"編輯｜{adopted_idea.title}",
+                    (
+                        f"正在編輯｜{adopted_idea.title}"
+                        if is_selected
+                        else f"編輯｜{adopted_idea.title}"
+                    ),
                     key=f"edit-adopted-{adopted_idea.id}",
                     type="secondary",
                     width="stretch",
                 ):
                     st.session_state.selected_adopted_id = adopted_idea.id
+                    st.session_state.scroll_to_adopted_editor_id = (
+                        adopted_idea.id
+                    )
                     st.rerun()
     selected_adopted_idea = next(
         (
@@ -1327,7 +1338,52 @@ with candidate_column:
         ),
         None,
     )
+    scroll_to_adopted_editor_id = st.session_state.pop(
+        "scroll_to_adopted_editor_id",
+        None,
+    )
     for idea in [selected_adopted_idea] if selected_adopted_idea else []:
+        scroll_to_adopted_editor = scroll_to_adopted_editor_id == idea.id
+        scroll_marker = (
+            ' data-scroll-requested="true"'
+            if scroll_to_adopted_editor
+            else ""
+        )
+        editor_anchor_id = f"adopted-editor-{idea.id}"
+        with st.container(key=f"adopted-editor-scroll-bridge-{idea.id}"):
+            st.markdown(
+                f'<span id="{editor_anchor_id}"{scroll_marker}></span>',
+                unsafe_allow_html=True,
+            )
+            if scroll_to_adopted_editor:
+                st.iframe(
+                    f"""
+                    <!doctype html>
+                    <html>
+                    <body>
+                    <script>
+                        const parentWindow = window.parent;
+                        const anchor = parentWindow.document.getElementById(
+                            "{editor_anchor_id}"
+                        );
+                        const reduceMotion = parentWindow.matchMedia(
+                            "(prefers-reduced-motion: reduce)"
+                        ).matches;
+                        if (anchor) {{
+                            parentWindow.requestAnimationFrame(() => {{
+                                anchor.scrollIntoView({{
+                                    behavior: reduceMotion ? "auto" : "smooth",
+                                    block: "start",
+                                }});
+                            }});
+                        }}
+                    </script>
+                    </body>
+                    </html>
+                    """,
+                    height="content",
+                    tab_index=-1,
+                )
         with st.expander(
             idea.title,
             expanded=journey.current in {"write", "carousel"},
