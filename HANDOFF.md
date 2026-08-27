@@ -9,7 +9,8 @@
 - **TDD 證據**：新增 `tests/test_cards_render.py::test_cover_renders_the_editable_page_heading_in_the_preview` 與 `tests/test_cards_layout_schema.py::test_legacy_layout_without_cover_heading_gets_compatibility_default`；兩個案例都先看到紅燈，再以最小 Renderer／layout 相容修正轉綠。聚焦 Renderer／layout 39 passed，模板／版面相關 23 passed。
 - **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `732 passed, 16 deselected, 1 warning`；唯一 warning 是既有 Starlette/httpx 棄用提醒。
 - **視覺 QA**：最終一輪 1280×800／375×812 截圖均確認封面標題可見、未遮住 Logo／公司名／定位，手機 `scrollWidth - clientWidth = 0`，console errors／warnings = 0。證據：`.screenshots/cover-heading-round4-desktop.png`、`.screenshots/cover-heading-round4-mobile.png`。
-- **安全與成本**：沒有新增套件、API、資料表、付費呼叫或正式資料寫入；瀏覽器驗收使用 `/tmp/daibu-cover-heading.db` 複本。正式部署與遠端 SHA 會在本輪收尾後補記。
+- **安全與成本**：沒有新增套件、API、資料表、付費呼叫或正式資料寫入；瀏覽器驗收使用 `/tmp/daibu-cover-heading.db` 複本。
+- **正式驗收與推送**：`810c192` 已推至 `origin/main`，本機與遠端 SHA 相同。既有 `io.daibu.content-brain` 重啟後為 PID `78462`，`/_stcore/health = ok`，只監聽 `127.0.0.1:8501`。正式 Chromium 從 `/選題` 展開「輪播製作」後，預覽 DOM 可讀到封面標題，console errors／warnings = 0，頁面橫向溢出 = 0。stderr 目前最後一筆 traceback 是部署前既有記錄，重啟後沒有新增錯誤。
 
 ## 2026-08-27 LLM 輪播 JSON 解析韌性修正
 
