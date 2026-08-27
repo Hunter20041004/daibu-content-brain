@@ -86,11 +86,25 @@ def _node_card(page: CarouselPage, index: int, element_id: str, classes: str) ->
     assert page.diagram is not None
     node = page.diagram.nodes[index]
     prefix = f"page.{page.page_type}.diagram.{index}"
-    expression = (
-        _problem_icon(index) + _hidden_edit_hook(f"{prefix}.expression")
-        if page.page_type == "problem"
-        else f'<i data-edit-key="{prefix}.expression">{html.escape(node.expression)}</i>'
-    )
+    if page.page_type == "problem":
+        expression = _problem_icon(index) + _hidden_edit_hook(
+            f"{prefix}.expression"
+        )
+    elif page.page_type == "how-ai":
+        expression = (
+            f'<i>{("IN", "AI", "OUT")[index]}</i>'
+            + _hidden_edit_hook(f"{prefix}.expression")
+        )
+    elif page.page_type == "results":
+        expression = (
+            f'<i>{("BEFORE", "→", "AFTER")[index]}</i>'
+            + _hidden_edit_hook(f"{prefix}.expression")
+        )
+    else:
+        expression = (
+            f'<i data-edit-key="{prefix}.expression">'
+            f"{html.escape(node.expression)}</i>"
+        )
     return _layout_box(
         element_id,
         expression + _editable(f"{prefix}.title", node.title, tag="b")

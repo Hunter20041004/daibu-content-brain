@@ -88,7 +88,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             2,
             "who",
-            "先認識 ElevenLabs",
+            "它在做什麼？",
             (
                 _section(
                     "白話定位",
@@ -118,7 +118,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             3,
             "problem",
-            "配音慢的不是朗讀本身",
+            "它想優化什麼？",
             (
                 _section(
                     "現在怎麼做",
@@ -149,7 +149,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             4,
             "how-ai",
-            "ElevenLabs 用 AI 重建說話方式",
+            "AI 扮演什麼樣的角色？",
             (
                 _section(
                     "傳統做法",
@@ -189,7 +189,7 @@ def carousel_draft() -> CarouselDraft:
         CarouselPage(
             5,
             "results",
-            "誰把 ElevenLabs 放進工作裡",
+            "它怎麼實際改善現有流程？",
             (
                 _section(
                     "代表使用者",
@@ -414,6 +414,12 @@ def company_stress_draft(company: str) -> CarouselDraft:
         selected["headings"],
         strict=True,
     ):
+        heading = {
+            "who": "它在做什麼？",
+            "problem": "它想優化什麼？",
+            "how-ai": "AI 扮演什麼樣的角色？",
+            "results": "它怎麼實際改善現有流程？",
+        }.get(page.page_type, heading)
         sections = tuple(
             replace(section, text=selected["sections"][section.label])
             for section in page.sections

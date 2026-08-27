@@ -124,6 +124,10 @@ def test_how_ai_renders_one_arrow_system_and_four_context_notes(tmp_path):
     markup = _markup(_render(tmp_path, 3))
 
     assert markup.count('class="flow-arrows"') == 1
+    for label in ("IN", "AI", "OUT"):
+        assert f">{label}</i>" in markup
+    for internal_expression in ("listen", "think", "happy"):
+        assert f">{internal_expression}</i>" not in markup
     for element_id in (
         "heading", "step-1", "step-2", "step-3", "traditional", "ai-role", "human", "difference", "mascot"
     ):
@@ -144,6 +148,10 @@ def test_results_uses_three_equal_cards_with_approved_roles(tmp_path):
     assert 'class="result-flow"' in markup
     assert page.diagram is not None
     assert [node.title for node in page.diagram.nodes] == ["使用前", "產品介入", "使用後"]
+    for label in ("BEFORE", "→", "AFTER"):
+        assert f">{label}</i>" in markup
+    for internal_expression in ("concerned", "think", "happy"):
+        assert f">{internal_expression}</i>" not in markup
     for element_id in (
         "heading", "audience", "before", "intervention", "after", "core-difference", "value", "mascot"
     ):

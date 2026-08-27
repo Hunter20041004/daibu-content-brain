@@ -709,8 +709,8 @@ def test_carousel_prompt_checks_concise_headings_and_verbatim_evidence():
         verified_sources(),
     )
 
-    assert "第 2–5 頁 heading 要簡潔有力" in text
-    assert "不必反覆寫公司名" in text
+    assert "第 2–5 頁 heading 固定依序使用" in text
+    assert "不要加入公司名或其他字" in text
     assert "事實都有逐字引句" in text
 
 
