@@ -64,6 +64,18 @@ def test_cover_makes_company_logo_name_and_positioning_the_hierarchy(tmp_path):
     assert 'data-layout-id="positioning"' in markup
 
 
+def test_cover_renders_the_editable_page_heading_in_the_preview(tmp_path):
+    page = carousel_draft().pages[0]
+    markup = _markup(_render(tmp_path))
+
+    assert html_lib.escape(page.heading) in markup
+    assert (
+        '<span data-edit-key="page.cover.heading">'
+        f"{html_lib.escape(page.heading)}</span>"
+    ) in markup
+    assert 'class="editor-metadata-hook" data-edit-key="page.cover.heading"' not in markup
+
+
 def test_layout_css_uses_saved_v3_geometry(tmp_path):
     layout = replace_element(
         load_builtin_layout(), "cover", "company-name", x=123, y=234, w=500, h=190

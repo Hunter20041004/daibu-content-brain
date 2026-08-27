@@ -1,5 +1,16 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 封面頁面標題接回即時預覽
+
+- **產品能力**：封面現在會在公司名稱與一句話定位之間顯示 `page.cover.heading`，不再只保留隱藏相容 hook。
+- **使用者體驗**：內容編輯器左側修改「頁面標題」後，右側封面預覽會同步更新；公司 Logo／公司名稱仍維持第一視覺主體。
+- **根因與修正**：公司優先封面 v54/v57 的歷史設計為保留舊標題欄位但隱藏，導致目前編輯器仍提供欄位、Renderer 卻沒有可見文字。本輪把封面標題正式加入既有 layout registry／JSON；`schema_version` 維持 v3，舊 v3 layout 缺欄位時自動補安全預設，不改 SQLite 資料表、不需資料庫遷移。
+- **資料流程**：`頁面標題` textarea → `page.cover.heading` → 預覽內 `data-edit-key` span → 編輯器既有 `updatePreview` 即時替換文字；儲存仍沿用原本六頁草稿流程。
+- **TDD 證據**：新增 `tests/test_cards_render.py::test_cover_renders_the_editable_page_heading_in_the_preview` 與 `tests/test_cards_layout_schema.py::test_legacy_layout_without_cover_heading_gets_compatibility_default`；兩個案例都先看到紅燈，再以最小 Renderer／layout 相容修正轉綠。聚焦 Renderer／layout 39 passed，模板／版面相關 23 passed。
+- **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `732 passed, 16 deselected, 1 warning`；唯一 warning 是既有 Starlette/httpx 棄用提醒。
+- **視覺 QA**：最終一輪 1280×800／375×812 截圖均確認封面標題可見、未遮住 Logo／公司名／定位，手機 `scrollWidth - clientWidth = 0`，console errors／warnings = 0。證據：`.screenshots/cover-heading-round4-desktop.png`、`.screenshots/cover-heading-round4-mobile.png`。
+- **安全與成本**：沒有新增套件、API、資料表、付費呼叫或正式資料寫入；瀏覽器驗收使用 `/tmp/daibu-cover-heading.db` 複本。正式部署與遠端 SHA 會在本輪收尾後補記。
+
 ## 2026-08-27 LLM 輪播 JSON 解析韌性修正
 
 - **產品能力**：輪播草稿解析器現在會從模型回覆中尋找第一個真正可解碼的 JSON 陣列；模型偶爾在 JSON 前加上含 `[` 的短前言時，仍能進入既有六頁與逐字引文驗證流程。

@@ -137,13 +137,18 @@ def _cover(page: CarouselPage, company: str, logo_uri: str) -> str:
             "company-name", html.escape(company), tag="h1", classes="company-name"
         )
         + _layout_box(
+            "heading",
+            _editable("page.cover.heading", page.heading),
+            tag="h2",
+            classes="cover-heading",
+        )
+        + _layout_box(
             "positioning",
             _editable("page.cover.section.0.text", positioning.text),
             tag="p",
             classes="sticky-note cover-positioning",
         )
         + _layout_box("mascot", _mascot_html("cover"), classes="mascot-box")
-        + _hidden_edit_hook("page.cover.heading")
         + "</article>"
     )
 

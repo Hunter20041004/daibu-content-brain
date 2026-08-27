@@ -224,6 +224,22 @@ def test_builtin_layout_covers_every_registered_element():
         assert set(document.pages[page_type].elements) == set(rules)
 
 
+def test_legacy_layout_without_cover_heading_gets_compatibility_default():
+    value = layout_to_mapping(load_builtin_layout())
+    value["pages"]["cover"]["elements"].pop("heading", None)
+
+    parsed = parse_layout(value)
+
+    heading = parsed.pages["cover"].elements["heading"]
+    assert heading.rect.x == 140
+    assert heading.rect.y == 655
+    assert heading.rect.w == 800
+    assert heading.rect.h == 90
+    assert heading.text_style is not None
+    assert heading.text_style.font_size == 34
+    assert heading.text_style.text_align == "center"
+
+
 def test_results_flow_cards_must_remain_equal_size():
     value = valid_layout_mapping()
     value["pages"]["results"]["elements"]["intervention"]["w"] += 10

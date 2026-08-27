@@ -8,6 +8,7 @@
 .page-title{z-index:5;margin:0;font-weight:900;line-height:1.05;letter-spacing:-.055em}.page-title::before{content:"";position:absolute;left:0;bottom:0;width:42%;height:10px;border-radius:99px;background:var(--coral)}
 .company-logo,.logo-note{display:grid;place-items:center;padding:20px;border:3px dashed rgba(64,90,130,.35);background:rgba(238,248,247,.7)}.company-logo img,.logo-note img{position:absolute;inset:20px;display:block;width:calc(100% - 40px);height:calc(100% - 40px);object-fit:contain}
 .company-name{display:flex;align-items:center;justify-content:center;margin:0;overflow:hidden;font-weight:900;line-height:1.08;letter-spacing:-.05em}
+.cover-heading{z-index:5;margin:0;overflow:hidden;color:var(--ink);font-weight:800;line-height:1.25;letter-spacing:-.035em;text-align:center}
 .sticky-note,.flow-note,.result-card{display:flex;flex-direction:column;justify-content:center;gap:12px;padding:28px 32px;overflow:hidden;background:var(--paper);box-shadow:10px 12px 0 rgba(64,90,130,.12)}
 .sticky-note::after,.flow-note::after,.result-card::after{content:"";position:absolute;right:0;bottom:0;border-style:solid;border-width:0 0 28px 28px;border-color:transparent transparent rgba(64,90,130,.1) transparent}
 .sticky-note b,.flow-note b,.result-card b{display:block;color:var(--coral);font-size:.68em;font-weight:900;letter-spacing:.06em}.sticky-note span,.flow-note span,.result-card span{display:block;font-size:.84em;font-weight:800;line-height:1.38}

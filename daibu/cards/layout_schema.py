@@ -231,6 +231,15 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
                 raise LayoutValidationError(element_id, f"{element_id} 字級超過安全上限")
             parsed_elements[element_id] = LayoutElement(rect, text_style)
 
+        # Cover headings were not part of the first schema-v3 layout payloads.
+        # Keep those saved templates loadable while giving the newly visible
+        # heading a safe slot between the company name and positioning note.
+        if page_type == "cover" and "heading" not in parsed_elements:
+            parsed_elements["heading"] = LayoutElement(
+                LayoutRect(140, 655, 800, 90),
+                TextStyle(34, "center"),
+            )
+
         missing_elements = sorted(
             set(registry[page_type]) - set(parsed_elements)
         )

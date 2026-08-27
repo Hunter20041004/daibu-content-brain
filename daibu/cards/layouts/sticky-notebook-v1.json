@@ -5,6 +5,7 @@
     "cover": {"elements": {
       "company-logo": {"x": 300, "y": 220, "w": 480, "h": 220},
       "company-name": {"x": 130, "y": 490, "w": 820, "h": 170, "font_size": 78, "text_align": "center"},
+      "heading": {"x": 140, "y": 655, "w": 800, "h": 90, "font_size": 34, "text_align": "center"},
       "positioning": {"x": 190, "y": 750, "w": 700, "h": 240, "font_size": 38, "text_align": "center"},
       "mascot": {"x": 760, "y": 1000, "w": 260, "h": 260}
     }},
