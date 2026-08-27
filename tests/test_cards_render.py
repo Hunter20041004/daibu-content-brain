@@ -105,6 +105,70 @@ def test_who_renders_all_three_approved_sticky_sections(tmp_path):
         assert html_lib.escape(section.text) in markup
 
 
+def test_who_restores_the_approved_v57_identity_map_and_page_label(tmp_path):
+    markup = _markup(_render(tmp_path, 1))
+
+    assert '<div class="page-label">COMPANY FILE</div>' in markup
+    assert '<div class="identity-map"' in markup
+    assert markup.count('data-visual="identity-node"') == 3
+    assert '<div class="profile-grid schema-profile">' in markup
+
+
+def test_problem_restores_the_approved_v57_story_layers(tmp_path):
+    markup = _markup(_render(tmp_path, 2))
+
+    assert '<div class="page-label">THE OPPORTUNITY</div>' in markup
+    assert '<div class="question-bg"' in markup
+    assert markup.count('data-visual="cycle-icon"') == 1
+    assert markup.count('data-visual="target-icon"') == 1
+    assert markup.count('data-visual="growth-icon"') == 1
+    assert markup.count('data-visual="causal-spine"') == 1
+
+
+def test_how_ai_restores_the_approved_v57_flow_layers(tmp_path):
+    markup = _markup(_render(tmp_path, 3))
+
+    assert '<div class="page-label">HOW AI WORKS</div>' in markup
+    assert '<div class="route schema-route">' in markup
+    assert markup.count('data-visual="flow-arrow"') == 2
+    assert '<div class="how-context">' in markup
+
+
+def test_results_restores_the_approved_v57_page_layers(tmp_path):
+    markup = _markup(_render(tmp_path, 4))
+
+    assert '<div class="page-label">BEFORE &amp; AFTER</div>' in markup
+    assert '<div class="sheet shared-sheet model-sheet results-sheet">' in markup
+    assert markup.count('data-layout-id="before"') == 1
+    assert markup.count('data-layout-id="intervention"') == 1
+    assert markup.count('data-layout-id="after"') == 1
+
+
+def test_cta_restores_the_approved_v57_centered_copy_layer(tmp_path):
+    markup = _markup(_render(tmp_path, 5))
+
+    assert '<div class="sheet shared-sheet close-sheet">' in markup
+    assert 'class="cta-copy cta-center"' in markup
+    assert "追蹤呆一布 AI 共學實驗室" in markup
+    assert "帶你看更多最新 AI 資訊" in markup
+
+
+def test_builtin_layout_uses_the_approved_v57_interior_geometry():
+    layout = load_builtin_layout()
+
+    who = layout.pages["who"].elements
+    problem = layout.pages["problem"].elements
+    how_ai = layout.pages["how-ai"].elements
+
+    assert who["logo"].rect.w >= 700
+    assert who["reason"].rect.w >= 700
+    assert problem["current"].rect.w < problem["stage-1"].rect.w
+    assert problem["stage-1"].rect.w == problem["stage-2"].rect.w == problem["stage-3"].rect.w
+    assert how_ai["step-1"].rect.w == how_ai["step-2"].rect.w == how_ai["step-3"].rect.w
+    assert 680 <= how_ai["heading"].rect.w <= 700
+    assert how_ai["heading"].text_style.font_size <= 60
+
+
 def test_content_sync_targets_text_span_without_replacing_sticky_label(tmp_path):
     markup = _markup(_render(tmp_path, 1))
 

@@ -10,47 +10,47 @@
       "mascot": {"x": 760, "y": 1000, "w": 260, "h": 260}
     }},
     "who": {"elements": {
-      "heading": {"x": 90, "y": 130, "w": 790, "h": 180, "font_size": 72, "text_align": "left"},
-      "logo": {"x": 90, "y": 350, "w": 250, "h": 250},
-      "positioning": {"x": 380, "y": 310, "w": 610, "h": 230, "font_size": 27, "text_align": "left"},
-      "facts": {"x": 380, "y": 570, "w": 610, "h": 180, "font_size": 27, "text_align": "left"},
-      "reason": {"x": 170, "y": 800, "w": 740, "h": 240, "font_size": 30, "text_align": "left"},
-      "mascot": {"x": 790, "y": 1020, "w": 210, "h": 210}
+      "heading": {"x": 153, "y": 203, "w": 658, "h": 180, "font_size": 68, "text_align": "left"},
+      "logo": {"x": 153, "y": 401, "w": 774, "h": 205},
+      "positioning": {"x": 153, "y": 639, "w": 373, "h": 218, "font_size": 22, "text_align": "left"},
+      "facts": {"x": 554, "y": 639, "w": 373, "h": 218, "font_size": 22, "text_align": "left"},
+      "reason": {"x": 153, "y": 888, "w": 774, "h": 205, "font_size": 25, "text_align": "left"},
+      "mascot": {"x": 914, "y": 10, "w": 160, "h": 180}
     }},
     "problem": {"elements": {
-      "heading": {"x": 80, "y": 130, "w": 800, "h": 180, "font_size": 68, "text_align": "left"},
-      "current": {"x": 50, "y": 340, "w": 320, "h": 290, "font_size": 23, "text_align": "left"},
-      "opportunity": {"x": 50, "y": 650, "w": 320, "h": 290, "font_size": 23, "text_align": "left"},
-      "spine": {"x": 405, "y": 350, "w": 12, "h": 610},
-      "stage-1": {"x": 440, "y": 320, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
-      "stage-2": {"x": 440, "y": 550, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
-      "stage-3": {"x": 440, "y": 780, "w": 560, "h": 180, "font_size": 27, "text_align": "left"},
-      "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
+      "heading": {"x": 153, "y": 180, "w": 634, "h": 180, "font_size": 64, "text_align": "left"},
+      "current": {"x": 142, "y": 426, "w": 277, "h": 356, "font_size": 22, "text_align": "left"},
+      "opportunity": {"x": 142, "y": 804, "w": 277, "h": 356, "font_size": 22, "text_align": "left"},
+      "spine": {"x": 421, "y": 485, "w": 22, "h": 617},
+      "stage-1": {"x": 457, "y": 426, "w": 481, "h": 230, "font_size": 22, "text_align": "left"},
+      "stage-2": {"x": 457, "y": 678, "w": 481, "h": 230, "font_size": 22, "text_align": "left"},
+      "stage-3": {"x": 457, "y": 930, "w": 481, "h": 230, "font_size": 22, "text_align": "left"},
+      "mascot": {"x": 875, "y": 27, "w": 195, "h": 220}
     }},
     "how-ai": {"elements": {
-      "heading": {"x": 80, "y": 130, "w": 800, "h": 180, "font_size": 68, "text_align": "left"},
-      "step-1": {"x": 70, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
-      "step-2": {"x": 400, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
-      "step-3": {"x": 730, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
-      "traditional": {"x": 70, "y": 670, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
-      "ai-role": {"x": 560, "y": 670, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
-      "human": {"x": 70, "y": 900, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
-      "difference": {"x": 560, "y": 900, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
-      "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
+      "heading": {"x": 148, "y": 174, "w": 690, "h": 180, "font_size": 58, "text_align": "left"},
+      "step-1": {"x": 142, "y": 403, "w": 251, "h": 302, "font_size": 22, "text_align": "center"},
+      "step-2": {"x": 415, "y": 403, "w": 251, "h": 302, "font_size": 22, "text_align": "center"},
+      "step-3": {"x": 687, "y": 403, "w": 251, "h": 302, "font_size": 22, "text_align": "center"},
+      "traditional": {"x": 142, "y": 791, "w": 387, "h": 162, "font_size": 22, "text_align": "left"},
+      "ai-role": {"x": 551, "y": 791, "w": 387, "h": 162, "font_size": 22, "text_align": "left"},
+      "human": {"x": 142, "y": 975, "w": 387, "h": 162, "font_size": 22, "text_align": "left"},
+      "difference": {"x": 551, "y": 975, "w": 387, "h": 162, "font_size": 22, "text_align": "left"},
+      "mascot": {"x": 904, "y": 17, "w": 168, "h": 189}
     }},
     "results": {"elements": {
-      "heading": {"x": 80, "y": 125, "w": 800, "h": 180, "font_size": 62, "text_align": "left"},
-      "audience": {"x": 80, "y": 330, "w": 920, "h": 130, "font_size": 27, "text_align": "left"},
-      "before": {"x": 65, "y": 500, "w": 300, "h": 300, "font_size": 26, "text_align": "center"},
-      "intervention": {"x": 390, "y": 500, "w": 300, "h": 300, "font_size": 26, "text_align": "center"},
-      "after": {"x": 715, "y": 500, "w": 300, "h": 300, "font_size": 26, "text_align": "center"},
-      "core-difference": {"x": 65, "y": 850, "w": 465, "h": 210, "font_size": 26, "text_align": "left"},
-      "value": {"x": 550, "y": 850, "w": 465, "h": 210, "font_size": 26, "text_align": "left"},
-      "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
+      "heading": {"x": 153, "y": 180, "w": 681, "h": 140, "font_size": 58, "text_align": "left"},
+      "audience": {"x": 153, "y": 344, "w": 774, "h": 117, "font_size": 22, "text_align": "left"},
+      "before": {"x": 153, "y": 499, "w": 245, "h": 356, "font_size": 22, "text_align": "center"},
+      "intervention": {"x": 418, "y": 499, "w": 245, "h": 356, "font_size": 22, "text_align": "center"},
+      "after": {"x": 682, "y": 499, "w": 245, "h": 356, "font_size": 22, "text_align": "center"},
+      "core-difference": {"x": 153, "y": 894, "w": 376, "h": 216, "font_size": 22, "text_align": "left"},
+      "value": {"x": 551, "y": 894, "w": 376, "h": 216, "font_size": 22, "text_align": "left"},
+      "mascot": {"x": 903, "y": 16, "w": 171, "h": 192}
     }},
     "cta": {"elements": {
-      "invitation": {"x": 120, "y": 390, "w": 840, "h": 420, "font_size": 64, "text_align": "center"},
-      "mascot": {"x": 790, "y": 1020, "w": 220, "h": 220}
+      "invitation": {"x": 152, "y": 296, "w": 777, "h": 758, "font_size": 64, "text_align": "center"},
+      "mascot": {"x": 847, "y": 1086, "w": 229, "h": 256}
     }}
   }
 }

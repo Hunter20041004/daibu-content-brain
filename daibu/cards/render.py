@@ -39,11 +39,13 @@ def _layout_box(
     tag: str = "div",
     classes: str = "",
     edit_key: str | None = None,
+    attributes: str = "",
 ) -> str:
     class_attribute = f' class="{classes}"' if classes else ""
     edit_attribute = f' data-edit-key="{html.escape(edit_key)}"' if edit_key else ""
     return (
-        f'<{tag}{class_attribute} data-layout-id="{element_id}"{edit_attribute}>'
+        f'<{tag}{class_attribute} data-layout-id="{element_id}"{edit_attribute}'
+        f"{(' ' + attributes) if attributes else ''}>"
         f"{content}</{tag}>"
     )
 
@@ -74,11 +76,12 @@ def _problem_icon(index: int) -> str:
         '<path d="M13 76l22-22 15 13 32-37"/><path d="M64 30h18v18"/>'
         '<path d="M14 87h70"/>',
     )
+    visual = ("cycle-icon", "target-icon", "growth-icon")[index]
     return (
         f'<svg class="card-icon" data-card-icon="problem-{index + 1}" '
-        'viewBox="0 0 96 96" aria-hidden="true" fill="none" '
-        'stroke="currentColor" stroke-width="7" stroke-linecap="round" '
-        f'stroke-linejoin="round">{drawings[index]}</svg>'
+        f'data-visual="{visual}" viewBox="0 0 96 96" aria-hidden="true" '
+        'fill="none" stroke="currentColor" stroke-width="7" '
+        f'stroke-linecap="round" stroke-linejoin="round">{drawings[index]}</svg>'
     )
 
 
@@ -87,8 +90,10 @@ def _node_card(page: CarouselPage, index: int, element_id: str, classes: str) ->
     node = page.diagram.nodes[index]
     prefix = f"page.{page.page_type}.diagram.{index}"
     if page.page_type == "problem":
-        expression = _problem_icon(index) + _hidden_edit_hook(
-            f"{prefix}.expression"
+        expression = (
+            _problem_icon(index)
+            + f'<i class="node-index" aria-hidden="true">{index + 1:02d}</i>'
+            + _hidden_edit_hook(f"{prefix}.expression")
         )
     elif page.page_type == "how-ai":
         expression = (
@@ -160,30 +165,45 @@ def _who(page: CarouselPage, logo_uri: str, company: str) -> str:
     return (
         '<article class="card page-who" data-page-type="who">'
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
+        '<div class="sheet folder"></div>'
+        '<div class="sheet profile-sheet">'
+        '<div class="page-label">COMPANY FILE</div>'
         + _heading(page)
+        + '<div class="identity-map" aria-hidden="true">'
+        '<span data-visual="identity-node">AI 產品</span><i>→</i>'
+        '<span data-visual="identity-node">目標使用者</span><i>→</i>'
+        '<span data-visual="identity-node">核心價值</span>'
+        '</div>'
+        '<div class="profile-grid schema-profile">'
         + _layout_box(
             "logo",
             f'<img src="{logo_uri}" alt="{html.escape(company)} Logo">',
-            classes="logo-note",
+            classes="logo-slot",
         )
+        + '<div class="profile-copy">'
         + _layout_box(
             "positioning",
             f"<b>{html.escape(positioning.label)}</b>"
             + _editable("page.who.section.0.text", positioning.text),
-            classes="sticky-note mint",
+            tag="section",
+            classes="profile-section",
         )
         + _layout_box(
             "facts",
             f"<b>{html.escape(facts.label)}</b>"
             + _editable("page.who.section.1.text", facts.text),
-            classes="sticky-note yellow",
+            tag="section",
+            classes="profile-section",
         )
+        + "</div></div>"
         + _layout_box(
             "reason",
             f"<b>{html.escape(reason.label)}</b>"
             + _editable("page.who.section.2.text", reason.text),
-            classes="sticky-note coral",
+            tag="div",
+            classes="thesis",
         )
+        + '</div>'
         + _layout_box("mascot", _mascot_html("who"), classes="mascot-box")
         + "</article>"
     )
@@ -197,7 +217,12 @@ def _problem(page: CarouselPage) -> str:
     return (
         '<article class="card page-problem" data-page-type="problem">'
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
+        '<div class="sheet shared-back"></div>'
+        '<div class="sheet shared-sheet">'
+        '<div class="question-bg" aria-hidden="true">?</div>'
+        '<div class="page-label">THE OPPORTUNITY</div>'
         + _heading(page)
+        + '<div class="problem-context">'
         + _layout_box(
             "current",
             f"<b>{html.escape(current.label)}</b>"
@@ -210,10 +235,17 @@ def _problem(page: CarouselPage) -> str:
             + _editable("page.problem.section.1.text", opportunity.text),
             classes="sticky-note yellow",
         )
-        + _layout_box("spine", "", classes="causal-spine")
-        + _node_card(page, 0, "stage-1", "flow-note white")
-        + _node_card(page, 1, "stage-2", "flow-note yellow")
-        + _node_card(page, 2, "stage-3", "flow-note mint")
+        + '</div><div class="notes schema-notes">'
+        + _layout_box(
+            "spine",
+            "",
+            classes="causal-spine",
+            attributes='data-visual="causal-spine"',
+        )
+        + _node_card(page, 0, "stage-1", "problem-note n1")
+        + _node_card(page, 1, "stage-2", "problem-note n2")
+        + _node_card(page, 2, "stage-3", "problem-note n3")
+        + '</div></div>'
         + _layout_box("mascot", _mascot_html("problem"), classes="mascot-box")
         + "</article>"
     )
@@ -239,12 +271,20 @@ def _how_ai(page: CarouselPage) -> str:
     return (
         '<article class="card page-how" data-page-type="how-ai">'
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
+        '<div class="sheet shared-back"></div>'
+        '<div class="sheet shared-sheet solution-sheet">'
+        '<div class="page-label">HOW AI WORKS</div>'
         + _heading(page)
-        + '<div class="flow-arrows" aria-hidden="true"><span>→</span><span>→</span></div>'
-        + _node_card(page, 0, "step-1", "flow-note white centered")
-        + _node_card(page, 1, "step-2", "flow-note yellow centered")
-        + _node_card(page, 2, "step-3", "flow-note mint centered")
+        + '<div class="flow-arrows" aria-hidden="true"></div>'
+        + '<div class="route schema-route">'
+        '<span class="flow-arrow a1" data-visual="flow-arrow" aria-hidden="true">→</span>'
+        '<span class="flow-arrow a2" data-visual="flow-arrow" aria-hidden="true">→</span>'
+        + _node_card(page, 0, "step-1", "step s1")
+        + _node_card(page, 1, "step-2", "step s2")
+        + _node_card(page, 2, "step-3", "step s3")
+        + '</div><div class="how-context">'
         + "".join(context)
+        + "</div></div>"
         + _layout_box("mascot", _mascot_html("how-ai"), classes="mascot-box")
         + "</article>"
     )
@@ -259,6 +299,9 @@ def _results(page: CarouselPage) -> str:
     return (
         '<article class="card page-results" data-page-type="results">'
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
+        '<div class="sheet shared-back"></div>'
+        '<div class="sheet shared-sheet model-sheet results-sheet">'
+        '<div class="page-label">BEFORE &amp; AFTER</div>'
         + _heading(page)
         + _layout_box(
             "audience",
@@ -283,6 +326,7 @@ def _results(page: CarouselPage) -> str:
             + _editable("page.results.section.2.text", value.text),
             classes="sticky-note yellow",
         )
+        + "</div>"
         + _layout_box("mascot", _mascot_html("results"), classes="mascot-box")
         + "</article>"
     )
@@ -290,14 +334,20 @@ def _results(page: CarouselPage) -> str:
 
 def _cta(page: CarouselPage) -> str:
     invitation = _section_by_label(page, "互動邀請")
+    first, second = pages.CTA_TEXT.splitlines()
     return (
         '<article class="card page-cta" data-page-type="cta">'
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
+        '<div class="sheet shared-back"></div>'
+        '<div class="sheet shared-sheet close-sheet">'
         + _layout_box(
             "invitation",
-            html.escape(invitation.text),
-            classes="cta-copy",
+            f'<p class="cta-line follow">{html.escape(first)}</p>'
+            f'<p class="cta-line prompt">{html.escape(second)}</p>'
+            f'<span class="legacy-generated" hidden>{html.escape(invitation.text)}</span>',
+            classes="cta-copy cta-center",
         )
+        + "</div>"
         + _layout_box("mascot", _mascot_html("cta"), classes="mascot-box")
         + _hidden_edit_hook("page.cta.heading")
         + "</article>"

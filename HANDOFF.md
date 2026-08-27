@@ -1,5 +1,18 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 v57 內頁結構恢復與正式模板同步
+
+- **產品能力**：第 2–5 頁恢復先前核定的 v57 粉彩手帳結構：`COMPANY FILE` 身份流程與寬版 Logo、第 3 頁 `THE OPPORTUNITY` 問號／左右脈絡／三段因果卡、第 4 頁 `HOW AI WORKS` 三段流程箭頭與 2×2 補充卡、第 5 頁 `BEFORE & AFTER` 前後對照。
+- **使用者體驗**：模板不再退回六張通用便利貼；既有 SUN 草稿可直接在輪播編輯器看到新版面，頁面標題與正文仍可編輯，六張 PNG 也共用同一套結構。
+- **根因與修正**：正式 Renderer 只輸出簡化版卡片，且 SQLite 已保存的 schema v3 版面仍是舊座標（例如內頁標題從 80、130 開始），因此即使原型曾核定 v57，實際預覽仍與原型不同。恢復 `render.py` 的 v57 語意層、`sticky-notebook-v1.css` 的紙張／流程／圖示層，並把 `sticky-notebook-v1.json` 內頁幾何改回原型座標；長標題保留較高安全框，第 4 頁標題以 690px／58px 恢復核定的自然單行比例，下劃線仍定位在原本視覺位置。
+- **資料流程**：現有 `SUN` 草稿（6 頁、2 筆來源、正文與圖片內容不改）先備份資料庫，再建立並啟用 schema v3 模板 v4（SQLite version id 6），通過實際渲染檢查後把草稿模板綁定從 id 5 升級到 id 6，content revision 由 3 變 4。歷史版本 id 3／4／5 保留，必要時可回切。
+- **遷移安全**：最終備份檔為 `.backups/daibu-before-v57-title-sync-20260827-152955-541752.db`（另有兩次版面同步前備份）；資料表列數為 themes 1、ideas 23、carousel_pages 6、carousel_sources 2、carousel_drafts 1、template_versions 4，只有不可變模板版本增加，其餘內容列數不變；`integrity_check=ok`、`foreign_key_check=0`。
+- **TDD 與 review 證據**：新增 v57 內頁語意層、身份／因果／流程／CTA 回歸測試；模板壓力測試先抓到長標題框不足的紅燈，再以安全高度與下劃線定位修正。模板／出圖／編輯器聚焦測試 `71 passed`；最終完整 pytest `738 passed, 16 deselected, 1 warning`。獨立 reviewer 另跑 Renderer、版面驗證、PNG、模板編輯器與輪播瀏覽器 `49 passed`，Critical／Important／Minor 均為 0，結論 approve。
+- **真實出圖**：以正式 SUN 草稿、官方 Logo 與啟用模板產出 6 張 1080×1350 PNG；第 2–4 頁人工檢查已可見核定的身份流程、因果骨架、三段 AI 流程，無版面驗證錯誤。暫存證據在 `/tmp/daibu-formal-v57-pages/page-1.png` 至 `page-6.png`。
+- **視覺 QA**：Streamlit 隔離副本從根網址進入內容製作、展開 SUN 的輪播製作並切換第 4 頁；1280×800／375×812 各完成最終截圖。桌機預覽可見第 4 頁自然單行標題與完整流程卡，手機保有正確層次、留白、LINE Seed 字體、粉彩三色配色、對齊與已儲存狀態；手機 `scrollWidth - clientWidth = 0`、exceptions = 0，console errors／warnings = 0。證據：`.screenshots/template-v57-final/desktop.png`、`.screenshots/template-v57-final/mobile.png`。
+- **安全與成本**：沒有新套件、LLM／搜尋 API、付費呼叫或資料表變更；SQLite 連線仍維持 thread affinity；只有模板版本與既有草稿的模板綁定變更，研究來源、正文、圖片與公司資料均未重寫。
+- **剩餘限制**：舊版仍可在模板管理回看，但已啟用 v3 只影響之後的新草稿；現有草稿已針對目前唯一 SUN 項目完成安全升級。若使用者之後另存自訂模板，仍會保留不可變版本與壓力檢查規則。
+
 ## 2026-08-27 封面頁面標題接回即時預覽
 
 - **產品能力**：封面現在會在公司名稱與一句話定位之間顯示 `page.cover.heading`，不再只保留隱藏相容 hook。
