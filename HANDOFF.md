@@ -9,7 +9,7 @@
 - **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `729 passed, 16 deselected, 1 warning in 189.81s`。16 項是預設不打外網的既有 contract；唯一 warning 是既有 Starlette/httpx 棄用提醒。
 - **視覺 QA**：第二輪以 1280×800／375×812 各一張截圖驗收，兩個尺寸均顯示真正的圓形驚嘆號、完整錯誤文字；`scrollWidth - viewportWidth = 0`、console errors = 0。證據：`.screenshots/status-icon-recovery-round2-desktop.png`、`.screenshots/status-icon-recovery-round2-mobile.png`。主題隔離頁的 computed font 為 `"Material Symbols Rounded"`。
 - **安全與成本**：只修改 CSS selector 與回歸測試；沒有資料表、SQLite、LLM、搜尋 API、新套件、付費操作或資料內容變更。
-- **待部署驗收**：程式碼與交接紀錄完成後，需重啟既有 `io.daibu.content-brain`、確認 `/_stcore/health = 200`，再由正式首頁進入內容製作頁驗收無 exception／橫向溢出／console error。
+- **正式驗收與推送**：`2f14f85` 已推至 `origin/main`，本機與遠端 SHA 相同。既有 `io.daibu.content-brain` 重啟後為 PID `69310`，`/_stcore/health = 200 ok`，只監聽 `127.0.0.1:8501`。正式 Chromium 從首頁進入「內容製作」成功，`scrollWidth - viewportWidth = 0`、console errors = 0；頁面實際載入 spinner／check／error 三個 CSS selector。若下一次看到查證失敗，刷新 `http://127.0.0.1:8501/` 後圖示應維持圓形驚嘆號與完整文字。
 
 ## 2026-08-27 已採用編輯定位與輪播回覆自救
 
