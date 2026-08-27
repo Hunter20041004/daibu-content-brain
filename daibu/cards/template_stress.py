@@ -35,19 +35,29 @@ def _fixed_draft(company: str) -> CarouselDraft:
             ContentSection(
                 label,
                 (
-                    "追蹤呆一布 AI 共學實驗室\n帶你看更多最新 AI 資訊"
+                    pages.CTA_TEXT
                     if page_type == "cta"
-                    else f"{label}的安全文字，用來確認不同公司名稱與標誌比例都不會讓內容溢出。"
+                    else "字" * pages.SECTION_HARD_LIMITS[page_type][index]
                 ),
                 () if page_type == "cta" else ("S1",),
                 (),
             )
-            for label in labels
+            for index, label in enumerate(labels)
         )
         diagram = None
         if page_type in diagram_kinds:
-            diagram = DiagramSpec(diagram_kinds[page_type], tuple(DiagramNode(f"步驟 {i}", "安全驗證文字", "think") for i in range(1,4)))
-        heading = "模板版面驗證"
+            diagram = DiagramSpec(
+                diagram_kinds[page_type],
+                tuple(
+                    DiagramNode(
+                        "題" * pages.DIAGRAM_TITLE_HARD_LIMIT,
+                        "字" * pages.DIAGRAM_TEXT_HARD_LIMIT,
+                        "think",
+                    )
+                    for _index in range(3)
+                ),
+            )
+        heading = "標" * pages.HEADING_HARD_LIMITS[page_type]
         source_label = "" if page_type == "cta" else f"來源：{company} · 2026-08-23"
         built.append(CarouselPage(number,page_type,heading,sections,diagram,source_label))
     return CarouselDraft((source,),tuple(built))

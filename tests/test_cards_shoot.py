@@ -1,6 +1,7 @@
 import io
 import struct
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,7 @@ from PIL import Image
 from playwright.sync_api import Locator, sync_playwright
 
 from daibu import db
-from daibu.cards import bundle, logo, render, shoot
+from daibu.cards import bundle, logo, pages, render, shoot
 from daibu.cards.layout_schema import load_builtin_layout, replace_element
 from daibu.llm.base import Idea
 from tests.card_fixtures import (
@@ -79,6 +80,53 @@ def test_canonical_generated_draft_fits_all_six_pages_without_text_clipping(tmp_
     asset = brand_asset(_test_logo(tmp_path))
 
     outputs = shoot.carousel_pngs(carousel_draft(), "ElevenLabs", asset)
+
+    assert len(outputs) == 6
+
+
+def test_every_editable_field_at_its_hard_limit_still_renders(tmp_path):
+    draft = carousel_draft()
+    bounded_pages = []
+    for page in draft.pages:
+        sections = tuple(
+            replace(
+                section,
+                text=(
+                    pages.CTA_TEXT
+                    if page.page_type == "cta"
+                    else "字" * pages.SECTION_HARD_LIMITS[page.page_type][index]
+                ),
+            )
+            for index, section in enumerate(page.sections)
+        )
+        diagram = page.diagram
+        if diagram is not None:
+            diagram = replace(
+                diagram,
+                nodes=tuple(
+                    replace(
+                        node,
+                        title="題" * pages.DIAGRAM_TITLE_HARD_LIMIT,
+                        text="字" * pages.DIAGRAM_TEXT_HARD_LIMIT,
+                    )
+                    for node in diagram.nodes
+                ),
+            )
+        bounded_pages.append(
+            replace(
+                page,
+                heading="標" * pages.HEADING_HARD_LIMITS[page.page_type],
+                sections=sections,
+                diagram=diagram,
+            )
+        )
+    bounded = replace(draft, pages=tuple(bounded_pages))
+
+    outputs = shoot.carousel_pngs(
+        bounded,
+        "ElevenLabs",
+        brand_asset(_test_logo(tmp_path)),
+    )
 
     assert len(outputs) == 6
 

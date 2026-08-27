@@ -57,6 +57,18 @@ def test_fixed_cta_copy_is_not_exposed_as_an_editable_field():
     assert "page.cta.section.0.text" not in keys
 
 
+def test_editor_advertises_the_per_field_render_safe_hard_limits():
+    from daibu.cards import pages
+    from daibu.cards.editor_payload import editable_fields
+
+    fields = {field.key: field.hard_chars for field in editable_fields(carousel_draft())}
+
+    assert fields["page.who.section.0.text"] == pages.SECTION_HARD_LIMITS["who"][0]
+    assert fields["page.problem.diagram.0.title"] == pages.DIAGRAM_TITLE_HARD_LIMIT
+    assert fields["page.problem.diagram.0.text"] == pages.DIAGRAM_TEXT_HARD_LIMIT
+    assert max(fields.values()) < 220
+
+
 def test_payload_contains_six_pages_preview_fields_and_locked_evidence():
     draft = carousel_draft()
     previews = {

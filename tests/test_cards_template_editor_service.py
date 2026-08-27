@@ -32,6 +32,23 @@ def test_success_creates_immutable_inactive_version(tmp_path):
     assert layout_repository.get_active_version(conn,theme_id).id==version.id
 
 
+def test_template_save_rejects_box_that_cannot_fit_declared_hard_limit(tmp_path):
+    conn,theme_id,version=_setup(tmp_path);raw=layout_to_mapping(load_builtin_layout())
+    raw["pages"]["how-ai"]["elements"]["traditional"]["h"] = 140
+
+    result=template_editor_service.save_template_version(
+        conn,theme_id,version.id,raw,build_template_stress_cases()
+    )
+
+    assert result.version is None
+    assert any(
+        issue.page_type == "how-ai"
+        and issue.element_id == "traditional"
+        and "文字超出文字框" in issue.message
+        for issue in result.issues
+    )
+
+
 def test_upgrade_changes_only_template_binding_and_revision(tmp_path):
     conn,theme_id,version=_setup(tmp_path)
     idea_id=db.add_idea(conn,theme_id,Idea("升級","角度","",company="ElevenLabs"),status="採用")

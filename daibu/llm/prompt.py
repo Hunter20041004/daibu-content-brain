@@ -140,8 +140,22 @@ def build_carousel(
     sources: tuple["VerifiedSource", ...],
 ) -> str:
     from dataclasses import asdict
+    from daibu.cards import pages as carousel_pages
 
     source_payload = [asdict(source) for source in sources]
+    section_limits = "\n".join(
+        f"- 第 {index} 頁 {page_type}："
+        + "、".join(
+            f"{label}最多 {limit} 字"
+            for label, limit in zip(
+                carousel_pages.SECTION_LABELS[page_type],
+                carousel_pages.SECTION_HARD_LIMITS[page_type],
+                strict=True,
+            )
+        )
+        for index, page_type in enumerate(carousel_pages.PAGE_TYPES, start=1)
+        if page_type != "cta"
+    )
     return f"""
 你是「呆一布 AI 共學實驗室」的公司介紹編輯。
 請把下列已查證資料整理成剛好六頁 IG 輪播。
@@ -174,6 +188,9 @@ source_id 必須來自上方來源，quote 必須從對應 excerpt 逐字抄錄�
 不得加入來源中沒有的公司、人物、客戶、數字或能力。
 第 2–5 頁 140–220 字是建議目標，證據不足時就少寫，不為湊字數補造。
 資料不足時明寫「目前公開證據有限」，不可用模型常識補齊。
+以下是出圖安全硬上限，任何欄位都不可超過（空白不計）：
+{section_limits}
+第 3–5 頁每個圖解標題最多 {carousel_pages.DIAGRAM_TITLE_HARD_LIMIT} 字、說明最多 {carousel_pages.DIAGRAM_TEXT_HARD_LIMIT} 字。
 
 第 6 頁只放以下兩行固定 CTA，不做摘要、不提問、不加其他區塊：
 追蹤呆一布 AI 共學實驗室

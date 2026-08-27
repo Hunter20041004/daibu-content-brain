@@ -60,6 +60,27 @@ LIMITS = {
     "inner_max": 220,
 }
 
+# These are output-safe limits, calibrated against the actual v57 geometry
+# with full-width Chinese glyphs in bundled LINE Seed TW.
+SECTION_HARD_LIMITS = {
+    "cover": (40,),
+    "who": (95, 70, 55),
+    "problem": (85, 85),
+    "how-ai": (52, 56, 54, 38),
+    "results": (56, 60, 58),
+    "cta": (len(CTA_TEXT),),
+}
+HEADING_HARD_LIMITS = {
+    "cover": 24,
+    "who": 18,
+    "problem": 18,
+    "how-ai": 16,
+    "results": 16,
+    "cta": 24,
+}
+DIAGRAM_TITLE_HARD_LIMIT = 7
+DIAGRAM_TEXT_HARD_LIMIT = 14
+
 LABELS = {
     "cover": "封面",
     "who": "它在做什麼",

@@ -615,6 +615,29 @@ def test_carousel_prompt_limits_copy_to_verified_sources():
     )
 
     assert "140–220 字是建議目標" in text
+
+
+def test_carousel_prompt_and_json_schema_share_render_safe_field_limits():
+    from daibu.cards import pages
+    from daibu.llm.gemini import build_carousel_schema
+    from tests.card_fixtures import verified_sources
+
+    text = prompt.build_carousel("Acme", "題目", "角度", verified_sources())
+    schema = build_carousel_schema()
+
+    assert "白話定位最多 95 字" in text
+    assert "關鍵差別最多 38 字" in text
+    assert "圖解標題最多 7 字、說明最多 14 字" in text
+    assert schema["items"]["properties"]["heading"]["maxLength"] == max(
+        pages.HEADING_HARD_LIMITS.values()
+    )
+    section = schema["items"]["properties"]["sections"]["items"]
+    assert section["properties"]["text"]["maxLength"] == 95
+    diagram_node = schema["items"]["properties"]["diagram"]["anyOf"][1][
+        "properties"
+    ]["nodes"]["items"]
+    assert diagram_node["properties"]["title"]["maxLength"] == 7
+    assert diagram_node["properties"]["text"]["maxLength"] == 14
     assert "不為湊字數" in text
     assert "ai-infrastructure" in text
     assert "來源中沒有的公司、人物、客戶、數字或能力" in text

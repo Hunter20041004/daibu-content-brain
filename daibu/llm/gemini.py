@@ -36,7 +36,14 @@ def _section_schema(labels: list[str]) -> dict[str, object]:
         "required": ["label", "text", "evidence_quotes"],
         "properties": {
             "label": {"type": "string", "enum": labels},
-            "text": {"type": "string"},
+            "text": {
+                "type": "string",
+                "maxLength": max(
+                    limit
+                    for limits in carousel_pages.SECTION_HARD_LIMITS.values()
+                    for limit in limits
+                ),
+            },
             "evidence_quotes": _evidence_schema(),
         },
         "additionalProperties": False,
@@ -65,8 +72,14 @@ def _diagram_schema() -> dict[str, object]:
                             "type": "object",
                             "required": ["title", "text", "expression"],
                             "properties": {
-                                "title": {"type": "string"},
-                                "text": {"type": "string"},
+                                "title": {
+                                    "type": "string",
+                                    "maxLength": carousel_pages.DIAGRAM_TITLE_HARD_LIMIT,
+                                },
+                                "text": {
+                                    "type": "string",
+                                    "maxLength": carousel_pages.DIAGRAM_TEXT_HARD_LIMIT,
+                                },
                                 "expression": {"type": "string"},
                             },
                             "additionalProperties": False,
@@ -107,7 +120,10 @@ def build_carousel_schema() -> dict[str, object]:
                     "type": "string",
                     "enum": list(carousel_pages.PAGE_TYPES),
                 },
-                "heading": {"type": "string"},
+                "heading": {
+                    "type": "string",
+                    "maxLength": max(carousel_pages.HEADING_HARD_LIMITS.values()),
+                },
                 "sections": {
                     "type": "array",
                     "items": _section_schema(labels),

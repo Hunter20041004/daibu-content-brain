@@ -39,6 +39,7 @@ def _field(
     value: str,
     *,
     kind: str = "text",
+    hard_chars: int | None = None,
 ) -> EditableField:
     limits = {
         "heading": (18, pages.LIMITS["heading"]),
@@ -48,6 +49,9 @@ def _field(
         "expression": (0, 0),
     }
     recommended, hard = limits[kind]
+    if hard_chars is not None:
+        hard = hard_chars
+        recommended = min(recommended, max(1, round(hard * 0.8)))
     return EditableField(
         key,
         page_type,
@@ -71,6 +75,7 @@ def editable_fields(draft: CarouselDraft) -> tuple[EditableField, ...]:
                 "頁面標題",
                 page.heading,
                 kind="heading",
+                hard_chars=pages.HEADING_HARD_LIMITS[page.page_type],
             )
         )
         for index, section in enumerate(page.sections):
@@ -83,6 +88,7 @@ def editable_fields(draft: CarouselDraft) -> tuple[EditableField, ...]:
                     section.label,
                     section.text,
                     kind="section",
+                    hard_chars=pages.SECTION_HARD_LIMITS[page.page_type][index],
                 )
             )
         if page.diagram is not None:
@@ -96,6 +102,7 @@ def editable_fields(draft: CarouselDraft) -> tuple[EditableField, ...]:
                             f"圖解 {index + 1} 標題",
                             node.title,
                             kind="diagram-title",
+                            hard_chars=pages.DIAGRAM_TITLE_HARD_LIMIT,
                         ),
                         _field(
                             f"{node_prefix}.text",
@@ -103,6 +110,7 @@ def editable_fields(draft: CarouselDraft) -> tuple[EditableField, ...]:
                             f"圖解 {index + 1} 說明",
                             node.text,
                             kind="diagram-text",
+                            hard_chars=pages.DIAGRAM_TEXT_HARD_LIMIT,
                         ),
                         _field(
                             f"{node_prefix}.expression",

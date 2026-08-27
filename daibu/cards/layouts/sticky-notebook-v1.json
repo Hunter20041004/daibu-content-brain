@@ -9,7 +9,7 @@
       "mascot": {"x": 760, "y": 1000, "w": 260, "h": 260}
     }},
     "who": {"elements": {
-      "heading": {"x": 90, "y": 130, "w": 790, "h": 120, "font_size": 72, "text_align": "left"},
+      "heading": {"x": 90, "y": 130, "w": 790, "h": 180, "font_size": 72, "text_align": "left"},
       "logo": {"x": 90, "y": 350, "w": 250, "h": 250},
       "positioning": {"x": 380, "y": 310, "w": 610, "h": 230, "font_size": 27, "text_align": "left"},
       "facts": {"x": 380, "y": 570, "w": 610, "h": 180, "font_size": 27, "text_align": "left"},
@@ -31,10 +31,10 @@
       "step-1": {"x": 70, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
       "step-2": {"x": 400, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
       "step-3": {"x": 730, "y": 350, "w": 280, "h": 270, "font_size": 27, "text_align": "center"},
-      "traditional": {"x": 70, "y": 710, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
-      "ai-role": {"x": 560, "y": 710, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
-      "human": {"x": 70, "y": 900, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
-      "difference": {"x": 560, "y": 900, "w": 450, "h": 160, "font_size": 25, "text_align": "left"},
+      "traditional": {"x": 70, "y": 670, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
+      "ai-role": {"x": 560, "y": 670, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
+      "human": {"x": 70, "y": 900, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
+      "difference": {"x": 560, "y": 900, "w": 450, "h": 200, "font_size": 25, "text_align": "left"},
       "mascot": {"x": 850, "y": 55, "w": 160, "h": 160}
     }},
     "results": {"elements": {

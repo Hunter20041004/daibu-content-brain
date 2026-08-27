@@ -305,6 +305,17 @@ def validate_draft(draft: CarouselDraft) -> None:
     for page in draft.pages:
         if not page.heading.strip():
             record(f"{page.page_type} 標題不可空白", page.page_type)
+        heading_chars = len("".join(page.heading.split()))
+        heading_limit = pages.HEADING_HARD_LIMITS.get(
+            page.page_type,
+            pages.LIMITS["heading"],
+        )
+        if heading_chars > heading_limit:
+            record(
+                f"{page.page_type} 標題最多 {heading_limit} 字，"
+                f"目前 {heading_chars} 字",
+                page.page_type,
+            )
         expected_source_label = _source_label(page.sections, draft.sources)
         if page.source_label != expected_source_label:
             record(
@@ -346,6 +357,24 @@ def validate_draft(draft: CarouselDraft) -> None:
                     f"{page.page_type} 圖解節點不可空白",
                     page.page_type,
                 )
+            else:
+                for node_index, node in enumerate(page.diagram.nodes, start=1):
+                    title_chars = len("".join(node.title.split()))
+                    text_chars = len("".join(node.text.split()))
+                    if title_chars > pages.DIAGRAM_TITLE_HARD_LIMIT:
+                        record(
+                            f"{page.page_type} 圖解 {node_index} 標題最多 "
+                            f"{pages.DIAGRAM_TITLE_HARD_LIMIT} 字，"
+                            f"目前 {title_chars} 字",
+                            page.page_type,
+                        )
+                    if text_chars > pages.DIAGRAM_TEXT_HARD_LIMIT:
+                        record(
+                            f"{page.page_type} 圖解 {node_index} 說明最多 "
+                            f"{pages.DIAGRAM_TEXT_HARD_LIMIT} 字，"
+                            f"目前 {text_chars} 字",
+                            page.page_type,
+                        )
         elif page.page_type in pages.PAGE_TYPES and page.diagram is not None:
             record(f"{page.page_type} 不應放主圖解", page.page_type)
 
@@ -359,12 +388,22 @@ def validate_draft(draft: CarouselDraft) -> None:
                     page.page_type,
                 )
 
-        for section in page.sections:
+        for section_index, section in enumerate(page.sections):
             if not section.text.strip():
                 record(
                     f"{page.page_type} {section.label} 內容不可空白",
                     page.page_type,
                 )
+            hard_limits = pages.SECTION_HARD_LIMITS.get(page.page_type, ())
+            if section_index < len(hard_limits):
+                hard_limit = hard_limits[section_index]
+                section_chars = len("".join(section.text.split()))
+                if section_chars > hard_limit:
+                    record(
+                        f"{page.page_type} {section.label} 最多 {hard_limit} 字，"
+                        f"目前 {section_chars} 字",
+                        page.page_type,
+                    )
             unknown = set(section.source_ids) - known_sources
             if unknown:
                 record(

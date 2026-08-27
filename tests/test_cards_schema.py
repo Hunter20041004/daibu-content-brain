@@ -16,6 +16,44 @@ def test_complete_six_page_draft_passes_the_content_contract():
     assert draft.pages[3].diagram.kind == "ai-generate"
 
 
+def test_draft_rejects_section_beyond_its_render_safe_limit():
+    from daibu.cards import pages
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    who = draft.pages[1]
+    too_long = "字" * (pages.SECTION_HARD_LIMITS["who"][0] + 1)
+    who = replace(
+        who,
+        sections=(replace(who.sections[0], text=too_long), *who.sections[1:]),
+    )
+
+    with pytest.raises(ValueError, match="白話定位.*最多 95 字"):
+        validate_draft(replace(draft, pages=(draft.pages[0], who, *draft.pages[2:])))
+
+
+def test_draft_rejects_diagram_copy_beyond_its_render_safe_limit():
+    from daibu.cards import pages
+    from daibu.cards.schema import validate_draft
+
+    draft = carousel_draft()
+    problem = draft.pages[2]
+    nodes = problem.diagram.nodes
+    too_long = "字" * (pages.DIAGRAM_TEXT_HARD_LIMIT + 1)
+    problem = replace(
+        problem,
+        diagram=replace(
+            problem.diagram,
+            nodes=(replace(nodes[0], text=too_long), *nodes[1:]),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="圖解 1 說明最多 14 字"):
+        validate_draft(
+            replace(draft, pages=(*draft.pages[:2], problem, *draft.pages[3:]))
+        )
+
+
 def test_complete_fixture_passes_the_grounded_evidence_contract():
     from daibu.cards.schema import validate_grounded_draft
 
