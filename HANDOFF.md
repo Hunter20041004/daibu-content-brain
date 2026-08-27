@@ -7,7 +7,7 @@
 - **根因與修正**：`daibu/theme.py` 的 `.stApp *` 全域字體規則會覆蓋 Streamlit 的 `[data-testid="stExpanderIconError"]`。原本只保護 `[data-testid="stIconMaterial"]`，因此圖示字元 `error` 以 Figtree 顯示並被欄位裁掉第一個字元。現在同時保護 Streamlit 實際使用的 spinner／check／error 三種狀態圖示。
 - **TDD 證據**：`tests/test_theme.py::test_css_preserves_streamlit_material_icon_font` 先以缺少 spinner selector 的版本看到紅燈，再以最小 CSS selector 修正轉綠；聚焦 `tests/test_theme.py` 為 `42 passed`。
 - **完整驗證**：`PYTHON_DOTENV_DISABLED=1 .venv/bin/pytest -q` 為 `729 passed, 16 deselected, 1 warning in 189.81s`。16 項是預設不打外網的既有 contract；唯一 warning 是既有 Starlette/httpx 棄用提醒。
-- **視覺 QA**：第二輪以 1280×800／375×812 各一張截圖驗收，兩個尺寸均顯示真正的圓形驚嘆號、完整錯誤文字；`scrollWidth - viewportWidth = 0`、console errors = 0。證據：`.screenshots/status-icon-recovery-round2-desktop.png`、`.screenshots/status-icon-recovery-round2-mobile.png`。主題隔離頁的 computed font 為 `"Material Symbols Rounded"`。
+- **視覺 QA**：最終兩輪以 1280×800／375×812 各一張截圖驗收，兩個尺寸均顯示真正的圓形驚嘆號、完整錯誤文字；`scrollWidth - viewportWidth = 0`、console errors = 0。證據：`.screenshots/status-icon-recovery-round4-desktop.png`、`.screenshots/status-icon-recovery-round4-mobile.png`。主題隔離頁的 computed font 為 `"Material Symbols Rounded"`。
 - **安全與成本**：只修改 CSS selector 與回歸測試；沒有資料表、SQLite、LLM、搜尋 API、新套件、付費操作或資料內容變更。
 - **正式驗收與推送**：`2f14f85` 已推至 `origin/main`，本機與遠端 SHA 相同。既有 `io.daibu.content-brain` 重啟後為 PID `69310`，`/_stcore/health = 200 ok`，只監聽 `127.0.0.1:8501`。正式 Chromium 從首頁進入「內容製作」成功，`scrollWidth - viewportWidth = 0`、console errors = 0；頁面實際載入 spinner／check／error 三個 CSS selector。若下一次看到查證失敗，刷新 `http://127.0.0.1:8501/` 後圖示應維持圓形驚嘆號與完整文字。
 
