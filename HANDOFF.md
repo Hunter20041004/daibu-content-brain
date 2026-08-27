@@ -7,11 +7,11 @@
 - **技術結構**：`CarouselDraft` 六頁內容契約、Gemini 六頁 JSON schema、layout schema v3、內容編輯器、模板編輯器、PNG／ZIP 共用同一頁序；舊 v1/v2 parser、upgrade 與 editorial／ai-startup 模板已移除。
 - **資料流程**：已查證來源＋公司資料＋官方 Logo → 免費 LLM 產六頁草稿 → 逐頁編輯／來源鎖定 → `sticky-notebook-v1` → 6 張 1080×1350 PNG → ZIP。
 - **遷移安全**：偵測到舊 v1/v2 模板時，先拒絕未知 schema 與損壞的外鍵、建立並驗證檔案型 SQLite 備份，再以單一 transaction 清除舊輪播 pages／sources／draft meta／模板 settings／versions，最後為每個 theme 建立 v3；themes、ideas、idea_sources、brand_assets 與成效不動，且有 idempotency／rollback 測試。備份前先結束 schema 準備交易，避免 SQLite source connection 自我等待。
-- **正式資料**：遷移前盤點為 1 theme、23 ideas、6 idea_sources、0 carousel pages／sources／drafts、2 舊模板版本；SQLite 備份為 `.backups/daibu-before-six-page-v57-20260827.db`，`integrity_check = ok`。舊 `railway-carousel-20260731` 七張 PNG 已依明確檔名刪除。
+- **正式資料**：遷移前盤點為 1 theme、23 ideas、6 idea_sources、0 carousel pages／sources／drafts、2 舊 schema v1 模板版本。正式遷移另自動建立並驗證 `.backups/daibu-before-six-page-v57-20260827-103312-550341.db`；遷移後只有 1 個 schema v3 模板版本。themes／ideas／idea_sources／brand_assets 的列數與 SHA-256 指紋前後完全相同，`integrity_check = ok`、`foreign_key_check = 0`。舊 `railway-carousel-20260731` 七張 PNG 已依明確檔名刪除。
 - **TDD 與瀏覽器證據**：每個行為均先紅後綠；新增正式內容長度出圖、每欄位硬上限出圖、AI prompt／Gemini schema 同源上限、自訂模板滿載壓力、固定 CTA、第五頁等尺寸、內文同步不刪標籤、可見字級跟隨模板、遷移前自動備份／未知版本／外鍵損壞測試。分支全套為 `718 passed, 16 deselected, 1 warning in 151.62s`；warning 是既有 Starlette／httpx 棄用提醒。最終獨立 review 為 Critical 0、Important 0、ready to merge。
-- **視覺 QA**：最終容量修正後再完成兩輪 1280×800／375×812；最終文件寬為 375、無橫向破版、console 0 error／0 warning。截圖：`.screenshots/hard-limit-round-2/desktop.png`、`.screenshots/hard-limit-round-2/mobile.png`。
+- **視覺 QA**：最終容量修正後完成兩輪 1280×800／375×812；正式服務部署後再由首頁進入內容製作與模板管理驗收。正式模板只有 6 個頁籤，第 6 頁只顯示核可的兩句 CTA；375px 為 `scrollWidth=clientWidth=375`，console 0 error／0 warning。壓力截圖：`.screenshots/hard-limit-round-2/desktop.png`、`.screenshots/hard-limit-round-2/mobile.png`；正式站截圖：`.screenshots/production-v57/desktop.png`、`.screenshots/production-v57/mobile.png`。
 - **設計理由與備援**：採單一六頁模板，避免使用者誤選舊七頁；備援是保留相容入口，但會留下 why-care 與雙資料契約，因此依核可決策不採用。
-- **安全與成本**：沒有新付費服務或外部套件；LLM adapter 仍使用既有免費 Gemini／Groq 路徑。正式 main 合併後須再跑全套、觸發 DB migration、驗證既有網站核心流程與遠端提交。
+- **安全與成本**：沒有新付費服務或外部套件；LLM adapter 仍使用既有免費 Gemini／Groq 路徑。最終 `main` 全套為 `718 passed, 16 deselected, 1 warning in 179.19s`；warning 是既有 Starlette／httpx 棄用提醒。程式提交 `b2017e0` 已推至 `origin/main`。既有 LaunchAgent `io.daibu.content-brain` 已由 PID 48751 重啟為 39632，`/_stcore/health = ok`，且僅監聽 `127.0.0.1:8501`。正式資料目前沒有輪播草稿，因此部署驗收沒有呼叫 LLM 或寫入正式內容；六頁生成、編輯、PNG 與 ZIP 核心流程已在隔離 SQLite 與真實 Chromium 測試完成。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-26-six-page-v57-production-integration-design.md`、`docs/superpowers/plans/2026-08-26-six-page-v57-production-integration.md`。
 
 > 2026-08-23 更新。使用者選擇的 A→B→C 已完整實作：安全排版基礎、七頁內容編輯器、系列模板畫布與不可變版本生命週期均完成。
