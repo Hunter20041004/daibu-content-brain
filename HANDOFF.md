@@ -1,5 +1,20 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-27 schema v4 第 2–5 頁獨立文字層
+
+- **產品能力**：第 2–5 頁每個可見的邏輯文字角色都能各自選取與調整；背景卡與文字不再綁成同一個版面元素。
+- **使用者體驗**：選背景時只會看到位置與尺寸控制；選標題或正文時才會出現字級與對齊，而且修改一層不會帶動旁邊的文字。
+- **技術結構**：資料庫既有 schema v3 原始列在讀取時先經過純記憶體 normalizer（相容轉換器）成為 v4，再交給唯一的 Renderer 產生 DOM；編輯器預覽與 PNG 都使用這套 Renderer，不另做一份畫面。
+- **資料流程**：使用者操作 working copy（尚未儲存的工作副本）→ Chromium 做溢出與碰撞檢查 → 儲存成不可變 schema v4 新版本 → 視需要啟用為新草稿預設，或在真實內容驗證後升級既有草稿綁定。讀取舊 v3 不會回寫或改動舊列。
+- **設計理由與備援**：主方案用 schema v4 正式描述背景、標題、正文等獨立層，讓編輯、重開、預覽與 PNG 擁有同一份事實來源。備援是只在編輯器加 overlay（覆蓋式選取框），或逐頁寫特例；前者無法保證正式出圖一致，後者會讓每頁規則分岔，因此不採用。
+- **安全與成本**：沒有 SQLite 資料表遷移、新套件、外部 API、LLM 或付費呼叫；正式寫入只會新增不可變模板版本，並在備份與六頁驗證後才切換 active／SUN 草稿綁定。
+- **TDD 與完整測試**：Task 2 migration／schema 26 passed；Task 3–5 Renderer／schema 50 passed；Task 6 編輯器、驗證、placeholder、service／DB 聚焦 61 passed；Task 7 repository／DB／browser 44 passed。Task 8 視覺 QA 先抓到桌機縮成手機後預覽沿用舊比例，以及跨頁殘留 selection 造成 `undefined.label`，兩項都先有失敗瀏覽器測試再修正；最終聚焦整組 `119 passed in 58.17s`。功能分支完整 pytest 為 `755 passed, 16 deselected, 1 warning in 183.62s`；16 項是既有外部服務契約，warning 是既有 Starlette/httpx 棄用提醒。
+- **預覽／重開／PNG 同源證據**：隔離 DB 把第 5 頁 `before-title` 設為 41px、`before-text` 設為 23px，儲存成不可變 v4 後重開仍為 41／23；Chromium computed style 為 `41px`／`23px`，送入 PNG 的 HTML 含相同宣告，輸出 1080×1350，六頁 `inspect_pages()` 問題數 0。
+- **視覺 QA**：隔離服務 8768 使用正式 DB 副本完成兩輪 1280×800／375×812。第一輪發現手機畫布右側被裁切；修正後 stage 右邊界 344px、模板右邊界 343.99997px，整頁與元件 overflow 均為 0。最終桌機顯示第 5 頁「使用前｜標題」選取框與字級欄，手機顯示完整三張對照卡及唯讀提示；層次、留白、LINE Seed 字體區別、粉彩三色、對齊、響應式、狀態與微動效全數通過，exceptions 0、console errors／warnings 0。證據：`.screenshots/template-text-layers-v4-round1-desktop.png`、`.screenshots/template-text-layers-v4-round1-mobile.png`、`.screenshots/template-text-layers-v4-final-desktop.png`、`.screenshots/template-text-layers-v4-final-mobile.png`。
+- **正式資料安全與切換**：正式 DB 備份為 `/Users/cengweiting/Developer/daibu-content-brain/.backups/daibu-before-template-text-layers-v4-20260827-215443.db`，備份 `integrity_check=ok`、SHA-256 `45ea80916b899533433e1356e155e98b4b4a26796f0a05273a7d96afd668a286`。以 repository／service API 新增 template id 7（version no. 5、schema v4），六頁驗證問題 0、六張正式 SUN PNG 都是 1080×1350 後，active 與 SUN 草稿綁定由 id 6 升級到 id 7，content revision 4→5。idea＋六頁＋兩筆來源＋brand row＋3435-byte Logo 的合併 SHA-256 切換前後同為 `c50e77d5a5f832881a327b5daaf0e1f0b9703412ae9c299677ed8f4092be5809`；themes 1、ideas 23、drafts 1、pages 6、sources 2 均不變，只有 template versions 4→5；`integrity_check=ok`、`foreign_key_check=0`。
+- **剩餘限制**：手機仍刻意唯讀；本輪只拆既有文字角色，不新增／刪除版面元素、不開放品牌字型、色票、旋轉或 z-order。歷史 v3 版本保留且讀取不回寫，只有新儲存版本使用 v4。
+- **待完成收尾**：尚需合併 `main`、在 `main` 重跑完整測試、推送核對遠端 SHA，並重啟既有 `io.daibu.content-brain` 後從正式 8501 驗證核心流程。
+
 ## 2026-08-27 v57 內頁結構恢復與正式模板同步
 
 - **產品能力**：第 2–5 頁恢復先前核定的 v57 粉彩手帳結構：`COMPANY FILE` 身份流程與寬版 Logo、第 3 頁 `THE OPPORTUNITY` 問號／左右脈絡／三段因果卡、第 4 頁 `HOW AI WORKS` 三段流程箭頭與 2×2 補充卡、第 5 頁 `BEFORE & AFTER` 前後對照。
