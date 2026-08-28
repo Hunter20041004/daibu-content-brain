@@ -700,6 +700,37 @@ def test_v57_migration_aborts_before_deletion_for_unknown_template_schema(tmp_pa
     ).fetchone()[0] == 1
 
 
+def test_v57_migration_accepts_schema_v4_without_rewriting_it(tmp_path):
+    from daibu.cards import layout_repository
+
+    conn = db.connect(str(tmp_path / "v57-v4.db"))
+    db.init_schema(conn)
+    theme_id = db.add_theme(
+        conn,
+        Theme(None, "schema v4", 4, [], 5, "company_profile"),
+    )
+    layout_repository.ensure_default_version(conn, theme_id)
+    before = [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT id, theme_id, version_no, schema_version, layout_json "
+            "FROM carousel_template_versions ORDER BY id"
+        )
+    ]
+
+    db._migrate_to_six_page_v57(conn)
+
+    after = [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT id, theme_id, version_no, schema_version, layout_json "
+            "FROM carousel_template_versions ORDER BY id"
+        )
+    ]
+    assert after == before
+    assert {row[3] for row in after} == {4}
+
+
 def test_v57_migration_aborts_when_foreign_keys_are_already_broken(tmp_path):
     conn = db.connect(str(tmp_path / "v57-broken-fk.db"))
     db.init_schema(conn)

@@ -82,3 +82,16 @@ def test_validate_rendered_pages_raises_actionable_first_issue(tmp_path):
 
     with pytest.raises(RuntimeError, match="第 2 頁.*頁面標題"):
         layout_validation.validate_rendered_pages({"who": html_text})
+
+
+def test_builtin_independent_layers_have_no_false_collision_issues(tmp_path):
+    draft = carousel_draft()
+    asset = _asset(tmp_path)
+    pages_html = {
+        page.page_type: render.page_html(page, "ElevenLabs", asset)
+        for page in draft.pages[1:5]
+    }
+
+    issues = layout_validation.inspect_pages(pages_html)
+
+    assert [issue for issue in issues if issue.code == "collision"] == []

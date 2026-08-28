@@ -46,7 +46,7 @@ def test_reset_only_restores_selected_page():
 
 def test_layout_diff_summarizes_moves_and_resizes():
     base = load_builtin_layout()
-    working = replace_element(base, "who", "positioning", x=390, w=600)
+    working = replace_element(base, "who", "positioning-text", x=390, w=600)
     summary = summarize_layout_diff(base, working)
     assert "第 2 頁：移動 1 個元素、調整 1 個文字框" in summary
 
@@ -92,6 +92,63 @@ def test_template_payload_reports_missing_renderer_layout_hooks():
     assert "company-name" in payload["previewSyncError"]
 
 
+def test_results_payload_separates_background_and_title_properties():
+    layout = load_builtin_layout()
+    version = SimpleNamespace(
+        id=11,
+        version_no=1,
+        created_at="2026-08-23T10:00:00",
+        layout=layout,
+    )
+    preview = "".join(
+        f'<span data-layout-id="{element_id}"></span>'
+        for element_id in layout.pages["results"].elements
+    )
+
+    payload = template_editor_payload(
+        SimpleNamespace(id=7, name="AI 新創介紹"),
+        [version],
+        version,
+        "results",
+        preview,
+    )
+
+    by_id = {item["elementId"]: item for item in payload["elements"]}
+    assert by_id["before-bg"]["editableProperties"] == ["x", "y", "w", "h"]
+    assert by_id["before-title"]["editableProperties"] == [
+        "x",
+        "y",
+        "w",
+        "h",
+        "font_size",
+        "text_align",
+    ]
+
+
+def test_template_payload_rejects_duplicate_renderer_layout_hook():
+    layout = load_builtin_layout()
+    version = SimpleNamespace(
+        id=11,
+        version_no=1,
+        created_at="2026-08-23T10:00:00",
+        layout=layout,
+    )
+    preview = "".join(
+        f'<span data-layout-id="{element_id}"></span>'
+        for element_id in layout.pages["results"].elements
+    ) + '<span data-layout-id="before-title"></span>'
+
+    payload = template_editor_payload(
+        SimpleNamespace(id=7, name="AI 新創介紹"),
+        [version],
+        version,
+        "results",
+        preview,
+    )
+
+    assert "重複版面元素：before-title" in payload["previewSyncError"]
+
+
 def test_template_payload_identifies_layout_schema_and_registry_revision():
     layout = load_builtin_layout()
     version = SimpleNamespace(
@@ -109,6 +166,6 @@ def test_template_payload_identifies_layout_schema_and_registry_revision():
         "<main></main>",
     )
 
-    assert payload["layoutSchemaVersion"] == 3
+    assert payload["layoutSchemaVersion"] == 4
     assert isinstance(payload["registryFingerprint"], str)
     assert len(payload["registryFingerprint"]) == 64

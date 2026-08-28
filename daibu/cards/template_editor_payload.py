@@ -7,7 +7,7 @@ import re
 from typing import Mapping
 
 from daibu.cards import pages
-from daibu.cards.layout_registry import ELEMENT_REGISTRY
+from daibu.cards.layout_registry import registry_for_schema
 from daibu.cards.layout_schema import (
     LayoutDocument,
     layout_to_mapping,
@@ -25,13 +25,28 @@ class TemplateField:
     max_values: Mapping[str, float]
 
 
-_LAYOUT_ID = re.compile(r'data-layout-id=["\u0027]([^"\u0027]+)["\u0027]')
+_LAYOUT_ID = re.compile(
+    r'<[^>]*\bdata-layout-id=["\u0027]([^"\u0027]+)["\u0027][^>]*>'
+)
 
 
-def _registry_fingerprint() -> str:
+def _registry_fingerprint(
+    schema_version: int,
+    registry: Mapping[str, Mapping[str, object]],
+) -> str:
     identity = {
-        page_type: sorted(rules)
-        for page_type, rules in sorted(ELEMENT_REGISTRY.items())
+        "schema_version": schema_version,
+        "pages": {
+            page_type: sorted(
+                (
+                    element_id,
+                    getattr(rule, "text"),
+                    getattr(rule, "collision"),
+                )
+                for element_id, rule in rules.items()
+            )
+            for page_type, rules in sorted(registry.items())
+        },
     }
     encoded = json.dumps(
         identity,
@@ -45,9 +60,17 @@ def _registry_fingerprint() -> str:
 def missing_preview_element_ids(
     preview_html: str,
     page_type: str,
+    registry: Mapping[str, Mapping[str, object]],
 ) -> tuple[str, ...]:
-    found = set(_LAYOUT_ID.findall(preview_html))
-    return tuple(sorted(set(ELEMENT_REGISTRY[page_type]) - found))
+    found = set(preview_layout_id_counts(preview_html))
+    return tuple(sorted(set(registry[page_type]) - found))
+
+
+def preview_layout_id_counts(preview_html: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for element_id in _LAYOUT_ID.findall(preview_html):
+        counts[element_id] = counts.get(element_id, 0) + 1
+    return counts
 
 
 def apply_template_values(
@@ -60,10 +83,11 @@ def apply_template_values(
     expected = set(base.pages[page_type].elements)
     if set(values) != expected:
         raise ValueError("模板元素不完整或包含未知元素")
+    registry = registry_for_schema(base.schema_version)
     raw = layout_to_mapping(base)
     raw_elements = raw["pages"][page_type]["elements"]
     for element_id, properties in values.items():
-        rule = ELEMENT_REGISTRY[page_type][element_id]
+        rule = registry[page_type][element_id]
         allowed = {"x", "y", "w", "h"}
         if rule.text:
             allowed |= {"font_size", "text_align"}
@@ -117,14 +141,25 @@ def template_editor_payload(
     preview_html: str,
 ) -> dict[str, object]:
     layout = layout_to_mapping(selected_version.layout)
-    missing = missing_preview_element_ids(preview_html, page_type)
-    sync_error = (
-        "預覽缺少版面元素：" + "、".join(missing)
-        if missing
-        else ""
+    schema_version = selected_version.layout.schema_version
+    registry = registry_for_schema(schema_version)
+    counts = preview_layout_id_counts(preview_html)
+    missing = missing_preview_element_ids(preview_html, page_type, registry)
+    duplicates = tuple(
+        sorted(
+            element_id
+            for element_id in registry[page_type]
+            if counts.get(element_id, 0) > 1
+        )
     )
+    if missing:
+        sync_error = "預覽缺少版面元素：" + "、".join(missing)
+    elif duplicates:
+        sync_error = "預覽含重複版面元素：" + "、".join(duplicates)
+    else:
+        sync_error = ""
     elements = []
-    for element_id, rule in ELEMENT_REGISTRY[page_type].items():
+    for element_id, rule in registry[page_type].items():
         properties = ("x", "y", "w", "h", "font_size", "text_align") if rule.text else ("x", "y", "w", "h")
         elements.append({
             "elementId": element_id,
@@ -145,7 +180,7 @@ def template_editor_payload(
         "elements": elements,
         "layout": layout,
         "layoutSchemaVersion": selected_version.layout.schema_version,
-        "registryFingerprint": _registry_fingerprint(),
+        "registryFingerprint": _registry_fingerprint(schema_version, registry),
         "previewHtml": preview_html,
         "previewSyncError": sync_error,
         "canvas": {"width": selected_version.layout.canvas_width, "height": selected_version.layout.canvas_height},

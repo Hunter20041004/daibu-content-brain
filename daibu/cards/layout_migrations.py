@@ -141,8 +141,28 @@ def _upgrade_who(elements: Mapping[str, object]) -> dict[str, object]:
             },
         }
     )
-    upgraded.update(_section_layers(elements, "positioning"))
-    upgraded.update(_section_layers(elements, "facts"))
+    upgraded.update(
+        _section_layers(
+            elements,
+            "positioning",
+            left=26,
+            label_top=30,
+            text_top=66,
+            bottom=22,
+            text_font_size=16,
+        )
+    )
+    upgraded.update(
+        _section_layers(
+            elements,
+            "facts",
+            left=26,
+            label_top=30,
+            text_top=66,
+            bottom=22,
+            text_font_size=16,
+        )
+    )
     upgraded.update(
         _section_layers(
             elements,
@@ -150,8 +170,8 @@ def _upgrade_who(elements: Mapping[str, object]) -> dict[str, object]:
             left=42,
             label_top=37,
             text_top=81,
-            bottom=32,
-            text_font_size=25,
+            bottom=18,
+            text_font_size=22,
         )
     )
     return upgraded
@@ -180,6 +200,7 @@ def _upgrade_problem(elements: Mapping[str, object]) -> dict[str, object]:
             text_top=100,
             label_height=32,
             bottom=40,
+            text_font_size=18,
         )
     )
     upgraded.update(
@@ -190,6 +211,7 @@ def _upgrade_problem(elements: Mapping[str, object]) -> dict[str, object]:
             text_top=100,
             label_height=32,
             bottom=40,
+            text_font_size=18,
         )
     )
     for index in range(1, 4):
@@ -294,7 +316,7 @@ def _upgrade_how_ai(elements: Mapping[str, object]) -> dict[str, object]:
                 text_top=68,
                 label_height=28,
                 bottom=28,
-                text_font_size=20,
+                text_font_size=16,
             )
         )
     return upgraded
@@ -319,6 +341,7 @@ def _upgrade_results(elements: Mapping[str, object]) -> dict[str, object]:
             text_top=53,
             label_height=26,
             bottom=22,
+            text_font_size=16,
         )
     )
     for element_id in ("before", "intervention", "after"):
@@ -361,6 +384,7 @@ def _upgrade_results(elements: Mapping[str, object]) -> dict[str, object]:
             label_top=30,
             text_top=74,
             bottom=30,
+            text_font_size=18,
         )
     )
     upgraded.update(
@@ -370,6 +394,7 @@ def _upgrade_results(elements: Mapping[str, object]) -> dict[str, object]:
             label_top=30,
             text_top=74,
             bottom=30,
+            text_font_size=18,
         )
     )
     return upgraded

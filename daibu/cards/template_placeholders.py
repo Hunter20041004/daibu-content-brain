@@ -18,9 +18,9 @@ _DIAGRAM_KIND = {
     "results": "before-after",
 }
 _DIAGRAM_ELEMENT_IDS = {
-    "problem": ("stage-1", "stage-2", "stage-3"),
-    "how-ai": ("step-1", "step-2", "step-3"),
-    "results": ("before", "intervention", "after"),
+    "problem": ("stage-1-title", "stage-2-title", "stage-3-title"),
+    "how-ai": ("step-1-title", "step-2-title", "step-3-title"),
+    "results": ("before-title", "intervention-title", "after-title"),
 }
 
 

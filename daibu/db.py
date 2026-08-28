@@ -479,7 +479,7 @@ def _migrate_to_six_page_v57(conn: sqlite3.Connection) -> None:
             "SELECT DISTINCT schema_version FROM carousel_template_versions"
         )
     }
-    unknown_versions = sorted(schema_versions - {1, 2, 3})
+    unknown_versions = sorted(schema_versions - {1, 2, 3, 4})
     if unknown_versions:
         joined = "、".join(str(version) for version in unknown_versions)
         raise RuntimeError(f"未知的模板 schema_version：{joined}")

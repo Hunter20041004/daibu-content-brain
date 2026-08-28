@@ -121,14 +121,14 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
         "cover": SCHEMA_V3_REGISTRY["cover"],
         "who": _rules(
             **{
-                "page-label": _text("頁面｜英文眉標"),
+                "page-label": _text("頁面｜英文眉標", collision="allow"),
                 "heading": ElementRule("頁面標題", True),
                 "logo": ElementRule("企業 Logo"),
-                "identity-product": _text("身份流程｜AI 產品"),
-                "identity-arrow-1": _text("身份流程｜箭頭一"),
-                "identity-user": _text("身份流程｜目標使用者"),
-                "identity-arrow-2": _text("身份流程｜箭頭二"),
-                "identity-value": _text("身份流程｜核心價值"),
+                "identity-product": _text("身份流程｜AI 產品", collision="allow"),
+                "identity-arrow-1": _text("身份流程｜箭頭一", collision="allow"),
+                "identity-user": _text("身份流程｜目標使用者", collision="allow"),
+                "identity-arrow-2": _text("身份流程｜箭頭二", collision="allow"),
+                "identity-value": _text("身份流程｜核心價值", collision="allow"),
                 "positioning-bg": _background("白話定位｜背景"),
                 "positioning-label": _text("白話定位｜標籤"),
                 "positioning-text": _text("白話定位｜說明"),
@@ -143,7 +143,7 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
         ),
         "problem": _rules(
             **{
-                "page-label": _text("頁面｜英文眉標"),
+                "page-label": _text("頁面｜英文眉標", collision="allow"),
                 "heading": ElementRule("頁面標題", True),
                 "question-mark": ElementRule("頁面｜問號裝飾", False, "allow"),
                 "current-bg": _background("現在怎麼做｜背景"),
@@ -169,7 +169,7 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
         ),
         "how-ai": _rules(
             **{
-                "page-label": _text("頁面｜英文眉標"),
+                "page-label": _text("頁面｜英文眉標", collision="allow"),
                 "heading": ElementRule("頁面標題", True),
                 "flow-arrow-1": ElementRule("流程｜箭頭一", False, "allow"),
                 "flow-arrow-2": ElementRule("流程｜箭頭二", False, "allow"),
@@ -201,7 +201,7 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
         ),
         "results": _rules(
             **{
-                "page-label": _text("頁面｜英文眉標"),
+                "page-label": _text("頁面｜英文眉標", collision="allow"),
                 "heading": ElementRule("頁面標題", True),
                 "audience-bg": _background("代表使用者｜背景"),
                 "audience-label": _text("代表使用者｜標籤"),
