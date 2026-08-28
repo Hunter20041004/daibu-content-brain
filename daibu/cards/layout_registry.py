@@ -21,7 +21,7 @@ def _rules(**rules: ElementRule) -> Mapping[str, ElementRule]:
     return MappingProxyType(rules)
 
 
-ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
+SCHEMA_V3_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
     {
         "cover": _rules(
             **{
@@ -102,9 +102,144 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
 )
 
 
+def _text(label: str, *, collision: CollisionPolicy = "avoid", min_font_size: float = 12, max_font_size: float = 132) -> ElementRule:
+    return ElementRule(
+        label,
+        True,
+        collision,
+        min_font_size=min_font_size,
+        max_font_size=max_font_size,
+    )
+
+
+def _background(label: str) -> ElementRule:
+    return ElementRule(label, collision="background")
+
+
+ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
+    {
+        "cover": SCHEMA_V3_REGISTRY["cover"],
+        "who": _rules(
+            **{
+                "page-label": _text("頁面｜英文眉標"),
+                "heading": ElementRule("頁面標題", True),
+                "logo": ElementRule("企業 Logo"),
+                "identity-product": _text("身份流程｜AI 產品"),
+                "identity-arrow-1": _text("身份流程｜箭頭一"),
+                "identity-user": _text("身份流程｜目標使用者"),
+                "identity-arrow-2": _text("身份流程｜箭頭二"),
+                "identity-value": _text("身份流程｜核心價值"),
+                "positioning-bg": _background("白話定位｜背景"),
+                "positioning-label": _text("白話定位｜標籤"),
+                "positioning-text": _text("白話定位｜說明"),
+                "facts-bg": _background("基本資料｜背景"),
+                "facts-label": _text("基本資料｜標籤"),
+                "facts-text": _text("基本資料｜說明"),
+                "reason-bg": _background("為什麼值得介紹｜背景"),
+                "reason-label": _text("為什麼值得介紹｜標籤"),
+                "reason-text": _text("為什麼值得介紹｜說明"),
+                "mascot": ElementRule("呆一布機器人", False, "allow", 120, 120),
+            }
+        ),
+        "problem": _rules(
+            **{
+                "page-label": _text("頁面｜英文眉標"),
+                "heading": ElementRule("頁面標題", True),
+                "question-mark": ElementRule("頁面｜問號裝飾", False, "allow"),
+                "current-bg": _background("現在怎麼做｜背景"),
+                "current-label": _text("現在怎麼做｜標籤"),
+                "current-text": _text("現在怎麼做｜說明"),
+                "opportunity-bg": _background("哪裡還能更好｜背景"),
+                "opportunity-label": _text("哪裡還能更好｜標籤"),
+                "opportunity-text": _text("哪裡還能更好｜說明"),
+                "spine": ElementRule("流程連接線", False, "background", 2, 24),
+                **{
+                    f"stage-{index}-{role}": (
+                        _background(f"{label}｜背景")
+                        if role == "bg"
+                        else ElementRule(f"{label}｜圖示", False, "allow")
+                        if role == "icon"
+                        else _text(f"{label}｜{ {'index': '編號', 'title': '標題', 'text': '說明'}[role] }")
+                    )
+                    for index, label in enumerate(("現有流程", "優化空間", "釋放價值"), start=1)
+                    for role in ("bg", "icon", "index", "title", "text")
+                },
+                "mascot": ElementRule("呆一布機器人", False, "allow", 120, 120),
+            }
+        ),
+        "how-ai": _rules(
+            **{
+                "page-label": _text("頁面｜英文眉標"),
+                "heading": ElementRule("頁面標題", True),
+                "flow-arrow-1": ElementRule("流程｜箭頭一", False, "allow"),
+                "flow-arrow-2": ElementRule("流程｜箭頭二", False, "allow"),
+                **{
+                    f"step-{index}-{role}": (
+                        _background(f"{label}｜背景")
+                        if role == "bg"
+                        else _text(f"{label}｜{ {'tag': '英文標籤', 'title': '標題', 'text': '說明'}[role] }")
+                    )
+                    for index, label in enumerate(("理解輸入", "分析處理", "交付結果"), start=1)
+                    for role in ("bg", "tag", "title", "text")
+                },
+                **{
+                    f"{element_id}-{role}": (
+                        _background(f"{label}｜背景")
+                        if role == "bg"
+                        else _text(f"{label}｜{ '標籤' if role == 'label' else '說明' }")
+                    )
+                    for element_id, label in (
+                        ("traditional", "傳統做法"),
+                        ("ai-role", "AI 的角色"),
+                        ("human", "人仍負責"),
+                        ("difference", "關鍵差別"),
+                    )
+                    for role in ("bg", "label", "text")
+                },
+                "mascot": ElementRule("呆一布機器人", False, "allow", 120, 120),
+            }
+        ),
+        "results": _rules(
+            **{
+                "page-label": _text("頁面｜英文眉標"),
+                "heading": ElementRule("頁面標題", True),
+                "audience-bg": _background("代表使用者｜背景"),
+                "audience-label": _text("代表使用者｜標籤"),
+                "audience-text": _text("代表使用者｜說明"),
+                **{
+                    f"{element_id}-{role}": (
+                        _background(f"{label}｜背景")
+                        if role == "bg"
+                        else ElementRule(f"{label}｜箭頭", False, "allow")
+                        if role == "arrow"
+                        else _text(f"{label}｜{ {'tag': '英文標籤', 'title': '標題', 'text': '說明'}[role] }")
+                    )
+                    for element_id, label, roles in (
+                        ("before", "使用前", ("bg", "tag", "title", "text")),
+                        ("intervention", "產品介入", ("bg", "arrow", "title", "text")),
+                        ("after", "使用後", ("bg", "tag", "title", "text")),
+                    )
+                    for role in roles
+                },
+                "core-difference-bg": _background("核心差異｜背景"),
+                "core-difference-label": _text("核心差異｜標籤"),
+                "core-difference-text": _text("核心差異｜說明"),
+                "value-bg": _background("帶來的價值｜背景"),
+                "value-label": _text("帶來的價值｜標籤"),
+                "value-text": _text("帶來的價值｜說明"),
+                "mascot": ElementRule("呆一布機器人", False, "allow", 120, 120),
+            }
+        ),
+        "cta": SCHEMA_V3_REGISTRY["cta"],
+    }
+)
+
+
 def registry_for_schema(
     schema_version: int,
 ) -> Mapping[str, Mapping[str, ElementRule]]:
     if schema_version == 3:
+        return SCHEMA_V3_REGISTRY
+    if schema_version == 4:
         return ELEMENT_REGISTRY
     raise ValueError(f"不支援的 schema_version：{schema_version}")

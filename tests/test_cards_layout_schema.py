@@ -32,18 +32,43 @@ def valid_layout_mapping():
             elements[element_id] = element
         pages[page_type] = {"elements": elements}
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "canvas": {"width": 1080, "height": 1350},
         "pages": pages,
     }
 
 
-def test_builtin_layout_is_six_page_schema_v3():
+def test_builtin_layout_is_six_page_schema_v4_with_independent_layers():
     document = load_builtin_layout()
 
-    assert document.schema_version == 3
+    assert document.schema_version == 4
     assert tuple(document.pages) == carousel_pages.PAGE_TYPES
     assert "why-care" not in document.pages
+    assert set(document.pages["results"].elements) >= {
+        "audience-bg",
+        "audience-label",
+        "audience-text",
+        "before-bg",
+        "before-tag",
+        "before-title",
+        "before-text",
+        "intervention-bg",
+        "intervention-arrow",
+        "intervention-title",
+        "intervention-text",
+        "after-bg",
+        "after-tag",
+        "after-title",
+        "after-text",
+        "core-difference-bg",
+        "core-difference-label",
+        "core-difference-text",
+        "value-bg",
+        "value-label",
+        "value-text",
+    }
+    assert document.pages["results"].elements["before-bg"].text_style is None
+    assert document.pages["results"].elements["before-title"].text_style is not None
     assert parse_layout(layout_to_mapping(document)) == document
 
 
@@ -242,7 +267,7 @@ def test_legacy_layout_without_cover_heading_gets_compatibility_default():
 
 def test_results_flow_cards_must_remain_equal_size():
     value = valid_layout_mapping()
-    value["pages"]["results"]["elements"]["intervention"]["w"] += 10
+    value["pages"]["results"]["elements"]["intervention-bg"]["w"] += 10
 
     with pytest.raises(LayoutValidationError, match="等寬等高"):
         parse_layout(value)
