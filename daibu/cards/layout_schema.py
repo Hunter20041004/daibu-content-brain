@@ -5,6 +5,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
 
+from daibu.cards.layout_migrations import normalize_layout_mapping
 from daibu.cards.layout_registry import registry_for_schema
 
 
@@ -125,12 +126,16 @@ def _finite_number(value: object, element_id: str, field: str) -> float:
 
 
 def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
+    try:
+        value = normalize_layout_mapping(value)
+    except ValueError as error:
+        raise LayoutValidationError(None, "不支援的 schema_version") from error
     unknown_properties = set(value) - {"schema_version", "canvas", "pages"}
     if unknown_properties:
         unknown = sorted(str(item) for item in unknown_properties)[0]
         raise LayoutValidationError(None, f"版面含不允許的屬性：{unknown}")
     schema_version = value.get("schema_version")
-    if schema_version not in {3, 4}:
+    if schema_version != 4:
         raise LayoutValidationError(None, "不支援的 schema_version")
     registry = registry_for_schema(int(schema_version))
     raw_canvas = value.get("canvas")
@@ -259,18 +264,14 @@ def parse_layout(value: Mapping[str, object]) -> LayoutDocument:
 
     result_cards = tuple(
         parsed_pages["results"].elements[element_id].rect
-        for element_id in (
-            ("before", "intervention", "after")
-            if schema_version == 3
-            else ("before-bg", "intervention-bg", "after-bg")
-        )
+        for element_id in ("before-bg", "intervention-bg", "after-bg")
     )
     if (
         max(rect.w for rect in result_cards) - min(rect.w for rect in result_cards) > 1
         or max(rect.h for rect in result_cards) - min(rect.h for rect in result_cards) > 1
     ):
         raise LayoutValidationError(
-            "intervention" if schema_version == 3 else "intervention-bg",
+            "intervention-bg",
             "第五頁三張流程便利貼必須等寬等高",
         )
 
