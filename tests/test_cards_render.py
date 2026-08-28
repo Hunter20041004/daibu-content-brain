@@ -168,6 +168,31 @@ def test_how_ai_restores_the_approved_v57_flow_layers(tmp_path):
     assert '<div class="how-context">' in markup
 
 
+def test_how_ai_step_roles_and_context_roles_are_independent(tmp_path):
+    markup = _markup(_render(tmp_path, 3))
+
+    for element_id in (
+        "step-1-bg",
+        "step-1-tag",
+        "step-1-title",
+        "step-1-text",
+        "traditional-bg",
+        "traditional-label",
+        "traditional-text",
+        "flow-arrow-1",
+        "flow-arrow-2",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert (
+        'data-layout-id="step-1-title" '
+        'data-edit-key="page.how-ai.diagram.0.title"' in markup
+    )
+    assert (
+        'data-layout-id="traditional-text" '
+        'data-edit-key="page.how-ai.section.0.text"' in markup
+    )
+
+
 def test_results_restores_the_approved_v57_page_layers(tmp_path):
     markup = _markup(_render(tmp_path, 4))
 

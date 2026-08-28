@@ -141,6 +141,36 @@ def _problem_node_layers(page: CarouselPage, index: int) -> str:
     )
 
 
+def _how_ai_node_layers(page: CarouselPage, index: int) -> str:
+    assert page.diagram is not None
+    node = page.diagram.nodes[index]
+    number = index + 1
+    prefix = f"page.how-ai.diagram.{index}"
+    return (
+        _background_box(f"step-{number}-bg", f"step-bg s{number}")
+        + _text_box(
+            f"step-{number}-tag",
+            ("IN", "AI", "OUT")[index],
+            classes="step-tag",
+            tag="i",
+        )
+        + _text_box(
+            f"step-{number}-title",
+            node.title,
+            classes="step-title",
+            edit_key=f"{prefix}.title",
+            tag="b",
+        )
+        + _text_box(
+            f"step-{number}-text",
+            node.text,
+            classes="step-text",
+            edit_key=f"{prefix}.text",
+        )
+        + _hidden_edit_hook(f"{prefix}.expression")
+    )
+
+
 def _node_card(page: CarouselPage, index: int, element_id: str, classes: str) -> str:
     assert page.diagram is not None
     node = page.diagram.nodes[index]
@@ -355,12 +385,20 @@ def _how_ai(page: CarouselPage) -> str:
     for element_id, label in zip(ids, labels, strict=True):
         section = _section_by_label(page, label)
         index = page.sections.index(section)
-        context.append(
-            _layout_box(
-                element_id,
-                f"<b>{html.escape(label)}</b>"
-                + _editable(f"page.how-ai.section.{index}.text", section.text),
-                classes="sticky-note context-note",
+        context.extend(
+            (
+                _background_box(
+                    f"{element_id}-bg", f"context-note-bg {element_id}-bg"
+                ),
+                _text_box(
+                    f"{element_id}-label", label, classes="context-note-label"
+                ),
+                _text_box(
+                    f"{element_id}-text",
+                    section.text,
+                    classes="context-note-text",
+                    edit_key=f"page.how-ai.section.{index}.text",
+                ),
             )
         )
     return (
@@ -368,15 +406,27 @@ def _how_ai(page: CarouselPage) -> str:
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
         '<div class="sheet shared-back"></div>'
         '<div class="sheet shared-sheet solution-sheet">'
-        '<div class="page-label">HOW AI WORKS</div>'
+        + _text_box("page-label", "HOW AI WORKS", classes="page-label")
         + _heading(page)
         + '<div class="flow-arrows" aria-hidden="true"></div>'
         + '<div class="route schema-route">'
-        '<span class="flow-arrow a1" data-visual="flow-arrow" aria-hidden="true">→</span>'
-        '<span class="flow-arrow a2" data-visual="flow-arrow" aria-hidden="true">→</span>'
-        + _node_card(page, 0, "step-1", "step s1")
-        + _node_card(page, 1, "step-2", "step s2")
-        + _node_card(page, 2, "step-3", "step s3")
+        + _layout_box(
+            "flow-arrow-1",
+            "→",
+            tag="span",
+            classes="flow-arrow a1",
+            attributes='data-visual="flow-arrow" aria-hidden="true"',
+        )
+        + _layout_box(
+            "flow-arrow-2",
+            "→",
+            tag="span",
+            classes="flow-arrow a2",
+            attributes='data-visual="flow-arrow" aria-hidden="true"',
+        )
+        + _how_ai_node_layers(page, 0)
+        + _how_ai_node_layers(page, 1)
+        + _how_ai_node_layers(page, 2)
         + '</div><div class="how-context">'
         + "".join(context)
         + "</div></div>"
