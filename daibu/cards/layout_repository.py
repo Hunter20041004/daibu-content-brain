@@ -137,7 +137,10 @@ def create_version(
     theme_id: int,
     layout: LayoutDocument,
 ) -> TemplateVersion:
-    canonical_json = _canonical_layout_json(layout)
+    canonical = parse_layout(layout_to_mapping(layout))
+    if canonical.schema_version != 4:
+        raise ValueError("新模板版本必須使用 schema v4")
+    canonical_json = _canonical_layout_json(canonical)
     with conn:
         row = conn.execute(
             """
@@ -157,7 +160,7 @@ def create_version(
             (
                 theme_id,
                 version_no,
-                layout.schema_version,
+                canonical.schema_version,
                 canonical_json,
             ),
         )

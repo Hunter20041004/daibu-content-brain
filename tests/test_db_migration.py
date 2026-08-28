@@ -602,7 +602,7 @@ def test_migration_adds_carousel_template_tables_idempotently(tmp_path):
     assert ("theme_id", "version_no") in indexed_columns
 
 
-def test_v57_migration_removes_legacy_carousel_only_and_seeds_v3(tmp_path):
+def test_v57_migration_removes_legacy_carousel_only_and_seeds_v4(tmp_path):
     from tests.card_fixtures import carousel_draft
 
     conn = db.connect(str(tmp_path / "v57.db"))
@@ -638,7 +638,7 @@ def test_v57_migration_removes_legacy_carousel_only_and_seeds_v3(tmp_path):
         for row in conn.execute(
             "SELECT schema_version FROM carousel_template_versions"
         )
-    } == {3}
+    } == {4}
     assert conn.execute(
         "SELECT COUNT(*) FROM carousel_template_settings"
     ).fetchone()[0] == 1
@@ -765,7 +765,7 @@ def test_v57_migration_is_idempotent(tmp_path):
     conn = db.connect(str(tmp_path / "v57-idempotent.db"))
     db.init_schema(conn)
     db.add_theme(conn, Theme(None, "AI 新創介紹", 4, [], 5, "company_profile"))
-    db._seed_v3_template_versions(conn)
+    db._seed_v4_template_versions(conn)
     before = [
         tuple(row)
         for row in conn.execute(
@@ -787,7 +787,7 @@ def test_v57_migration_is_idempotent(tmp_path):
     assert after == before
 
 
-def test_v57_migration_rolls_back_if_v3_seed_fails(tmp_path, monkeypatch):
+def test_v57_migration_rolls_back_if_v4_seed_fails(tmp_path, monkeypatch):
     conn = db.connect(str(tmp_path / "v57-rollback.db"))
     db.init_schema(conn)
     theme_id = db.add_theme(
@@ -809,7 +809,7 @@ def test_v57_migration_rolls_back_if_v3_seed_fails(tmp_path, monkeypatch):
     ]
     monkeypatch.setattr(
         db,
-        "_seed_v3_template_versions",
+        "_seed_v4_template_versions",
         lambda _conn: (_ for _ in ()).throw(RuntimeError("seed failed")),
     )
 

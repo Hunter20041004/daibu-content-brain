@@ -408,7 +408,7 @@ def _backfill_carousel_template_metadata(
         )
 
 
-def _seed_v3_template_versions(conn: sqlite3.Connection) -> None:
+def _seed_v4_template_versions(conn: sqlite3.Connection) -> None:
     from daibu.cards.layout_schema import layout_to_mapping, load_builtin_layout
 
     layout = load_builtin_layout()
@@ -427,9 +427,9 @@ def _seed_v3_template_versions(conn: sqlite3.Connection) -> None:
             """
             INSERT INTO carousel_template_versions (
                 theme_id, version_no, schema_version, layout_json
-            ) VALUES (?, 1, 3, ?)
+            ) VALUES (?, 1, ?, ?)
             """,
-            (theme_id, layout_json),
+            (theme_id, layout.schema_version, layout_json),
         )
         conn.execute(
             """
@@ -510,7 +510,7 @@ def _migrate_to_six_page_v57(conn: sqlite3.Connection) -> None:
         conn.execute("DELETE FROM carousel_sources")
         conn.execute("DELETE FROM carousel_template_settings")
         conn.execute("DELETE FROM carousel_template_versions")
-        _seed_v3_template_versions(conn)
+        _seed_v4_template_versions(conn)
         if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
             raise RuntimeError("六頁模板遷移造成外鍵關聯損壞")
 
