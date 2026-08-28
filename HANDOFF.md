@@ -11,7 +11,8 @@
 - **視覺 QA**：隔離 DB `integrity_check=ok`，本機 8768 完成兩輪 1280×800／375×812。最終 DOM `spine=0`、三張問題卡背景 `=3`、整頁 overflow `=0`、Streamlit exceptions `=0`、編輯器 alerts `=0`、console errors／warnings `=0`；層次、留白、字體、配色、對齊、響應式、狀態與既有微動效皆通過。證據：`.screenshots/remove-causal-spine-round1-desktop.png`、`.screenshots/remove-causal-spine-round1-mobile.png`、`.screenshots/remove-causal-spine-final-desktop.png`、`.screenshots/remove-causal-spine-final-mobile.png`。
 - **剩餘限制**：歷史 layout 仍保留 `spine` 欄位供相容讀取，但不呈現、不驗證可見性、也不送入編輯器；未重排第 3 頁卡片或修改其他頁面。
 - **規格與計畫**：`docs/superpowers/specs/2026-08-28-remove-problem-causal-spine-design.md`、`docs/superpowers/plans/2026-08-28-remove-problem-causal-spine.md`。
-- **部署狀態**：待功能分支與 main 完整測試、推送、正式服務重啟與 8501 核心流程驗收後補記。
+- **完整測試、推送與正式服務**：功能分支完整 pytest 為 `758 passed, 16 deselected, 1 warning in 202.97s`；fast-forward 合併後，`main` 重跑為 `758 passed, 16 deselected, 1 warning in 243.56s`。程式提交 `1301bf7` 已推到 `origin/main`，本機與遠端完整 SHA 均為 `1301bf7b9096a065b11c4d9d68852ac29ced7272`。既有 LaunchAgent `io.daibu.content-brain` 由 PID 42315 重啟為 76716，`/_stcore/health=ok`，仍只監聽 `127.0.0.1:8501`；stderr 維持 52 行、4423 bytes、mtime `1787852957`，沒有新增錯誤。
+- **正式核心流程驗收**：正式 `/設定` 第 3 頁在 1280×800 與 375×812 都是 `spine=0`、三張問題卡背景 `=3`、整頁 overflow `=0`、Streamlit exceptions `=0`、編輯器 alerts `=0`、console errors／warnings `=0`；正式資料庫未寫入或遷移。
 
 ## 2026-08-27 schema v4 第 2–5 頁獨立文字層
 
