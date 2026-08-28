@@ -105,6 +105,19 @@ def test_who_renders_all_three_approved_sticky_sections(tmp_path):
         assert html_lib.escape(section.text) in markup
 
 
+def test_who_text_roles_are_independent_layout_nodes(tmp_path):
+    markup = _markup(_render(tmp_path, 1))
+
+    assert 'data-layout-id="positioning-bg"' in markup
+    assert (
+        'data-layout-id="positioning-text" '
+        'data-edit-key="page.who.section.0.text"' in markup
+    )
+    assert 'data-layout-id="positioning-label"' in markup
+    assert markup.count('data-layout-id="positioning-text"') == 1
+    assert 'data-layout-id="positioning"' not in markup
+
+
 def test_who_restores_the_approved_v57_identity_map_and_page_label(tmp_path):
     markup = _markup(_render(tmp_path, 1))
 
@@ -123,6 +136,27 @@ def test_problem_restores_the_approved_v57_story_layers(tmp_path):
     assert markup.count('data-visual="target-icon"') == 1
     assert markup.count('data-visual="growth-icon"') == 1
     assert markup.count('data-visual="causal-spine"') == 1
+
+
+def test_problem_node_title_body_icon_and_background_are_independent(tmp_path):
+    markup = _markup(_render(tmp_path, 2))
+
+    for element_id in (
+        "stage-1-bg",
+        "stage-1-icon",
+        "stage-1-index",
+        "stage-1-title",
+        "stage-1-text",
+    ):
+        assert markup.count(f'data-layout-id="{element_id}"') == 1
+    assert (
+        'data-layout-id="stage-1-title" '
+        'data-edit-key="page.problem.diagram.0.title"' in markup
+    )
+    assert (
+        'data-layout-id="stage-1-text" '
+        'data-edit-key="page.problem.diagram.0.text"' in markup
+    )
 
 
 def test_how_ai_restores_the_approved_v57_flow_layers(tmp_path):

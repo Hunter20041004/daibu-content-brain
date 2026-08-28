@@ -57,6 +57,27 @@ def _editable(key: str, value: str, *, tag: str = "span") -> str:
     )
 
 
+def _background_box(element_id: str, classes: str) -> str:
+    return _layout_box(element_id, "", classes=classes)
+
+
+def _text_box(
+    element_id: str,
+    value: str,
+    *,
+    classes: str,
+    edit_key: str | None = None,
+    tag: str = "div",
+) -> str:
+    return _layout_box(
+        element_id,
+        html.escape(value),
+        tag=tag,
+        classes=classes,
+        edit_key=edit_key,
+    )
+
+
 def _hidden_edit_hook(key: str) -> str:
     return f'<span class="editor-metadata-hook" data-edit-key="{html.escape(key)}"></span>'
 
@@ -68,7 +89,7 @@ def _section_by_label(page: CarouselPage, label: str) -> ContentSection:
         raise ValueError(f"第 {page.page_no} 頁缺少「{label}」內容") from error
 
 
-def _problem_icon(index: int) -> str:
+def _problem_icon(index: int, element_id: str | None = None) -> str:
     drawings = (
         '<path d="M22 52a30 30 0 1 1 9 21"/><path d="M19 70l12 3-2-13"/>',
         '<circle cx="48" cy="48" r="29"/><circle cx="48" cy="48" r="16"/>'
@@ -77,11 +98,46 @@ def _problem_icon(index: int) -> str:
         '<path d="M14 87h70"/>',
     )
     visual = ("cycle-icon", "target-icon", "growth-icon")[index]
+    layout_attribute = (
+        f' data-layout-id="{html.escape(element_id)}"' if element_id else ""
+    )
     return (
-        f'<svg class="card-icon" data-card-icon="problem-{index + 1}" '
+        f'<svg class="card-icon"{layout_attribute} '
+        f'data-card-icon="problem-{index + 1}" '
         f'data-visual="{visual}" viewBox="0 0 96 96" aria-hidden="true" '
         'fill="none" stroke="currentColor" stroke-width="7" '
         f'stroke-linecap="round" stroke-linejoin="round">{drawings[index]}</svg>'
+    )
+
+
+def _problem_node_layers(page: CarouselPage, index: int) -> str:
+    assert page.diagram is not None
+    node = page.diagram.nodes[index]
+    number = index + 1
+    prefix = f"page.problem.diagram.{index}"
+    return (
+        _background_box(f"stage-{number}-bg", f"problem-note-bg n{number}")
+        + _problem_icon(index, f"stage-{number}-icon")
+        + _text_box(
+            f"stage-{number}-index",
+            f"{number:02d}",
+            classes="node-index",
+            tag="i",
+        )
+        + _text_box(
+            f"stage-{number}-title",
+            node.title,
+            classes="problem-note-title",
+            edit_key=f"{prefix}.title",
+            tag="b",
+        )
+        + _text_box(
+            f"stage-{number}-text",
+            node.text,
+            classes="problem-note-text",
+            edit_key=f"{prefix}.text",
+        )
+        + _hidden_edit_hook(f"{prefix}.expression")
     )
 
 
@@ -167,41 +223,67 @@ def _who(page: CarouselPage, logo_uri: str, company: str) -> str:
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
         '<div class="sheet folder"></div>'
         '<div class="sheet profile-sheet">'
-        '<div class="page-label">COMPANY FILE</div>'
+        + _text_box("page-label", "COMPANY FILE", classes="page-label")
         + _heading(page)
         + '<div class="identity-map" aria-hidden="true">'
-        '<span data-visual="identity-node">AI 產品</span><i>→</i>'
-        '<span data-visual="identity-node">目標使用者</span><i>→</i>'
-        '<span data-visual="identity-node">核心價值</span>'
-        '</div>'
-        '<div class="profile-grid schema-profile">'
+        + _text_box(
+            "identity-product",
+            "AI 產品",
+            classes="identity-node identity-product",
+            tag="span",
+        )
+        + _text_box(
+            "identity-arrow-1", "→", classes="identity-arrow", tag="i"
+        )
+        + _text_box(
+            "identity-user",
+            "目標使用者",
+            classes="identity-node identity-user",
+            tag="span",
+        )
+        + _text_box(
+            "identity-arrow-2", "→", classes="identity-arrow", tag="i"
+        )
+        + _text_box(
+            "identity-value",
+            "核心價值",
+            classes="identity-node identity-value",
+            tag="span",
+        )
+        + '</div>'
+        + '<div class="profile-grid schema-profile">'
         + _layout_box(
             "logo",
             f'<img src="{logo_uri}" alt="{html.escape(company)} Logo">',
             classes="logo-slot",
         )
         + '<div class="profile-copy">'
-        + _layout_box(
-            "positioning",
-            f"<b>{html.escape(positioning.label)}</b>"
-            + _editable("page.who.section.0.text", positioning.text),
-            tag="section",
-            classes="profile-section",
+        + _background_box("positioning-bg", "profile-section-bg positioning-bg")
+        + _text_box(
+            "positioning-label", positioning.label, classes="section-label"
         )
-        + _layout_box(
-            "facts",
-            f"<b>{html.escape(facts.label)}</b>"
-            + _editable("page.who.section.1.text", facts.text),
-            tag="section",
-            classes="profile-section",
+        + _text_box(
+            "positioning-text",
+            positioning.text,
+            classes="section-text",
+            edit_key="page.who.section.0.text",
+        )
+        + _background_box("facts-bg", "profile-section-bg facts-bg")
+        + _text_box("facts-label", facts.label, classes="section-label")
+        + _text_box(
+            "facts-text",
+            facts.text,
+            classes="section-text",
+            edit_key="page.who.section.1.text",
         )
         + "</div></div>"
-        + _layout_box(
-            "reason",
-            f"<b>{html.escape(reason.label)}</b>"
-            + _editable("page.who.section.2.text", reason.text),
-            tag="div",
-            classes="thesis",
+        + _background_box("reason-bg", "thesis-bg")
+        + _text_box("reason-label", reason.label, classes="section-label")
+        + _text_box(
+            "reason-text",
+            reason.text,
+            classes="section-text",
+            edit_key="page.who.section.2.text",
         )
         + '</div>'
         + _layout_box("mascot", _mascot_html("who"), classes="mascot-box")
@@ -219,21 +301,34 @@ def _problem(page: CarouselPage) -> str:
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
         '<div class="sheet shared-back"></div>'
         '<div class="sheet shared-sheet">'
-        '<div class="question-bg" aria-hidden="true">?</div>'
-        '<div class="page-label">THE OPPORTUNITY</div>'
+        + _layout_box(
+            "question-mark",
+            "?",
+            classes="question-bg",
+            attributes='aria-hidden="true"',
+        )
+        + _text_box("page-label", "THE OPPORTUNITY", classes="page-label")
         + _heading(page)
         + '<div class="problem-context">'
-        + _layout_box(
-            "current",
-            f"<b>{html.escape(current.label)}</b>"
-            + _editable("page.problem.section.0.text", current.text),
-            classes="sticky-note mint",
+        + _background_box("current-bg", "problem-context-bg current-bg")
+        + _text_box("current-label", current.label, classes="section-label")
+        + _text_box(
+            "current-text",
+            current.text,
+            classes="section-text",
+            edit_key="page.problem.section.0.text",
         )
-        + _layout_box(
-            "opportunity",
-            f"<b>{html.escape(opportunity.label)}</b>"
-            + _editable("page.problem.section.1.text", opportunity.text),
-            classes="sticky-note yellow",
+        + _background_box(
+            "opportunity-bg", "problem-context-bg opportunity-bg"
+        )
+        + _text_box(
+            "opportunity-label", opportunity.label, classes="section-label"
+        )
+        + _text_box(
+            "opportunity-text",
+            opportunity.text,
+            classes="section-text",
+            edit_key="page.problem.section.1.text",
         )
         + '</div><div class="notes schema-notes">'
         + _layout_box(
@@ -242,9 +337,9 @@ def _problem(page: CarouselPage) -> str:
             classes="causal-spine",
             attributes='data-visual="causal-spine"',
         )
-        + _node_card(page, 0, "stage-1", "problem-note n1")
-        + _node_card(page, 1, "stage-2", "problem-note n2")
-        + _node_card(page, 2, "stage-3", "problem-note n3")
+        + _problem_node_layers(page, 0)
+        + _problem_node_layers(page, 1)
+        + _problem_node_layers(page, 2)
         + '</div></div>'
         + _layout_box("mascot", _mascot_html("problem"), classes="mascot-box")
         + "</article>"
