@@ -267,3 +267,53 @@ def test_template_editor_mobile_is_read_only_without_overflow(tmp_path):
             assert page.evaluate("document.documentElement.scrollWidth") == 375
             expect(page.locator(".overlay-layer")).to_be_hidden()
             browser.close()
+
+
+def test_template_preview_refits_after_desktop_viewport_becomes_mobile(tmp_path):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15_000)
+            _open_results(editor)
+            editor.locator(
+                '.template-document [data-layout-id="before-title"]'
+            ).click(position={"x": 10, "y": 10})
+
+            page.set_viewport_size({"width": 375, "height": 812})
+            page.wait_for_timeout(250)
+            stage_box = editor.locator(".template-stage").bounding_box()
+            document_box = editor.locator(".template-document").bounding_box()
+
+            assert document_box["x"] + document_box["width"] <= (
+                stage_box["x"] + stage_box["width"] + 1
+            )
+            browser.close()
+
+
+def test_template_editor_clears_selection_that_is_missing_on_the_next_page(
+    tmp_path,
+):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page_errors = []
+            page.on("pageerror", lambda error: page_errors.append(str(error)))
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15_000)
+            _open_results(editor)
+            editor.locator(
+                '.template-document [data-layout-id="before-title"]'
+            ).click(position={"x": 10, "y": 10})
+
+            editor.get_by_role("button", name=f"01 {card_pages.label('cover')}").click()
+            expect(
+                editor.locator('.template-document article[data-page-type="cover"]')
+            ).to_be_attached(timeout=15_000)
+            expect(editor.locator(".property-title")).to_have_text("選擇一個元素")
+            assert page_errors == []
+            browser.close()

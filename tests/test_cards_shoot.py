@@ -258,10 +258,10 @@ def test_text_actually_rendered_with_the_bundled_font(tmp_path):
     assert len(inked) > 20, "封面公司名沒有足夠文字像素，代表字型可能未載入"
 
 
-def test_saved_flow_card_font_size_changes_the_visible_text(tmp_path):
+def test_saved_flow_body_font_size_changes_the_visible_text(tmp_path):
     asset = brand_asset(_test_logo(tmp_path))
     base = load_builtin_layout()
-    enlarged = replace_element(base, "how-ai", "step-1", font_size=36)
+    enlarged = replace_element(base, "how-ai", "step-1-text", font_size=36)
     paths = []
     for name, layout in (("base", base), ("enlarged", enlarged)):
         path = tmp_path / f"{name}.html"
@@ -279,10 +279,7 @@ def test_saved_flow_card_font_size_changes_the_visible_text(tmp_path):
             page.goto(path.as_uri())
             sizes.append(
                 float(
-                    page.locator(
-                        '[data-layout-id="step-1"] > '
-                        'span[data-edit-key$=".text"]'
-                    )
+                    page.locator('[data-layout-id="step-1-text"]')
                     .evaluate("node => parseFloat(getComputedStyle(node).fontSize)")
                 )
             )
