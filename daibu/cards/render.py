@@ -171,6 +171,46 @@ def _how_ai_node_layers(page: CarouselPage, index: int) -> str:
     )
 
 
+def _result_node_layers(page: CarouselPage, index: int) -> str:
+    assert page.diagram is not None
+    node = page.diagram.nodes[index]
+    prefix = ("before", "intervention", "after")[index]
+    edit_prefix = f"page.results.diagram.{index}"
+    if prefix == "intervention":
+        marker = _layout_box(
+            "intervention-arrow",
+            "→",
+            tag="i",
+            classes="result-marker result-arrow",
+            attributes='aria-hidden="true"',
+        )
+    else:
+        marker = _text_box(
+            f"{prefix}-tag",
+            "BEFORE" if prefix == "before" else "AFTER",
+            classes="result-marker result-tag",
+            tag="i",
+        )
+    return (
+        _background_box(f"{prefix}-bg", f"result-card-bg {prefix}-bg")
+        + marker
+        + _text_box(
+            f"{prefix}-title",
+            node.title,
+            classes="result-title",
+            edit_key=f"{edit_prefix}.title",
+            tag="b",
+        )
+        + _text_box(
+            f"{prefix}-text",
+            node.text,
+            classes="result-text",
+            edit_key=f"{edit_prefix}.text",
+        )
+        + _hidden_edit_hook(f"{edit_prefix}.expression")
+    )
+
+
 def _node_card(page: CarouselPage, index: int, element_id: str, classes: str) -> str:
     assert page.diagram is not None
     node = page.diagram.nodes[index]
@@ -256,29 +296,32 @@ def _who(page: CarouselPage, logo_uri: str, company: str) -> str:
         + _text_box("page-label", "COMPANY FILE", classes="page-label")
         + _heading(page)
         + '<div class="identity-map" aria-hidden="true">'
-        + _text_box(
+        + _layout_box(
             "identity-product",
             "AI 產品",
             classes="identity-node identity-product",
             tag="span",
+            attributes='data-visual="identity-node"',
         )
         + _text_box(
             "identity-arrow-1", "→", classes="identity-arrow", tag="i"
         )
-        + _text_box(
+        + _layout_box(
             "identity-user",
             "目標使用者",
             classes="identity-node identity-user",
             tag="span",
+            attributes='data-visual="identity-node"',
         )
         + _text_box(
             "identity-arrow-2", "→", classes="identity-arrow", tag="i"
         )
-        + _text_box(
+        + _layout_box(
             "identity-value",
             "核心價值",
             classes="identity-node identity-value",
             tag="span",
+            attributes='data-visual="identity-node"',
         )
         + '</div>'
         + '<div class="profile-grid schema-profile">'
@@ -446,30 +489,38 @@ def _results(page: CarouselPage) -> str:
         '<span class="tape tape-left"></span><span class="tape tape-right"></span>'
         '<div class="sheet shared-back"></div>'
         '<div class="sheet shared-sheet model-sheet results-sheet">'
-        '<div class="page-label">BEFORE &amp; AFTER</div>'
+        + _text_box("page-label", "BEFORE & AFTER", classes="page-label")
         + _heading(page)
-        + _layout_box(
-            "audience",
-            f"<b>{html.escape(audience.label)}</b>"
-            + _editable("page.results.section.0.text", audience.text),
-            classes="sticky-note audience",
+        + _background_box("audience-bg", "audience-bg")
+        + _text_box("audience-label", audience.label, classes="section-label")
+        + _text_box(
+            "audience-text",
+            audience.text,
+            classes="section-text",
+            edit_key="page.results.section.0.text",
         )
         + '<div class="result-flow">'
-        + _node_card(page, 0, "before", "result-card mint")
-        + _node_card(page, 1, "intervention", "result-card yellow")
-        + _node_card(page, 2, "after", "result-card mint")
+        + _result_node_layers(page, 0)
+        + _result_node_layers(page, 1)
+        + _result_node_layers(page, 2)
         + "</div>"
-        + _layout_box(
-            "core-difference",
-            f"<b>{html.escape(difference.label)}</b>"
-            + _editable("page.results.section.1.text", difference.text),
-            classes="sticky-note white",
+        + _background_box("core-difference-bg", "result-summary-bg core-difference-bg")
+        + _text_box(
+            "core-difference-label", difference.label, classes="section-label"
         )
-        + _layout_box(
-            "value",
-            f"<b>{html.escape(value.label)}</b>"
-            + _editable("page.results.section.2.text", value.text),
-            classes="sticky-note yellow",
+        + _text_box(
+            "core-difference-text",
+            difference.text,
+            classes="section-text",
+            edit_key="page.results.section.1.text",
+        )
+        + _background_box("value-bg", "result-summary-bg value-bg")
+        + _text_box("value-label", value.label, classes="section-label")
+        + _text_box(
+            "value-text",
+            value.text,
+            classes="section-text",
+            edit_key="page.results.section.2.text",
         )
         + "</div>"
         + _layout_box("mascot", _mascot_html("results"), classes="mascot-box")
