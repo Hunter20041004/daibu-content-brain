@@ -125,6 +125,34 @@ def test_results_payload_separates_background_and_title_properties():
     ]
 
 
+def test_problem_payload_does_not_expose_removed_causal_spine():
+    layout = load_builtin_layout()
+    version = SimpleNamespace(
+        id=11,
+        version_no=1,
+        created_at="2026-08-23T10:00:00",
+        layout=layout,
+    )
+    preview = "".join(
+        f'<span data-layout-id="{element_id}"></span>'
+        for element_id in layout.pages["problem"].elements
+        if element_id != "spine"
+    )
+
+    payload = template_editor_payload(
+        SimpleNamespace(id=7, name="AI 新創介紹"),
+        [version],
+        version,
+        "problem",
+        preview,
+    )
+
+    assert "spine" not in {
+        item["elementId"] for item in payload["elements"]
+    }
+    assert "spine" not in payload["previewSyncError"]
+
+
 def test_template_payload_rejects_duplicate_renderer_layout_hook():
     layout = load_builtin_layout()
     version = SimpleNamespace(

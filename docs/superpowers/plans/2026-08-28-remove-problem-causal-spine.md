@@ -4,14 +4,14 @@
 
 **Goal:** Remove the entire pink dashed causal guide, its three circles, and arrow from carousel page 3 without moving its cards or text.
 
-**Architecture:** Delete the decorative `causal-spine` node from the shared Renderer and remove its now-unused CSS. Because editor preview and PNG export both consume the Renderer, one change removes the graphic everywhere without schema or database changes.
+**Architecture:** Delete the decorative `causal-spine` node from the shared Renderer and remove its now-unused CSS. Keep the historical `spine` geometry readable in schema v4, but mark it non-rendered so validation and the editor omit it. Editor preview and PNG export both consume the Renderer, so the graphic disappears everywhere without a schema-version or database change.
 
 **Tech Stack:** Python 3.11, Streamlit, HTML/CSS Renderer, pytest, Playwright Chromium.
 
 ## Global Constraints
 
 - Preserve all page-3 card and text coordinates.
-- Do not change schema v4, layout JSON, migration code, SQLite tables, template bindings, or content revisions.
+- Do not bump schema v4, rewrite layout JSON, change migration output, SQLite tables, template bindings, or content revisions. A registry-only renderability flag is allowed for backward compatibility.
 - Use strict vertical TDD: one failing test, minimal implementation, Green, then refactor.
 - Complete two 1280×800 and 375×812 screenshot QA rounds before rollout.
 - Preserve root untracked `.DS_Store`, `.claude/`, and `.impeccable/`.
@@ -27,7 +27,7 @@
 
 **Interfaces:**
 - Consumes: existing `_problem_page()` Renderer composition and page-3 visual regression test.
-- Produces: page-3 markup with the same registered layout hooks but no `causal-spine` decoration.
+- Produces: page-3 markup with the same stored layout geometry but no rendered or selectable `causal-spine` decoration.
 
 - [ ] **Step 1: Change one Renderer assertion to the new expected behavior**
 

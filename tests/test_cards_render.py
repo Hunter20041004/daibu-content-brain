@@ -148,7 +148,7 @@ def test_problem_restores_the_approved_v57_story_layers(tmp_path):
     assert markup.count('data-visual="cycle-icon"') == 1
     assert markup.count('data-visual="target-icon"') == 1
     assert markup.count('data-visual="growth-icon"') == 1
-    assert markup.count('data-visual="causal-spine"') == 1
+    assert 'data-visual="causal-spine"' not in markup
 
 
 def test_problem_node_title_body_icon_and_background_are_independent(tmp_path):
@@ -280,12 +280,12 @@ def test_content_sync_targets_text_span_without_replacing_sticky_label(tmp_path)
     )
 
 
-def test_problem_renders_context_and_three_connected_flow_cards(tmp_path):
+def test_problem_renders_context_and_three_flow_cards(tmp_path):
     page = carousel_draft().pages[2]
     markup = _markup(_render(tmp_path, 2))
 
     for element_id in (
-        "heading", "current-bg", "opportunity-bg", "spine", "stage-1-bg", "stage-2-bg", "stage-3-bg", "mascot"
+        "heading", "current-bg", "opportunity-bg", "stage-1-bg", "stage-2-bg", "stage-3-bg", "mascot"
     ):
         assert markup.count(f'data-layout-id="{element_id}"') == 1
     assert page.diagram is not None

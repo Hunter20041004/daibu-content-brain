@@ -1,5 +1,18 @@
 # HANDOFF — 六頁 v57 正式模板整合
 
+## 2026-08-28 第 3 頁移除因果導引線
+
+- **產品能力**：第 3 頁「它想優化什麼」已完整移除三張問題卡左側的粉紅垂直虛線、三個圓點與底部箭頭；問題卡、卡片文字與既有座標不變。
+- **使用者體驗**：模板編輯器預覽與 PNG 出圖都不再顯示該裝飾，也不會留下透明、仍可被選取的幽靈區塊。
+- **技術結構與資料流程**：舊 v3／v4 layout 仍可讀取 `spine` 幾何欄位 → v4 registry 將它標成 `rendered=False` → 驗證器與編輯器略過該欄位 → 共用 Renderer 不輸出 DOM；因此預覽與 PNG 同步消失，不需要改 schema 版本或重寫 SQLite。
+- **設計理由與備援**：主方案移除 DOM 與專用 CSS，並保留舊資料讀取相容性，乾淨且不破壞歷史模板。備援方案是只加 `display:none`，成本較低但會留下無產品作用的 DOM、CSS 與可能的選取區，因此不採用。
+- **安全與成本**：沒有資料表遷移、正式資料寫入、新套件、外部 API、LLM 或付費操作；registry fingerprint 已納入呈現狀態，避免編輯器誤用舊快取。
+- **TDD 證據**：Renderer 不輸出線條、payload 不暴露退役元素、validator 不要求其可見、瀏覽器不出現同步錯誤，四個切片都先 Red 再 Green。Renderer／layout／PNG／編輯器聚焦套件為 `102 passed in 93.23s`。
+- **視覺 QA**：隔離 DB `integrity_check=ok`，本機 8768 完成兩輪 1280×800／375×812。最終 DOM `spine=0`、三張問題卡背景 `=3`、整頁 overflow `=0`、Streamlit exceptions `=0`、編輯器 alerts `=0`、console errors／warnings `=0`；層次、留白、字體、配色、對齊、響應式、狀態與既有微動效皆通過。證據：`.screenshots/remove-causal-spine-round1-desktop.png`、`.screenshots/remove-causal-spine-round1-mobile.png`、`.screenshots/remove-causal-spine-final-desktop.png`、`.screenshots/remove-causal-spine-final-mobile.png`。
+- **剩餘限制**：歷史 layout 仍保留 `spine` 欄位供相容讀取，但不呈現、不驗證可見性、也不送入編輯器；未重排第 3 頁卡片或修改其他頁面。
+- **規格與計畫**：`docs/superpowers/specs/2026-08-28-remove-problem-causal-spine-design.md`、`docs/superpowers/plans/2026-08-28-remove-problem-causal-spine.md`。
+- **部署狀態**：待功能分支與 main 完整測試、推送、正式服務重啟與 8501 核心流程驗收後補記。
+
 ## 2026-08-27 schema v4 第 2–5 頁獨立文字層
 
 - **產品能力**：第 2–5 頁每個可見的邏輯文字角色都能各自選取與調整；背景卡與文字不再綁成同一個版面元素。

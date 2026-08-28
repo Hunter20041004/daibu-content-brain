@@ -177,6 +177,8 @@ def inspect_layout(
     measured = {str(item["id"]): item for item in _measure(html_text)}
     issues = []
     for element_id, rule in registry[page_type].items():
+        if not rule.rendered:
+            continue
         item = measured.get(element_id)
         if item is None:
             issues.append(_visibility_issue(page_type, element_id, rule))

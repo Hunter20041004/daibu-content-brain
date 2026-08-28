@@ -404,12 +404,6 @@ def _problem(page: CarouselPage) -> str:
             edit_key="page.problem.section.1.text",
         )
         + '</div><div class="notes schema-notes">'
-        + _layout_box(
-            "spine",
-            "",
-            classes="causal-spine",
-            attributes='data-visual="causal-spine"',
-        )
         + _problem_node_layers(page, 0)
         + _problem_node_layers(page, 1)
         + _problem_node_layers(page, 2)

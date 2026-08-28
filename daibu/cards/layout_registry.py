@@ -15,6 +15,7 @@ class ElementRule:
     min_h: float = 24
     min_font_size: float = 22
     max_font_size: float = 132
+    rendered: bool = True
 
 
 def _rules(**rules: ElementRule) -> Mapping[str, ElementRule]:
@@ -152,7 +153,9 @@ ELEMENT_REGISTRY: Mapping[str, Mapping[str, ElementRule]] = MappingProxyType(
                 "opportunity-bg": _background("哪裡還能更好｜背景"),
                 "opportunity-label": _text("哪裡還能更好｜標籤"),
                 "opportunity-text": _text("哪裡還能更好｜說明"),
-                "spine": ElementRule("流程連接線", False, "background", 2, 24),
+                "spine": ElementRule(
+                    "流程連接線", False, "background", 2, 24, rendered=False
+                ),
                 **{
                     f"stage-{index}-{role}": (
                         _background(f"{label}｜背景")

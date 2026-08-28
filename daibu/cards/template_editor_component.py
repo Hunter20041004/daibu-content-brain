@@ -82,9 +82,10 @@ export default function(component) {
     const items=elementMap(state,data.pageType);
     const doc=root.querySelector('.template-document');
     Object.entries(items).forEach(([elementId,item])=>{
+      const descriptor=data.elements.find(entry=>entry.elementId===elementId);
+      if(!descriptor)return;
       const element=doc.querySelector(`[data-layout-id="${elementId}"]`);
       if(!element){missing.push(elementId);return;}
-      const descriptor=data.elements.find(entry=>entry.elementId===elementId);
       const values={left:`${item.x}px`,top:`${item.y}px`,width:`${item.w}px`,height:`${item.h}px`};
       if(descriptor?.kind==='text'){
         values['font-size']=`${item.font_size}px`;
@@ -100,7 +101,7 @@ export default function(component) {
     doc.style.transform=`scale(${stage.clientWidth/data.canvas.width})`;
   }
   function render() {
-    if(state.selected&&!elementMap(state,data.pageType)[state.selected]){state.selected=null;persist();}
+    if(state.selected&&!data.elements.some(item=>item.elementId===state.selected)){state.selected=null;persist();}
     const doc=root.querySelector('.template-document'); doc.innerHTML=data.previewHtml;
     const missing = applyWorkingLayout();
     const versionBar=root.querySelector('[data-role="version-bar"]'); versionBar.replaceChildren();

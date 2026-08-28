@@ -25,6 +25,33 @@ def _open_results(editor):
     ).to_be_attached(timeout=15_000)
 
 
+def _open_problem(editor):
+    editor.get_by_role(
+        "button", name=f"03 {card_pages.label('problem')}"
+    ).dispatch_event("click")
+    expect(
+        editor.locator('.template-document article[data-page-type="problem"]')
+    ).to_be_attached(timeout=15_000)
+
+
+def test_problem_editor_omits_retired_spine_without_sync_error(tmp_path):
+    with running_streamlit(tmp_path, _seed) as base_url:
+        with sync_playwright() as driver:
+            browser = driver.chromium.launch()
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(f"{base_url}/設定", wait_until="networkidle")
+            editor = page.locator('[data-role="template-editor"]')
+            expect(editor).to_be_visible(timeout=15_000)
+
+            _open_problem(editor)
+
+            expect(
+                editor.locator('.template-document [data-layout-id="spine"]')
+            ).to_have_count(0)
+            expect(editor.locator('[role="alert"]')).to_have_count(0)
+            browser.close()
+
+
 def test_six_page_template_editor_exposes_every_registered_layout_hook(tmp_path):
     with running_streamlit(tmp_path, _seed) as base_url:
         with sync_playwright() as driver:
@@ -44,7 +71,9 @@ def test_six_page_template_editor_exposes_every_registered_layout_hook(tmp_path)
                         f'.template-document article[data-page-type="{page_type}"]'
                     )
                 ).to_be_attached(timeout=15_000)
-                for element_id in ELEMENT_REGISTRY[page_type]:
+                for element_id, rule in ELEMENT_REGISTRY[page_type].items():
+                    if not rule.rendered:
+                        continue
                     assert editor.locator(
                         f'.template-document [data-layout-id="{element_id}"]'
                     ).count() == 1

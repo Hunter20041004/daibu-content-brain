@@ -17,7 +17,7 @@
 .flow-note i,.result-card i{display:grid;width:48px;height:48px;place-items:center;border-radius:50%;color:white;background:var(--coral);font-size:18px;font-style:normal;font-weight:900}
 .flow-note b,.result-card b{position:relative;z-index:2;font-size:1.11em}.flow-note span,.result-card span{position:relative;z-index:2;font-size:.89em}
 .card-icon{position:absolute;right:24px;bottom:18px;width:112px;height:112px;color:var(--ink);opacity:.12;pointer-events:none}
-.centered{align-items:center;text-align:center}.causal-spine{z-index:1;border-left:6px dashed var(--coral)}
+.centered{align-items:center;text-align:center}
 .flow-arrows{position:absolute;z-index:10;left:332px;top:450px;width:415px;display:flex;justify-content:space-between;color:var(--coral);font-size:56px;font-weight:900;pointer-events:none}
 .context-note{gap:8px;padding:22px 26px}.context-note b{font-size:.8em}.context-note span{font-size:.88em}.audience{padding:22px 28px}
 .page-problem>[data-layout-id="current"],.page-problem>[data-layout-id="opportunity"]{padding:22px 24px}
@@ -70,10 +70,6 @@
 .problem-note b{display:block;margin-bottom:8px;color:var(--coral);font-size:.78em;letter-spacing:.08em}
 .problem-note span{display:block;font-size:.9em;font-weight:800;line-height:1.35}
 .page-problem .card-icon{z-index:2;opacity:.16}
-.causal-spine{border-left:6px dashed var(--coral)}
-.causal-spine::before{content:"";position:absolute;left:-10px;top:0;width:12px;height:12px;border:3px solid var(--coral);border-radius:50%;background:var(--paper);box-sizing:border-box;box-shadow:0 300px 0 -3px var(--paper),0 300px 0 0 var(--coral),0 610px 0 -3px var(--paper),0 610px 0 0 var(--coral)}
-.causal-spine::after{content:"";position:absolute;left:-11px;bottom:-5px;width:16px;height:13px;background:var(--coral);clip-path:polygon(0 0,100% 0,50% 100%)}
-
 .schema-route{display:contents}
 .flow-arrows{display:none!important}
 .step-bg{box-shadow:11px 13px 0 rgba(64,90,130,.17)!important;overflow:hidden}

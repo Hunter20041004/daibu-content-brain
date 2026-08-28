@@ -95,3 +95,13 @@ def test_builtin_independent_layers_have_no_false_collision_issues(tmp_path):
     issues = layout_validation.inspect_pages(pages_html)
 
     assert [issue for issue in issues if issue.code == "collision"] == []
+
+
+def test_removed_problem_spine_is_not_required_to_be_visible(tmp_path):
+    html_text = render.page_html(
+        carousel_draft().pages[2], "ElevenLabs", _asset(tmp_path)
+    )
+
+    issues = layout_validation.inspect_layout(html_text, "problem")
+
+    assert all(issue.element_id != "spine" for issue in issues)

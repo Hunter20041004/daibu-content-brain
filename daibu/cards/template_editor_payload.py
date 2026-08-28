@@ -42,6 +42,7 @@ def _registry_fingerprint(
                     element_id,
                     getattr(rule, "text"),
                     getattr(rule, "collision"),
+                    getattr(rule, "rendered"),
                 )
                 for element_id, rule in rules.items()
             )
@@ -63,7 +64,12 @@ def missing_preview_element_ids(
     registry: Mapping[str, Mapping[str, object]],
 ) -> tuple[str, ...]:
     found = set(preview_layout_id_counts(preview_html))
-    return tuple(sorted(set(registry[page_type]) - found))
+    expected = {
+        element_id
+        for element_id, rule in registry[page_type].items()
+        if getattr(rule, "rendered", True)
+    }
+    return tuple(sorted(expected - found))
 
 
 def preview_layout_id_counts(preview_html: str) -> dict[str, int]:
@@ -148,8 +154,8 @@ def template_editor_payload(
     duplicates = tuple(
         sorted(
             element_id
-            for element_id in registry[page_type]
-            if counts.get(element_id, 0) > 1
+            for element_id, rule in registry[page_type].items()
+            if rule.rendered and counts.get(element_id, 0) > 1
         )
     )
     if missing:
@@ -160,6 +166,8 @@ def template_editor_payload(
         sync_error = ""
     elements = []
     for element_id, rule in registry[page_type].items():
+        if not rule.rendered:
+            continue
         properties = ("x", "y", "w", "h", "font_size", "text_align") if rule.text else ("x", "y", "w", "h")
         elements.append({
             "elementId": element_id,
