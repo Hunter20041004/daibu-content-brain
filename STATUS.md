@@ -1,6 +1,6 @@
 # 專案現況 — 呆一布選題大腦（Daibu Content Brain）
 
-> 由 Claude 建立、於 2026-07-30 更新。**新對話請先讀這份**。
+> 於 2026-07-30 更新。
 
 ## 這是什麼
 
@@ -15,12 +15,6 @@
 - `daibu/` — 核心邏輯；`pages/` — Streamlit 各頁；`app.py` — 進入點
 - 測試：`.venv/bin/pytest`（`pytest.ini` 已設 `pythonpath = .`）
 - LLM：**免費層可切換**（gemini／groq，不綁單一供應商）
-
-## 工作分工（重要）
-
-**Claude 是大腦 🧠**：發想、設計決策、寫 `docs/` 的 spec 與 TDD 計畫、更新
-`HANDOFF.md`。**不直接寫實作程式碼。**
-**Codex 是手 🖐**：照 `HANDOFF.md` 與 `docs/` 的計畫實作（紅→綠→重構）。
 
 ## 已定案的設計決策
 

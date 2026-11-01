@@ -8,16 +8,6 @@ __pycache__/
 .superpowers/
 .worktrees/
 assets/logos/
-artifacts/demo-video/edit/*.webm
-artifacts/demo-video/edit/*.mp4
-artifacts/demo-video/edit/*.mov
-artifacts/demo-video/edit/*.ts
-artifacts/demo-video/edit/*.zip
-artifacts/demo-video/edit/segments.txt
-artifacts/demo-video/edit/verify/*.png
-artifacts/demo-video/edit/clips/
-artifacts/demo-video/edit/patch/
-artifacts/demo-video/edit/verify/
 
 # macOS Finder 檢視狀態，不是專案內容
 .DS_Store
